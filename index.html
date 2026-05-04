@@ -6,6 +6,29 @@
     <title>Sistema de Gramaje - Lab CTTC</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        /* Estilos Responsivos */
+        @media (max-width: 768px) {
+            .excel-header {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 15px;
+            }
+            .ot-info-bar {
+                flex-direction: column;
+                align-items: flex-start !important;
+                gap: 10px;
+            }
+            #gramajeForm select, #gramajeForm input, #gramajeForm button {
+                width: 100%;
+                box-sizing: border-box;
+                margin-bottom: 10px;
+            }
+            .toolbar, #gramajeForm > div:last-child {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
 </head>
 <body>
     <div class="app-container">
@@ -66,6 +89,7 @@
             </section>
 
             <section class="spreadsheet-view">
+                <div style="overflow-x: auto; width: 100%;">
                 <table id="tablaDatos">
                     <thead>
                         <tr>
@@ -82,6 +106,7 @@
                     <tbody id="resultadoCuerpo">
                         </tbody>
                 </table>
+                </div>
             </section>
             </div>
         </main>
