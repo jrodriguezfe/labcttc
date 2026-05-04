@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Gramaje - Lab CTTC</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <header class="excel-header">
+            <div class="brand">
+                <div class="logo-placeholder">CTTC</div>
+                <h1>Control de Gramaje y Rendimiento</h1>
+            </div>
+            <div class="toolbar">
+                <button id="btnRepeticion" class="btn-secondary" style="margin-right: 10px; cursor: pointer;">🔄 Repetición</button>
+                <button id="btnExportar" class="btn-excel">📥 Exportar Reporte (.xlsx)</button>
+            </div>
+        </header>
+
+        <div id="otTray" style="padding: 20px;">
+            <h2 style="color: #333; margin-bottom: 10px;">Bandeja de Órdenes de Trabajo (OT)</h2>
+            <div id="otList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+
+        <div id="muestraTray" style="padding: 20px; display: none;">
+            <h2 id="muestraTrayTitle" style="color: #333; margin-bottom: 10px;">Seleccione una Muestra</h2>
+            <button id="btnVolverAOTs" class="btn-secondary" style="margin-bottom: 15px;">⬅ Volver a Órdenes</button>
+            <div id="muestraList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+
+        <div id="ensayoTray" style="padding: 20px; display: none;">
+            <h2 id="ensayoTrayTitle" style="color: #333; margin-bottom: 10px;">Seleccione un Ensayo</h2>
+            <button id="btnVolverAMuestras" class="btn-secondary" style="margin-bottom: 15px;">⬅ Volver a Muestras</button>
+            <div id="ensayoList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+
+        <main id="mainWorkArea" style="display: none;">
+            <div class="ot-info-bar" style="background: #eef; padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-left: 4px solid #004a8f;">
+                <span id="currentOtDisplay" style="font-size: 1.1em;"></span>
+                <button type="button" id="btnVolverAEnsayos" class="btn-secondary">Volver a Ensayos</button>
+            </div>
+
+            <div id="ensayoConstruccion" style="display: none; padding: 40px; text-align: center; color: #666; background: #f9f9f9; border-radius: 5px; border: 1px dashed #ccc;">
+                <h3>Área en construcción para este ensayo 🚧</h3>
+            </div>
+
+            <div id="areaGramaje">
+                <section class="entry-bar">
+                <form id="gramajeForm">
+                    <select id="tipoCorte" required>
+                        <option value="" disabled selected>Tipo de Corte</option>
+                        <option value="CIRCULAR">Circular</option>
+                        <option value="CUADRADO">Cuadrado</option>
+                    </select>
+                    <div id="avisoCorte" style="font-size: 0.85em; color: #555; margin-bottom: 10px; display: none; text-align: left;"></div>
+                    <input type="number" id="numProbetas" placeholder="Numero de probetas" value="5" min="1" required>
+                    <div id="contenedorPesos" style="display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;"></div>
+                    <div style="display: flex; align-items: center; gap: 15px;">
+                        <button type="submit" class="btn-primary">Añadir Registro</button>
+                        <span id="badgeRepeticion" style="display: none; color: #d97706; background-color: #fef3c7; padding: 5px 10px; border-radius: 4px; font-weight: bold; font-size: 0.9em; border: 1px solid #d97706;">🔄 Es una repetición</span>
+                    </div>
+                </form>
+            </section>
+
+            <section class="spreadsheet-view">
+                <table id="tablaDatos">
+                    <thead>
+                        <tr>
+                            <th>Tipo de Corte</th>
+                            <th>Numero de probetas</th>
+                            <th>Repetición</th>
+                            <th>Pesos de probetas</th>
+                            <th>Gramajes ind. (g/m²)</th>
+                            <th>Promedio (g/m²)</th>
+                            <th>Promedio (oz/yd²)</th>
+                            <th class="no-export">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultadoCuerpo">
+                        </tbody>
+                </table>
+            </section>
+            </div>
+        </main>
+    </div>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>

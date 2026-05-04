@@ -1,0 +1,97 @@
+:root {
+    --excel-green: #217346;
+    --border: #d1d1d1;
+    --text: #333;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, sans-serif;
+    margin: 0;
+    color: var(--text);
+}
+
+.excel-header {
+    background: var(--excel-green);
+    color: white;
+    padding: 10px 20px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.brand h1 { font-size: 1.2rem; margin: 0; }
+
+.entry-bar {
+    background: #f3f3f3;
+    padding: 15px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+#gramajeForm {
+    display: flex;
+    gap: 10px;
+}
+
+#gramajeForm input {
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    flex: 1;
+}
+
+.btn-primary {
+    background: #0078d4;
+    color: white;
+    border: none;
+    padding: 0 20px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.spreadsheet-view {
+    overflow-y: auto;
+    max-height: calc(100vh - 160px);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.9rem;
+}
+
+th {
+    background: #e6e6e6;
+    border: 1px solid var(--border);
+    padding: 10px;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+}
+
+td {
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+}
+
+tr:hover { background: #f0f7ff; }
+
+.btn-excel {
+    background: white;
+    color: var(--excel-green);
+    border: none;
+    padding: 8px 15px;
+    font-weight: bold;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.delete-btn {
+    background: transparent;
+    color: #c0392b;
+    border: 1px solid #c0392b;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.delete-btn:hover { background: #fee; }
