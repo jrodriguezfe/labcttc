@@ -31,7 +31,42 @@
     </style>
 </head>
 <body>
-    <div class="app-container">
+        <!-- SECCIÓN DE AUTENTICACIÓN -->
+        <div id="authSection" style="max-width: 400px; margin: 50px auto; padding: 30px; border: 1px solid #ccc; border-radius: 8px; background: #fff; text-align: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+            
+            <!-- Contenedor Login -->
+            <div id="loginContainer">
+                <h2 style="color: #004a8f; margin-bottom: 20px;">Iniciar Sesión</h2>
+                <form id="loginForm" style="display: flex; flex-direction: column; gap: 15px;">
+                    <input type="email" id="loginEmail" placeholder="Correo Electrónico" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                    <input type="password" id="loginPass" placeholder="Contraseña" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                    <button type="submit" class="btn-primary" style="padding: 12px; font-size: 16px; cursor: pointer;">Ingresar</button>
+                </form>
+                <p style="margin-top: 20px; font-size: 0.9em;">¿No tienes una cuenta? <br><button id="btnShowRegister" class="btn-secondary" style="margin-top: 10px; padding: 8px 12px; cursor: pointer;">Crear cuenta de analista</button></p>
+            </div>
+
+            <!-- Contenedor Registro -->
+            <div id="registerContainer" style="display: none;">
+                <h2 style="color: #004a8f; margin-bottom: 20px;">Registrar Analista</h2>
+                <form id="registerForm" style="display: flex; flex-direction: column; gap: 15px;">
+                    <input type="text" id="regNombre" placeholder="Nombre Completo" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                    <input type="text" id="regCargo" placeholder="Cargo o Especialidad" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                    <input type="email" id="regEmail" placeholder="Correo Electrónico" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                    <input type="password" id="regPass" placeholder="Contraseña (Mín. 6 caracteres)" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                    <button type="submit" class="btn-primary" style="padding: 12px; font-size: 16px; cursor: pointer;">Registrar</button>
+                </form>
+                <p style="margin-top: 20px; font-size: 0.9em;">¿Ya tienes cuenta? <br><button id="btnShowLogin" class="btn-secondary" style="margin-top: 10px; padding: 8px 12px; cursor: pointer;">Volver a Iniciar Sesión</button></p>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE LA APLICACIÓN (Oculta hasta iniciar sesión) -->
+        <div class="app-container" id="appSection" style="display: none;">
+            <!-- Barra superior con datos del usuario -->
+            <div style="text-align: right; padding: 10px 15px; background: #eef; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #004a8f;">
+                Analista logueado: <strong id="userDisplay"></strong> 
+                <button id="btnLogout" class="btn-secondary" style="margin-left: 15px; cursor: pointer; padding: 5px 10px;">Cerrar Sesión</button>
+            </div>
+
         <header class="excel-header">
             <div class="brand">
                 <div class="logo-placeholder">CTTC</div>

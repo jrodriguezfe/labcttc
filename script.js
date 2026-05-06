@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBR88EcYJPL3xIdr5X_p8cx2TEjz7LuzpM",
@@ -12,6 +13,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
+const auth = getAuth(app);
 const colRef = collection(db, "gramajes");
 
 let editandoId = null;
@@ -254,6 +256,80 @@ window.editarRegistro = async (id) => {
         window.scrollTo({ top: 0, behavior: 'smooth' }); // Llevar la pantalla hacia arriba
     }
 };
+
+// --- Lógica de Autenticación (Login / Registro) ---
+
+// Monitor del estado de sesión
+onAuthStateChanged(auth, (user) => {
+    const authSection = document.getElementById('authSection');
+    const appSection = document.getElementById('appSection');
+    
+    if (user) {
+        // Usuario logueado: mostrar app, ocultar login
+        if (authSection) authSection.style.display = 'none';
+        if (appSection) appSection.style.display = 'block';
+        const userDisplay = document.getElementById('userDisplay');
+        if (userDisplay) userDisplay.textContent = user.email;
+    } else {
+        // Sin sesión: mostrar login, ocultar app
+        if (authSection) authSection.style.display = 'block';
+        if (appSection) appSection.style.display = 'none';
+    }
+});
+
+// Iniciar Sesión
+document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const pass = document.getElementById('loginPass').value;
+    try {
+        await signInWithEmailAndPassword(auth, email, pass);
+    } catch (error) {
+        alert("Error al iniciar sesión: " + error.message);
+    }
+});
+
+// Crear Nueva Cuenta y registrar en colección 'analistas'
+document.getElementById('registerForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('regEmail').value;
+    const pass = document.getElementById('regPass').value;
+    const nombre = document.getElementById('regNombre').value;
+    const cargo = document.getElementById('regCargo').value; // Dato extra de ejemplo
+    
+    try {
+        // Crear usuario en Firebase Auth
+        const userCredential = await createUserWithEmailAndPassword(auth, email, pass);
+        const user = userCredential.user;
+        
+        // Guardar datos adicionales en Firestore (colección 'analistas')
+        await setDoc(doc(db, "analistas", user.uid), {
+            email: email,
+            nombre: nombre,
+            cargo: cargo,
+            fechaCreacion: new Date().toISOString()
+        });
+        
+        alert("Cuenta de analista creada exitosamente");
+    } catch (error) {
+        alert("Error al registrar la cuenta: " + error.message);
+    }
+});
+
+// Cerrar Sesión
+document.getElementById('btnLogout')?.addEventListener('click', async () => {
+    await signOut(auth);
+});
+
+// Alternar entre Login y Registro
+document.getElementById('btnShowRegister')?.addEventListener('click', () => {
+    document.getElementById('loginContainer').style.display = 'none';
+    document.getElementById('registerContainer').style.display = 'block';
+});
+document.getElementById('btnShowLogin')?.addEventListener('click', () => {
+    document.getElementById('registerContainer').style.display = 'none';
+    document.getElementById('loginContainer').style.display = 'block';
+});
 
 // --- Lógica de la Bandeja de Órdenes de Trabajo ---
 function renderOTTray() {
