@@ -35,6 +35,185 @@ const mockOTs = [
     { id: "OT-2026-003", muestras: ["MUE-C300", "MUE-C301", "MUE-C302"], estado: "Pendiente" }
 ];
 
+// --- Función de Cálculo de Diferencia Crítica ---
+function calcularDiferenciaCritica() {
+    const rows = document.getElementById('resultadoCuerpo').querySelectorAll('tr');
+    const panel = document.getElementById('panelDiferencia');
+    
+    // Necesitamos al menos 2 registros para comparar
+    if (rows.length >= 2) {
+        // Asumimos que toma los dos más recientes (rows[0] es el último ingresado, rows[1] es el anterior)
+        // Columna 6 corresponde a "Promedio (g/m²)"
+        const valB = parseFloat(rows[0].cells[6].innerText); // Equivalente a J25 (Repetición)
+        const valA = parseFloat(rows[1].cells[6].innerText); // Equivalente a J22 (Original)
+        
+        if (!isNaN(valA) && !isNaN(valB) && valA !== 0) {
+            // 1. Diferencia simple: =ABS(J22-J25)
+            const difSimple = Math.abs(valA - valB);
+            
+            // 2. Margen: =ABS(((J25*100)/J22)-100)/100
+            const margen = Math.abs(((valB * 100) / valA) - 100) / 100;
+            
+            // 3. Diferencia crítica final: diferencia simple - margen
+            const difCriticaFinal = difSimple - margen;
+            
+            document.getElementById('difSimpleVal').innerText = difSimple.toFixed(4);
+            document.getElementById('difMargenVal').innerText = (margen * 100).toFixed(1) + "%"; // Muestra un decimal (Ej: 28.6%)
+            document.getElementById('difCriticaVal').innerText = difCriticaFinal.toFixed(4);
+            
+            document.getElementById('difValoresEvaluados').innerText = `Valores evaluados (Promedio g/m²): Original (J22) = ${valA} | Repetición (J25) = ${valB}`;
+            
+            const msg = document.getElementById('difCriticaMsg');
+            msg.innerText = margen < 0.03 ? "✅ Cumple con el margen (˂ 3%)" : "❌ No cumple con el margen (≥ 3%)";
+            msg.style.color = margen < 0.03 ? "#217346" : "#c0392b";
+            
+            panel.style.display = 'block';
+            return;
+        }
+    }
+    panel.style.display = 'none'; // Ocultar si hay menos de 2 registros
+}
+
+// --- Función de Cálculo Opción C ---
+function calcularOpcionC() {
+    const rows = document.getElementById('resultadoCuerpo').querySelectorAll('tr');
+    const panel = document.getElementById('panelOpcionC');
+    let rowOriginal = null;
+
+    // Buscar el registro original más reciente (que NO sea repetición)
+    for (let i = 0; i < rows.length; i++) {
+        if (rows[i].cells[3].innerText === 'No') {
+            rowOriginal = rows[i];
+            break; // Tomamos el primero que cumpla (el más reciente)
+        }
+    }
+
+    if (rowOriginal) {
+        const ancho = parseFloat(rowOriginal.cells[2].innerText); // Ancho en mm
+        const pesosStr = rowOriginal.cells[4].innerText;
+        const gramajesStr = rowOriginal.cells[5].innerText;
+
+        if (!isNaN(ancho) && ancho > 0 && pesosStr !== '-' && gramajesStr !== '-') {
+            const pesos = pesosStr.split(',').map(p => parseFloat(p));
+            const gramajes = gramajesStr.split(',').map(g => parseFloat(g));
+            const numProbetas = pesos.length;
+            
+            const gmList = [], mkgList = [], ozyd2List = [], ozydList = [], ydlbList = [];
+
+            for (let i = 0; i < numProbetas; i++) {
+                const gr_m2 = gramajes[i];
+                
+                // g/m: g/m2 * ancho(m) - Se multiplica para obtener la masa lineal correcta
+                const g_m = gr_m2 * (ancho / 1000);
+                gmList.push(g_m);
+
+                // m/Kg: 1000 / g/m
+                const m_kg = g_m > 0 ? 1000 / g_m : 0;
+                mkgList.push(m_kg);
+
+                // Oz/yd²: g/m2 / 33.906
+                const oz_yd2 = gr_m2 / 33.906;
+                ozyd2List.push(oz_yd2);
+
+                // Oz/yd: Oz/yd2 * ancho(yd) -> 1 mm = 1/914.4 yd
+                const oz_yd = oz_yd2 * (ancho / 914.4);
+                ozydList.push(oz_yd);
+
+                // yd/lb: 16 / Oz/yd
+                const yd_lb = oz_yd > 0 ? 16 / oz_yd : 0;
+                ydlbList.push(yd_lb);
+            }
+
+            const promediar = (arr) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : 0;
+
+            const renderRow = (title, arr) => {
+                let html = `<tr><td style="font-weight: bold; text-align: left; padding: 8px; border: 1px solid #ccc;">${title}</td>`;
+                arr.forEach(val => html += `<td style="padding: 8px; border: 1px solid #ccc;">${parseFloat(val.toFixed(4))}</td>`);
+                html += `<td style="padding: 8px; border: 1px solid #ccc; font-weight: bold; background: #e6f4ea;">${parseFloat(promediar(arr).toFixed(4))}</td></tr>`;
+                return html;
+            };
+
+            let headHtml = `<tr><th style="padding: 8px; border: 1px solid #ccc; background: #f3f3f3;">Resultado Opción C</th>`;
+            for(let i = 1; i <= numProbetas; i++) headHtml += `<th style="padding: 8px; border: 1px solid #ccc; background: #f3f3f3;">Probeta ${i}</th>`;
+            headHtml += `<th style="padding: 8px; border: 1px solid #ccc; background: #f3f3f3;">Promedio</th></tr>`;
+            
+            document.getElementById('headOpcionC').innerHTML = headHtml;
+            document.getElementById('bodyOpcionC').innerHTML = renderRow("g/m (Gramo/metro lineal)", gmList) + renderRow("m/Kg (Metro lineal/Kg)", mkgList) + renderRow("Oz/yd² (Onza/yarda cuadrada)", ozyd2List) + renderRow("Oz/yd (Onza/yarda lineal)", ozydList) + renderRow("yd/lb (Yarda lineal/libra)", ydlbList);
+            panel.style.display = 'block';
+            return;
+        }
+    }
+    panel.style.display = 'none'; // Ocultar si no hay registro original válido
+}
+
+// --- Generador de la Tabla de Eficacia ---
+function generarTablasEficacia() {
+    const container = document.getElementById('contenedorTablasEficacia');
+    if (container.innerHTML !== '') return; // Evitar regenerar si ya existe
+    
+    let html = '';
+    html += generarBloqueAnalistasEficacia('A1', 'A2');
+    html += generarBloqueAnalistasEficacia('A3', 'A4');
+    container.innerHTML = html;
+
+    // Añadir listeners para calcular el promedio (g/m2) automáticamente
+    const inputs = container.querySelectorAll('.efi-input');
+    inputs.forEach(input => {
+        input.addEventListener('input', calcularPromedioEficacia);
+    });
+}
+
+function generarBloqueAnalistasEficacia(id1, id2) {
+    let rows = '';
+    for (let i = 1; i <= 10; i++) {
+        rows += `
+        <tr>
+            <td style="text-align: center; font-weight: bold; padding: 5px;">${i}</td>
+            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="background: #eef; font-weight: bold; text-align: center; padding: 5px;" id="efi-prom-${id1}-${i}">-</td>
+            <td style="text-align: center; font-weight: bold; border-left: 2px solid #004a8f; padding: 5px;">${i}</td>
+            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="background: #eef; font-weight: bold; text-align: center; padding: 5px;" id="efi-prom-${id2}-${i}">-</td>
+        </tr>`;
+    }
+    
+    return `
+    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9em;" border="1">
+        <thead style="background: #f3f3f3;">
+            <tr>
+                <th colspan="5" style="padding: 10px;">Analista ${id1}: <input type="text" placeholder="Nombre" style="padding: 5px; width: 60%; margin-left: 10px;"></th>
+                <th colspan="5" style="padding: 10px; border-left: 2px solid #004a8f;">Analista ${id2}: <input type="text" placeholder="Nombre" style="padding: 5px; width: 60%; margin-left: 10px;"></th>
+            </tr>
+            <tr>
+                <th style="padding: 8px;">#</th>
+                <th style="padding: 8px;">Gramaje 1</th><th style="padding: 8px;">Gramaje 2</th><th style="padding: 8px;">Gramaje 3</th><th style="padding: 8px;">g/m²</th>
+                <th style="border-left: 2px solid #004a8f; padding: 8px;">#</th>
+                <th style="padding: 8px;">Gramaje 1</th><th style="padding: 8px;">Gramaje 2</th><th style="padding: 8px;">Gramaje 3</th><th style="padding: 8px;">g/m²</th>
+            </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+    </table>`;
+}
+
+function calcularPromedioEficacia(e) {
+    const analista = e.target.getAttribute('data-analista');
+    const row = e.target.getAttribute('data-row');
+    const inputs = document.querySelectorAll(`.efi-row-${analista}-${row}`);
+    
+    let sum = 0; let count = 0;
+    inputs.forEach(inp => {
+        const val = parseFloat(inp.value);
+        if (!isNaN(val)) { sum += val; count++; }
+    });
+    
+    const cellProm = document.getElementById(`efi-prom-${analista}-${row}`);
+    cellProm.innerText = count > 0 ? parseFloat((sum / count).toFixed(4)) : '-';
+}
+
 // Carga de datos iniciales filtrados por la OT y Muestra seleccionadas
 async function cargarDatos() {
     if (!currentOT || !currentMuestra) return;
@@ -47,6 +226,8 @@ async function cargarDatos() {
             renderFila(doc.id, data);
         }
     });
+    calcularDiferenciaCritica();
+    calcularOpcionC();
 }
 
 // Generar inputs dinámicos para los pesos
@@ -56,7 +237,7 @@ function generarInputsPesos(num) {
     for (let i = 1; i <= num; i++) {
         const input = document.createElement('input');
         input.type = 'number';
-        input.step = '0.001';
+            input.step = '0.0001';
         input.className = 'peso-probeta';
         input.placeholder = `Peso Probeta ${i} (g)`;
         input.required = true;
@@ -107,17 +288,18 @@ document.getElementById('gramajeForm').addEventListener('submit', async (e) => {
     let sumaPesos = 0;
     inputsPesos.forEach(input => {
         const val = parseFloat(input.value) || 0;
-        pesos.push(val);
-        sumaPesos += val;
+        const pesoRedondeado = parseFloat(val.toFixed(4));
+        pesos.push(pesoRedondeado);
+        sumaPesos += pesoRedondeado;
         
         // Cálculo individual por cada probeta (Peso / Área)
-        const grInd = val / areaCalculada;
-        gramajesInd.push(parseFloat(grInd.toFixed(3)));
+        const grInd = pesoRedondeado / areaCalculada;
+        gramajesInd.push(parseFloat(grInd.toFixed(4)));
         sumaGramajes += grInd;
     });
 
     // Promedio de los gramajes calculados
-    const grPromedio = inputsPesos.length > 0 ? (sumaGramajes / inputsPesos.length).toFixed(3) : 0;
+    const grPromedio = inputsPesos.length > 0 ? parseFloat((sumaGramajes / inputsPesos.length).toFixed(4)) : 0;
 
     const data = {
         otId: currentOT.id,
@@ -126,11 +308,11 @@ document.getElementById('gramajeForm').addEventListener('submit', async (e) => {
         tipoCorte: tipoCorteSeleccionado,
         area: areaCalculada,
         numProbetas: parseInt(document.getElementById('numProbetas').value),
+        anchoEspecimen: parseFloat(document.getElementById('anchoEspecimen').value),
         pesos: pesos,
         gramajesInd: gramajesInd,
         pesoTotal: sumaPesos,
         gr: parseFloat(grPromedio),
-        oz: (parseFloat(grPromedio) / 33.906).toFixed(3),
         fecha: new Date().toISOString()
     };
 
@@ -139,18 +321,18 @@ document.getElementById('gramajeForm').addEventListener('submit', async (e) => {
         const row = document.getElementById(editandoId);
         if (row) {
             const repeticionDisplay = data.esRepeticion ? '<span style="color: #d97706; font-weight: bold;">Sí</span>' : 'No';
-            const pesosDisplay = data.pesos ? data.pesos.map(p => Number(p).toFixed(3) + 'g').join(', ') : '-';
-            const gramajesIndDisplay = data.gramajesInd ? data.gramajesInd.map(g => Number(g).toFixed(3)).join(', ') : '-';
-            const grDisplay = data.gr !== undefined ? Number(data.gr).toFixed(3) : '-';
-            const ozDisplay = data.oz !== undefined ? Number(data.oz).toFixed(3) : '-';
+                const pesosDisplay = data.pesos ? data.pesos.map(p => parseFloat(Number(p).toFixed(4)) + 'g').join(', ') : '-';
+            const anchoDisplay = data.anchoEspecimen != null ? Number(data.anchoEspecimen).toFixed(2) + ' mm' : '-';
+                const gramajesIndDisplay = data.gramajesInd ? data.gramajesInd.map(g => parseFloat(Number(g).toFixed(4))).join(', ') : '-';
+                const grDisplay = data.gr !== undefined ? parseFloat(Number(data.gr).toFixed(4)) : '-';
             row.innerHTML = `
                 <td>${data.tipoCorte || '-'}</td>
                 <td>${data.numProbetas || '-'}</td>
+                <td>${anchoDisplay}</td>
                 <td>${repeticionDisplay}</td>
                 <td>${pesosDisplay}</td>
                 <td>${gramajesIndDisplay}</td>
                 <td>${grDisplay}</td>
-                <td>${ozDisplay}</td>
                 <td class="no-export">
                     <button class="edit-btn" onclick="editarRegistro('${editandoId}')">Editar</button>
                     <button class="delete-btn" onclick="eliminarRegistro('${editandoId}')">Eliminar</button>
@@ -169,6 +351,8 @@ document.getElementById('gramajeForm').addEventListener('submit', async (e) => {
     e.target.reset();
     generarInputsPesos(5); // Volver a las 5 casillas originales
     document.getElementById('avisoCorte').style.display = 'none';
+    calcularDiferenciaCritica();
+    calcularOpcionC();
 });
 
 function renderFila(id, data) {
@@ -176,18 +360,18 @@ function renderFila(id, data) {
     row.id = id;
     const repeticionDisplay = data.esRepeticion ? '<span style="color: #d97706; font-weight: bold;">Sí</span>' : 'No';
     // Damos formato visual para mostrar los pesos separados por comas
-    const pesosDisplay = data.pesos ? data.pesos.map(p => Number(p).toFixed(3) + 'g').join(', ') : '-';
-    const gramajesIndDisplay = data.gramajesInd ? data.gramajesInd.map(g => Number(g).toFixed(3)).join(', ') : '-';
-    const grDisplay = data.gr !== undefined ? Number(data.gr).toFixed(3) : '-';
-    const ozDisplay = data.oz !== undefined ? Number(data.oz).toFixed(3) : '-';
+    const anchoDisplay = data.anchoEspecimen != null ? Number(data.anchoEspecimen).toFixed(2) + ' mm' : '-';
+    const pesosDisplay = data.pesos ? data.pesos.map(p => parseFloat(Number(p).toFixed(4)) + 'g').join(', ') : '-';
+    const gramajesIndDisplay = data.gramajesInd ? data.gramajesInd.map(g => parseFloat(Number(g).toFixed(4))).join(', ') : '-';
+    const grDisplay = data.gr !== undefined ? parseFloat(Number(data.gr).toFixed(4)) : '-';
     row.innerHTML = `
         <td>${data.tipoCorte || '-'}</td>
         <td>${data.numProbetas || '-'}</td>
+        <td>${anchoDisplay}</td>
         <td>${repeticionDisplay}</td>
         <td>${pesosDisplay}</td>
         <td>${gramajesIndDisplay}</td>
         <td>${grDisplay}</td>
-        <td>${ozDisplay}</td>
         <td class="no-export">
             <button class="edit-btn" onclick="editarRegistro('${id}')">Editar</button>
             <button class="delete-btn" onclick="eliminarRegistro('${id}')">Eliminar</button>
@@ -226,6 +410,8 @@ window.eliminarRegistro = async (id) => {
     if(confirm("¿Desea borrar este registro de la base de datos?")) {
         await deleteDoc(doc(db, "gramajes", id));
         document.getElementById(id).remove();
+        calcularDiferenciaCritica();
+        calcularOpcionC();
     }
 };
 
@@ -242,6 +428,7 @@ window.editarRegistro = async (id) => {
         document.getElementById('tipoCorte').dispatchEvent(new Event('change')); // Muestra el aviso correcto
         
         document.getElementById('numProbetas').value = data.numProbetas;
+        document.getElementById('anchoEspecimen').value = data.anchoEspecimen || '';
         generarInputsPesos(data.numProbetas);
         
         const inputsPesos = document.querySelectorAll('.peso-probeta');
@@ -396,11 +583,17 @@ function seleccionarEnsayo(ensayo) {
     document.getElementById('mainWorkArea').style.display = 'block';
     document.getElementById('currentOtDisplay').innerHTML = `<strong>OT:</strong> ${currentOT.id} &nbsp;|&nbsp; <strong>Muestra:</strong> <span style="color:#004a8f;">${currentMuestra}</span> &nbsp;|&nbsp; <strong>Ensayo:</strong> <span style="color:#004a8f;">${ensayo}</span>`;
     
+    // Mostrar el encabezado superior y actualizar el título dinámicamente
+    document.getElementById('headerApp').style.display = 'flex';
+    document.getElementById('tituloEnsayo').textContent = ensayo;
+
     if (ensayo === "Control de Gramaje y Rendimiento") {
+        document.getElementById('toolbarEnsayo').style.display = '';
         document.getElementById('areaGramaje').style.display = 'block';
         document.getElementById('ensayoConstruccion').style.display = 'none';
         cargarDatos();
     } else {
+        document.getElementById('toolbarEnsayo').style.display = 'none';
         document.getElementById('areaGramaje').style.display = 'none';
         document.getElementById('ensayoConstruccion').style.display = 'block';
         document.getElementById('resultadoCuerpo').innerHTML = ""; 
@@ -422,7 +615,45 @@ document.getElementById('btnVolverAMuestras').addEventListener('click', () => {
 document.getElementById('btnVolverAEnsayos').addEventListener('click', () => {
     currentEnsayo = null;
     document.getElementById('mainWorkArea').style.display = 'none';
+    document.getElementById('headerApp').style.display = 'none';
     document.getElementById('ensayoTray').style.display = 'block';
 });
 
+// --- Lógica de Selección para Incertidumbre ---
+function renderIncertidumbreEnsayos() {
+    const list = document.getElementById('incertidumbreEnsayoList');
+    if (!list) return;
+    list.innerHTML = '';
+    mockEnsayos.forEach(ensayo => {
+        const div = document.createElement('div');
+        div.style = "border: 1px solid #ccc; padding: 15px; cursor: pointer; border-radius: 5px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.2s; font-weight: bold; color: #333;";
+        div.onmouseover = () => div.style.background = '#f9f9f9';
+        div.onmouseout = () => div.style.background = '#fff';
+        div.innerHTML = `🔬 ${ensayo}`;
+        div.onclick = () => {
+            const areaEficacia = document.getElementById('areaEficacia');
+
+            if (ensayo === "Control de Gramaje y Rendimiento") {
+                // Alternar visibilidad si ya está abierto
+                if (areaEficacia.style.display === 'block') {
+                    areaEficacia.style.display = 'none';
+                    div.style.borderLeft = "1px solid #ccc"; // Quitar resaltado
+                } else {
+                    Array.from(list.children).forEach(child => child.style.borderLeft = "1px solid #ccc");
+                    div.style.borderLeft = "4px solid #004a8f"; // Añadir resaltado
+                    areaEficacia.style.display = 'block';
+                }
+            } else {
+                Array.from(list.children).forEach(child => child.style.borderLeft = "1px solid #ccc");
+                div.style.borderLeft = "4px solid #004a8f";
+                areaEficacia.style.display = 'none';
+            }
+        };
+        list.appendChild(div);
+    });
+}
+
 renderOTTray();
+renderIncertidumbreEnsayos();
+generarTablasEficacia();
+if (!document.getElementById('efiFecha').value) document.getElementById('efiFecha').value = new Date().toISOString().split('T')[0];

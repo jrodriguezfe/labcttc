@@ -67,12 +67,12 @@
                 <button id="btnLogout" class="btn-secondary" style="margin-left: 15px; cursor: pointer; padding: 5px 10px;">Cerrar Sesión</button>
             </div>
 
-        <header class="excel-header">
+        <header class="excel-header" id="headerApp" style="display: none;">
             <div class="brand">
                 <div class="logo-placeholder">CTTC</div>
-                <h1>Control de Gramaje y Rendimiento</h1>
+                <h1 id="tituloEnsayo">Control de Gramaje y Rendimiento</h1>
             </div>
-            <div class="toolbar">
+            <div class="toolbar" id="toolbarEnsayo">
                 <button id="btnRepeticion" class="btn-secondary" style="margin-right: 10px; cursor: pointer;">🔄 Repetición</button>
                 <button id="btnExportar" class="btn-excel">📥 Exportar Reporte (.xlsx)</button>
             </div>
@@ -80,7 +80,68 @@
 
         <div id="otTray" style="padding: 20px;">
             <h2 style="color: #333; margin-bottom: 10px;">Bandeja de Órdenes de Trabajo (OT)</h2>
-            <div id="otList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            <div id="otList" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px;"></div>
+
+            <h2 style="color: #333; margin-bottom: 10px; border-top: 1px solid #ccc; padding-top: 20px;">Cálculo de Incertidumbre</h2>
+            
+            <div id="incertidumbreEnsayoTray" style="margin-bottom: 20px;">
+                <p style="color: #666; margin-bottom: 10px;">Seleccione el ensayo para cargar su matriz de eficacia:</p>
+                <div id="incertidumbreEnsayoList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            </div>
+
+            <!-- NUEVA ÁREA: REGISTRO DE EFICACIA -->
+            <div id="areaEficacia" style="display: none; padding: 20px; background: white; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #004a8f; padding-bottom: 10px; margin-bottom: 20px;">
+                    <h2 style="color: #004a8f; margin: 0; font-size: 1.4em;">REGISTRO DE EFICACIA DE MASA POR UNIDAD DE AREA ASTM D3776</h2>
+                    <button class="btn-primary" id="btnGuardarEficacia">💾 Guardar Registro</button>
+                </div>
+
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
+                    <tr>
+                        <td style="padding: 8px; width: 15%;"><strong>1. PRUEBA:</strong></td>
+                        <td style="padding: 8px; width: 35%; border-bottom: 1px dotted #ccc;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td>
+                        <td style="padding: 8px; width: 15%;"><strong>2. LABORATORIO:</strong></td>
+                        <td style="padding: 8px; width: 35%; border-bottom: 1px dotted #ccc;">Área Física</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;"><strong>3. DETERMINACION:</strong></td>
+                        <td style="padding: 8px; border-bottom: 1px dotted #ccc;">Gramaje</td>
+                        <td style="padding: 8px;"><strong>4. METODO USADO:</strong></td>
+                        <td style="padding: 8px; border-bottom: 1px dotted #ccc;">ASTM D3776/D3776M-20</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px;"><strong>5. PRODUCTO:</strong></td>
+                        <td style="padding: 8px;"><input type="text" id="efiProducto" value="DRILL TEJIDO PLANO COLOR ACERO LABT-93-16" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;"></td>
+                        <td style="padding: 8px;"><strong>6. FECHA:</strong></td>
+                        <td style="padding: 8px;"><input type="date" id="efiFecha" style="padding: 5px; width: 100%; border: 1px solid #ccc; border-radius: 3px;"></td>
+                    </tr>
+                </table>
+
+                <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">7. RESULTADOS DE PARTICIPANTES</h3>
+                <div id="contenedorTablasEficacia" style="overflow-x: auto;"></div>
+
+                <div style="margin-top: 30px;">
+                    <h3 style="color: #333; margin-bottom: 10px;">Conclusiones y Resultados</h3>
+                    <div style="margin-bottom: 15px;">
+                        <strong>Resultados:</strong><br>
+                        <input type="text" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px;" value="Los analistas cumplen con la veracidad y precisión del método de ensayo.">
+                    </div>
+                    <div>
+                        <strong>Conclusión:</strong><br>
+                        <textarea style="width: 100%; padding: 8px; margin-top: 5px; height: 60px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">Se comprobó que los analistas al 95% de confianza, cumplen con la veracidad y precisión, son aptos para realizar el ensayo ASTM D3776</textarea>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+                        <div style="width: 48%;">
+                            <strong>ELABORADO POR:</strong><br>
+                            <input type="text" value="Jefatura (e) del Laboratorio" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px;">
+                        </div>
+                        <div style="width: 48%;">
+                            <strong>REVISADO POR:</strong><br>
+                            <input type="text" value="Gerencia del Laboratorio" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px;">
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="muestraTray" style="padding: 20px; display: none;">
@@ -115,6 +176,7 @@
                     </select>
                     <div id="avisoCorte" style="font-size: 0.85em; color: #555; margin-bottom: 10px; display: none; text-align: left;"></div>
                     <input type="number" id="numProbetas" placeholder="Numero de probetas" value="5" min="1" required>
+                    <input type="number" id="anchoEspecimen" placeholder="Ancho del espécimen (At) (mm)" step="any" required>
                     <div id="contenedorPesos" style="display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0;"></div>
                     <div style="display: flex; align-items: center; gap: 15px;">
                         <button type="submit" class="btn-primary">Añadir Registro</button>
@@ -130,11 +192,11 @@
                         <tr>
                             <th>Tipo de Corte</th>
                             <th>Numero de probetas</th>
+                            <th>Ancho espécimen (mm)</th>
                             <th>Repetición</th>
                             <th>Pesos de probetas</th>
                             <th>Gramajes ind. (g/m²)</th>
                             <th>Promedio (g/m²)</th>
-                            <th>Promedio (oz/yd²)</th>
                             <th class="no-export">Acciones</th>
                         </tr>
                     </thead>
@@ -143,6 +205,29 @@
                 </table>
                 </div>
             </section>
+
+            <!-- Nuevo Panel de Diferencia Crítica -->
+            <div id="panelDiferencia" style="margin-top: 20px; padding: 15px; background: #eef; border-radius: 5px; border-left: 4px solid #004a8f; display: none;">
+                <h3 style="margin-top: 0; color: #004a8f;">Análisis de Diferencia Crítica (˂ 3%)</h3>
+                <p style="font-size: 0.9em; color: #555; margin-bottom: 10px; margin-top: 0;" id="difValoresEvaluados"></p>
+                <div style="display: flex; gap: 20px; flex-wrap: wrap; font-size: 1.1em;">
+                    <div><strong>Diferencia Simple:</strong> <span id="difSimpleVal">-</span></div>
+                    <div><strong>Margen:</strong> <span id="difMargenVal">-</span></div>
+                    <div><strong>Dif. Crítica Final:</strong> <span id="difCriticaVal">-</span></div>
+                </div>
+                <div id="difCriticaMsg" style="margin-top: 10px; font-weight: bold;"></div>
+            </div>
+
+            <!-- Nuevo Panel Resultados Opción C -->
+            <div id="panelOpcionC" style="margin-top: 20px; padding: 15px; background: #eef; border-radius: 5px; border-left: 4px solid #217346; display: none;">
+                <h3 style="margin-top: 0; color: #217346;">Resultados Opción C (Registro Original)</h3>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; background: white; text-align: center; font-size: 0.95em;">
+                        <thead id="headOpcionC"></thead>
+                        <tbody id="bodyOpcionC"></tbody>
+                    </table>
+                </div>
+            </div>
             </div>
         </main>
     </div>
