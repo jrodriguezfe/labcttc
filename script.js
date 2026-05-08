@@ -15,6 +15,7 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const colRef = collection(db, "gramajes");
+const colIncertidumbre = collection(db, "incertidumbre");
 
 let editandoId = null;
 let currentOT = null;
@@ -160,6 +161,7 @@ function generarTablasEficacia() {
     const inputs = container.querySelectorAll('.efi-input');
     inputs.forEach(input => {
         input.addEventListener('input', calcularPromedioEficacia);
+        input.addEventListener('paste', handlePasteEficacia);
     });
 }
 
@@ -185,8 +187,8 @@ function generarBloqueAnalistasEficacia(id1, id2) {
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9em;" border="1">
         <thead style="background: #f3f3f3;">
             <tr>
-                <th colspan="5" style="padding: 10px;">Analista ${id1}: <input type="text" placeholder="Nombre" style="padding: 5px; width: 60%; margin-left: 10px;"></th>
-                <th colspan="5" style="padding: 10px; border-left: 2px solid #004a8f;">Analista ${id2}: <input type="text" placeholder="Nombre" style="padding: 5px; width: 60%; margin-left: 10px;"></th>
+                <th colspan="5" style="padding: 10px;">Analista ${id1}: <input type="text" id="nombre-analista-${id1}" placeholder="Nombre" style="padding: 5px; width: 60%; margin-left: 10px;"></th>
+                <th colspan="5" style="padding: 10px; border-left: 2px solid #004a8f;">Analista ${id2}: <input type="text" id="nombre-analista-${id2}" placeholder="Nombre" style="padding: 5px; width: 60%; margin-left: 10px;"></th>
             </tr>
             <tr>
                 <th style="padding: 8px;">#</th>
@@ -212,6 +214,48 @@ function calcularPromedioEficacia(e) {
     
     const cellProm = document.getElementById(`efi-prom-${analista}-${row}`);
     cellProm.innerText = count > 0 ? parseFloat((sum / count).toFixed(4)) : '-';
+}
+
+// --- Función para pegar desde Excel en la Matriz de Eficacia ---
+function handlePasteEficacia(e) {
+    e.preventDefault();
+    const clipboardData = e.clipboardData || window.clipboardData;
+    const pastedText = clipboardData.getData('Text');
+    if (!pastedText) return;
+
+    // Separar el texto pegado por filas (saltos de línea) y luego por columnas (tabulaciones)
+    const rows = pastedText.trim().split(/\r\n|\n/).map(row => row.split('\t'));
+    
+    const targetInput = e.target;
+    const tbody = targetInput.closest('tbody');
+    if (!tbody) return;
+    
+    const trs = Array.from(tbody.querySelectorAll('tr'));
+    const startTr = targetInput.closest('tr');
+    const startRowIdx = trs.indexOf(startTr);
+    
+    const inputsInStartTr = Array.from(startTr.querySelectorAll('.efi-input'));
+    const startColIdx = inputsInStartTr.indexOf(targetInput);
+
+    for (let i = 0; i < rows.length; i++) {
+        if (i + startRowIdx >= trs.length) break; // No exceder el límite de filas de la tabla
+        const tr = trs[i + startRowIdx];
+        const inputs = Array.from(tr.querySelectorAll('.efi-input'));
+        
+        for (let j = 0; j < rows[i].length; j++) {
+            if (j + startColIdx >= inputs.length) break; // No exceder el límite de columnas
+            const val = rows[i][j].trim();
+            if (val !== '') {
+                // Reemplazar comas por puntos en caso de Excel en español
+                const num = parseFloat(val.replace(',', '.'));
+                if (!isNaN(num)) {
+                    inputs[j + startColIdx].value = num;
+                    // Disparar manualmente el evento para que se calcule el Promedio (g/m²)
+                    inputs[j + startColIdx].dispatchEvent(new Event('input', { bubbles: true }));
+                }
+            }
+        }
+    }
 }
 
 // Carga de datos iniciales filtrados por la OT y Muestra seleccionadas
@@ -619,6 +663,53 @@ document.getElementById('btnVolverAEnsayos').addEventListener('click', () => {
     document.getElementById('ensayoTray').style.display = 'block';
 });
 
+// --- Lógica de Carga de Datos de Incertidumbre ---
+async function cargarDatosIncertidumbre() {
+    try {
+        const docSnap = await getDoc(doc(db, "incertidumbre", "MasaAreaASTM"));
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            
+            if (data.producto) document.getElementById('efiProducto').value = data.producto;
+            if (data.fecha) document.getElementById('efiFecha').value = data.fecha;
+            if (data.resultados) document.getElementById('efiResultados').value = data.resultados;
+            if (data.conclusion) document.getElementById('efiConclusion').value = data.conclusion;
+            if (data.elaborado) document.getElementById('efiElaborado').value = data.elaborado;
+            if (data.revisado) document.getElementById('efiRevisado').value = data.revisado;
+            
+            if (data.estConclusionNormalidad) document.getElementById('estConclusionNormalidad').value = data.estConclusionNormalidad;
+            if (data.estConclusionVarianzas) document.getElementById('estConclusionVarianzas').value = data.estConclusionVarianzas;
+            if (data.estConclusionMedias) document.getElementById('estConclusionMedias').value = data.estConclusionMedias;
+
+            if (data.analistas) {
+                ['A1', 'A2', 'A3', 'A4'].forEach(id => {
+                    const aData = data.analistas[id];
+                    if (aData) {
+                        const nombreInput = document.getElementById(`nombre-analista-${id}`);
+                        if (nombreInput) nombreInput.value = aData.nombre || '';
+                        
+                        if (aData.mediciones) {
+                            aData.mediciones.forEach(med => {
+                                const r = med.repeticion;
+                                const inputs = document.querySelectorAll(`.efi-row-${id}-${r}`);
+                                if (med.valores) {
+                                    inputs.forEach((inp, idx) => {
+                                        inp.value = med.valores[idx] || '';
+                                    });
+                                }
+                                const promCell = document.getElementById(`efi-prom-${id}-${r}`);
+                                if (promCell) promCell.innerText = med.promedio ? med.promedio : '-';
+                            });
+                        }
+                    }
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Error al cargar datos de incertidumbre: ", error);
+    }
+}
+
 // --- Lógica de Selección para Incertidumbre ---
 function renderIncertidumbreEnsayos() {
     const list = document.getElementById('incertidumbreEnsayoList');
@@ -642,6 +733,7 @@ function renderIncertidumbreEnsayos() {
                     Array.from(list.children).forEach(child => child.style.borderLeft = "1px solid #ccc");
                     div.style.borderLeft = "4px solid #004a8f"; // Añadir resaltado
                     areaEficacia.style.display = 'block';
+                    cargarDatosIncertidumbre();
                 }
             } else {
                 Array.from(list.children).forEach(child => child.style.borderLeft = "1px solid #ccc");
@@ -657,3 +749,393 @@ renderOTTray();
 renderIncertidumbreEnsayos();
 generarTablasEficacia();
 if (!document.getElementById('efiFecha').value) document.getElementById('efiFecha').value = new Date().toISOString().split('T')[0];
+
+// --- Lógica para Generar Evaluación Estadística ---
+document.getElementById('btnCalcularEstadistica').addEventListener('click', () => {
+    document.getElementById('evaluacionEstadistica').style.display = 'block';
+    
+    document.getElementById('estProducto').innerText = document.getElementById('efiProducto').value;
+    document.getElementById('estFecha').innerText = document.getElementById('efiFecha').value;
+    
+    const nombres = {
+        A1: document.getElementById('nombre-analista-A1')?.value || 'Analista 1',
+        A2: document.getElementById('nombre-analista-A2')?.value || 'Analista 2',
+        A3: document.getElementById('nombre-analista-A3')?.value || 'Analista 3',
+        A4: document.getElementById('nombre-analista-A4')?.value || 'Analista 4'
+    };
+    
+    document.getElementById('estA1').innerText = nombres.A1;
+    document.getElementById('estA2').innerText = nombres.A2;
+    document.getElementById('estA3').innerText = nombres.A3;
+    document.getElementById('estA4').innerText = nombres.A4;
+
+    const promedios = { A1: [], A2: [], A3: [], A4: [] };
+    let todosLosDatos = [];
+    let tablaResultadosHtml = '';
+    
+    for (let i = 1; i <= 10; i++) {
+        const p1 = parseFloat(document.getElementById(`efi-prom-A1-${i}`)?.innerText) || 0;
+        const p2 = parseFloat(document.getElementById(`efi-prom-A2-${i}`)?.innerText) || 0;
+        const p3 = parseFloat(document.getElementById(`efi-prom-A3-${i}`)?.innerText) || 0;
+        const p4 = parseFloat(document.getElementById(`efi-prom-A4-${i}`)?.innerText) || 0;
+        
+        promedios.A1.push(p1); promedios.A2.push(p2); promedios.A3.push(p3); promedios.A4.push(p4);
+        
+        if(p1 > 0) todosLosDatos.push({val: p1, analista: 'A1'});
+        if(p2 > 0) todosLosDatos.push({val: p2, analista: 'A2'});
+        if(p3 > 0) todosLosDatos.push({val: p3, analista: 'A3'});
+        if(p4 > 0) todosLosDatos.push({val: p4, analista: 'A4'});
+
+        tablaResultadosHtml += `<tr><td style="padding: 5px; font-weight: bold;">${i}</td><td style="padding: 5px;">${p1 > 0 ? p1.toFixed(3) : '-'}</td><td style="padding: 5px;">${p2 > 0 ? p2.toFixed(3) : '-'}</td><td style="padding: 5px;">${p3 > 0 ? p3.toFixed(3) : '-'}</td><td style="padding: 5px;">${p4 > 0 ? p4.toFixed(3) : '-'}</td></tr>`;
+    }
+    document.getElementById('estResultadosBody').innerHTML = tablaResultadosHtml;
+
+    const n = todosLosDatos.length;
+    let sum = 0;
+    todosLosDatos.forEach(d => sum += d.val);
+    const mean = n > 0 ? sum / n : 0;
+    
+    let sumSq = 0;
+    todosLosDatos.forEach(d => sumSq += Math.pow(d.val - mean, 2));
+    const variance = n > 1 ? sumSq / (n - 1) : 0;
+    const stdDev = Math.sqrt(variance); // Fórmula poblacional de muestra
+    
+    document.getElementById('estMediaGlobal').innerText = mean.toFixed(3);
+    document.getElementById('estDesvGlobal').innerText = stdDev.toFixed(3);
+
+    // --- Cálculos de Análisis Descriptivo (Por Analista) ---
+    let descriptivoHtml = '';
+    ['A1', 'A2', 'A3', 'A4'].forEach(analista => {
+        const arr = promedios[analista].filter(v => v > 0);
+        if (arr.length > 0) {
+            const nA = arr.length;
+            const sumA = arr.reduce((a, b) => a + b, 0);
+            const meanA = sumA / nA;
+            
+            const sumSqA = arr.reduce((a, b) => a + Math.pow(b - meanA, 2), 0);
+            const stdDevA = nA > 1 ? Math.sqrt(sumSqA / (nA - 1)) : 0;
+            
+            const minA = Math.min(...arr);
+            const maxA = Math.max(...arr);
+            
+            const sorted = [...arr].sort((a, b) => a - b);
+            const mid = Math.floor(sorted.length / 2);
+            const medianA = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+
+            descriptivoHtml += `<tr><td style="padding: 5px; font-weight: bold;">${analista}</td><td style="padding: 5px;">${meanA.toFixed(3)}</td><td style="padding: 5px;">${stdDevA.toFixed(3)}</td><td style="padding: 5px;">${minA.toFixed(3)}</td><td style="padding: 5px;">${medianA.toFixed(3)}</td><td style="padding: 5px;">${maxA.toFixed(3)}</td></tr>`;
+        } else {
+            descriptivoHtml += `<tr><td style="padding: 5px; font-weight: bold;">${analista}</td><td colspan="5" style="padding: 5px; color: #888;">Sin datos</td></tr>`;
+        }
+    });
+    document.getElementById('estDescriptivoBody').innerHTML = descriptivoHtml;
+
+    let zScoreHtml = '';
+    let counter = 1;
+    ['A1', 'A2', 'A3', 'A4'].forEach(analista => {
+        promedios[analista].forEach(val => {
+            if (val > 0) {
+                const z = stdDev > 0 ? (val - mean) / stdDev : 0;
+                const absZ = Math.abs(z);
+                let calificacion = absZ >= 3 ? 'NO SATISFACTORIO' : (absZ > 2 ? 'CUESTIONABLE' : 'SATISFACTORIO');
+                let color = absZ >= 3 ? '#c0392b' : (absZ > 2 ? '#d97706' : '#217346');
+                zScoreHtml += `<tr><td style="padding: 5px;">${counter++}</td><td style="padding: 5px;">${val.toFixed(3)}</td><td style="padding: 5px;">${z.toFixed(3)}</td><td style="padding: 5px;">${absZ.toFixed(3)}</td><td style="padding: 5px; color: ${color}; font-weight: bold;">${calificacion}</td><td style="padding: 5px;">${analista}</td></tr>`;
+            }
+        });
+    });
+    document.getElementById('estZscoreBody').innerHTML = zScoreHtml;
+
+    // --- Cálculos de Prueba de Homogeneidad de Varianzas (Bartlett) ---
+    // Funciones estadísticas auxiliares para Bartlett
+    function logGamma(x) {
+        let coef = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+        let y = x;
+        let tmp = x + 5.5;
+        tmp -= (x + 0.5) * Math.log(tmp);
+        let ser = 1.000000000190015;
+        for (let j = 0; j <= 5; j++) { ser += coef[j] / ++y; }
+        return -tmp + Math.log(2.5066282746310005 * ser / x);
+    }
+    
+    function chi2cdf(x, k) {
+        if (x <= 0) return 0;
+        let s = x / 2;
+        let a = k / 2;
+        let sum = 1.0, term = 1.0;
+        for (let i = 1; i < 100; i++) {
+            term = term * s / (a + i);
+            sum += term;
+            if (term < 1e-8) break;
+        }
+        let gamma = Math.exp(-s + a * Math.log(s) - logGamma(a + 1));
+        return gamma * sum;
+    }
+    
+    function chi2inv(p, df) {
+        let low = 0.0, high = 1000.0, mid = 0;
+        for (let i = 0; i < 100; i++) {
+            mid = (low + high) / 2;
+            if (chi2cdf(mid, df) < p) low = mid; else high = mid;
+            if (high - low < 1e-6) break;
+        }
+        return mid;
+    }
+
+    let bartlettHtml = '';
+    let validGroups = 0, totalN = 0, sumNiMinus1_lnSi2 = 0, sumNiMinus1_Si2 = 0, sum1_NiMinus1 = 0;
+
+    let kTotal = ['A1', 'A2', 'A3', 'A4'].filter(a => promedios[a].filter(v => v > 0).length > 1).length;
+    let alpha = 0.05;
+    let indAlpha = kTotal > 0 ? alpha / kTotal : alpha;
+    document.getElementById('estBartlettConfLevel').innerText = `Nivel de confianza individual = ${((1 - indAlpha) * 100).toFixed(2)}%`;
+
+    ['A1', 'A2', 'A3', 'A4'].forEach(analista => {
+        const arr = promedios[analista].filter(v => v > 0);
+        if (arr.length > 1) {
+            validGroups++;
+            const nA = arr.length, df = nA - 1;
+            totalN += nA;
+            
+            const meanA = arr.reduce((a, b) => a + b, 0) / nA;
+            const varA = arr.reduce((a, b) => a + Math.pow(b - meanA, 2), 0) / df;
+            
+            sumNiMinus1_Si2 += df * varA;
+            sumNiMinus1_lnSi2 += df * Math.log(varA);
+            sum1_NiMinus1 += 1 / df;
+            
+            let lowerCI = Math.sqrt((df * varA) / chi2inv(1 - indAlpha / 2, df));
+            let upperCI = Math.sqrt((df * varA) / chi2inv(indAlpha / 2, df));
+            
+            bartlettHtml += `<tr><td style="padding: 8px;">${analista}</td><td style="padding: 8px;">${nA}</td><td style="padding: 8px;">${Math.sqrt(varA).toFixed(6)}</td><td style="padding: 8px;">(${lowerCI.toFixed(6)}; ${upperCI.toFixed(6)})</td></tr>`;
+        }
+    });
+    document.getElementById('estBartlettBody').innerHTML = bartlettHtml;
+
+    if (validGroups > 1) {
+        let dfTotal = totalN - validGroups, pooledVar = sumNiMinus1_Si2 / dfTotal;
+        let bartlettT = (dfTotal * Math.log(pooledVar) - sumNiMinus1_lnSi2) / (1 + (1 / (3 * (validGroups - 1))) * (sum1_NiMinus1 - 1 / dfTotal));
+        let bartlettP = 1 - chi2cdf(bartlettT, validGroups - 1);
+
+        document.getElementById('estBartlettT').innerText = bartlettT.toFixed(2);
+        document.getElementById('estBartlettP').innerText = bartlettP.toFixed(3);
+        
+        // Autocompletar la conclusión de Bartlett evaluando P-Valor
+        const txtConclusionVar = document.getElementById('estConclusionVarianzas');
+        if (txtConclusionVar) txtConclusionVar.value = `${bartlettP.toFixed(3)} (P valor) es ${bartlettP > alpha ? 'mayor' : 'menor o igual'} que el nivel de significancia (${alpha}) por lo que podemos afirmar, al 95% de confianza, que los analistas ${bartlettP > alpha ? 'tienen similar precisión' : 'presentan diferencia significativa entre sus varianzas'}.`;
+    }
+
+    // --- Gráfico de Prueba de Normalidad y Anderson-Darling ---
+    function erf(x) {
+        var sign = (x >= 0) ? 1 : -1;
+        x = Math.abs(x);
+        var a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741, a4 = -1.453152027, a5 =  1.061405429, p  =  0.3275911;
+        var t = 1.0/(1.0 + p*x);
+        var y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*Math.exp(-x*x);
+        return sign*y;
+    }
+    function normalCDF(x, m, s) {
+        if (s === 0) return 0.5;
+        return 0.5 * (1 + erf((x - m) / (s * Math.sqrt(2))));
+    }
+
+    const valoresOrdenados = todosLosDatos.map(d => d.val).sort((a, b) => a - b);
+    const nNorm = valoresOrdenados.length;
+    
+    let estNormMedia = mean;
+    let estNormDesv = stdDev;
+    
+    document.getElementById('estNormMedia').innerText = estNormMedia.toFixed(3);
+    document.getElementById('estNormDesv').innerText = estNormDesv.toFixed(4);
+    document.getElementById('estNormN').innerText = nNorm;
+
+    let sumAD = 0;
+    for (let i = 0; i < nNorm; i++) {
+        let x_i = valoresOrdenados[i];
+        let x_rev = valoresOrdenados[nNorm - 1 - i];
+        let f_i = normalCDF(x_i, estNormMedia, estNormDesv);
+        let f_rev = normalCDF(x_rev, estNormMedia, estNormDesv);
+        f_i = Math.max(Math.min(f_i, 0.9999999), 0.0000001);
+        f_rev = Math.max(Math.min(f_rev, 0.9999999), 0.0000001);
+        sumAD += (2 * (i + 1) - 1) * (Math.log(f_i) + Math.log(1 - f_rev));
+    }
+    
+    let AD = 0;
+    let pValueAD = 0;
+    if (nNorm > 0) {
+        AD = -nNorm - sumAD / nNorm;
+        let AD_star = AD * (1 + 0.75 / nNorm + 2.25 / (nNorm * nNorm));
+        if (AD_star >= 0.600) pValueAD = Math.exp(1.2937 - 5.709 * AD_star + 0.0186 * Math.pow(AD_star, 2));
+        else if (AD_star > 0.340) pValueAD = Math.exp(0.9177 - 4.279 * AD_star - 1.38 * Math.pow(AD_star, 2));
+        else if (AD_star > 0.200) pValueAD = 1 - Math.exp(-8.318 + 42.796 * AD_star - 59.938 * Math.pow(AD_star, 2));
+        else pValueAD = 1 - Math.exp(-13.436 + 101.14 * AD_star - 223.73 * Math.pow(AD_star, 2));
+    }
+    
+    document.getElementById('estNormAD').innerText = AD.toFixed(3);
+    document.getElementById('estNormP').innerText = pValueAD.toFixed(3);
+
+    const txtConclusionNorm = document.getElementById('estConclusionNormalidad');
+    if (txtConclusionNorm) {
+        if (pValueAD > alpha) {
+            txtConclusionNorm.value = `Dado que el valor p (${pValueAD.toFixed(3)}) es mayor que el nivel de significancia común (${alpha}), no hay evidencia suficiente para rechazar la hipótesis de que los datos siguen una distribución normal. Los puntos en la gráfica se ajustan razonablemente bien a la línea roja central.`;
+        } else {
+            txtConclusionNorm.value = `Dado que el valor p (${pValueAD.toFixed(3)}) es menor o igual al nivel de significancia común (${alpha}), hay evidencia para rechazar la hipótesis de que los datos siguen una distribución normal. Los puntos en la gráfica muestran desviaciones importantes respecto a la línea roja central.`;
+        }
+    }
+
+    const scatterData = valoresOrdenados.map((val, i) => {
+        const rank = i + 1;
+        const prob = ((rank - 0.5) / nNorm) * 100;
+        return { x: val, y: prob };
+    });
+
+    const minVal = valoresOrdenados[0] || 215;
+    const maxVal = valoresOrdenados[nNorm - 1] || 219;
+    const span = maxVal - minVal;
+    const lineData = [];
+    for (let i = 0; i <= 50; i++) {
+        let x = minVal - span * 0.1 + (span * 1.2) * (i / 50);
+        let y = normalCDF(x, estNormMedia, estNormDesv) * 100;
+        lineData.push({ x: x, y: y });
+    }
+
+    const ctxNormalidad = document.getElementById('graficoNormalidad').getContext('2d');
+    if (window.graficoNormalidadChart) window.graficoNormalidadChart.destroy();
+    
+    window.graficoNormalidadChart = new Chart(ctxNormalidad, {
+        type: 'scatter',
+        data: {
+            datasets: [
+                {
+                    label: 'Distribución Normal Teórica',
+                    data: lineData,
+                    type: 'line',
+                    borderColor: 'red',
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.4
+                },
+                {
+                    label: 'Probabilidad vs g/m²',
+                    data: scatterData,
+                    backgroundColor: '#004a8f',
+                    borderColor: '#004a8f'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { title: { display: true, text: 'g/m²', font: { weight: 'bold' } } },
+                y: { title: { display: true, text: 'Porcentaje', font: { weight: 'bold' } }, min: 1, max: 99 }
+            },
+            plugins: { legend: { display: true } }
+        }
+    });
+
+    // --- Gráfico de Campana de Gauss (Histograma + Curva Normal) ---
+    // Regla de Sturges para calcular el número de clases (barras) del histograma
+    let kBins = Math.ceil(1 + 3.322 * Math.log10(nNorm));
+    if (kBins < 5) kBins = 5; // Mínimo 5 barras para visualización decente
+    
+    let binWidth = span / kBins;
+    if (binWidth === 0) binWidth = 1;
+    
+    let labelsGauss = [];
+    let freqGauss = new Array(kBins).fill(0);
+    let centersGauss = [];
+    
+    for (let i = 0; i < kBins; i++) {
+        let bMin = minVal + i * binWidth;
+        let bMax = minVal + (i + 1) * binWidth;
+        centersGauss.push(bMin + binWidth / 2);
+        labelsGauss.push(`${bMin.toFixed(2)} - ${bMax.toFixed(2)}`);
+    }
+    
+    valoresOrdenados.forEach(v => {
+        let idx = Math.floor((v - minVal) / binWidth);
+        if (idx >= kBins) idx = kBins - 1; // Evitar desbordamiento en el valor máximo exacto
+        freqGauss[idx]++;
+    });
+    
+    // Calcular la distribución teórica Normal escalada a la frecuencia
+    let normalCurveGauss = centersGauss.map(x => {
+        let pdf = (1 / (estNormDesv * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - estNormMedia) / estNormDesv, 2));
+        return pdf * nNorm * binWidth;
+    });
+    
+    const ctxGauss = document.getElementById('graficoCampanaGauss').getContext('2d');
+    if (window.graficoGaussChart) window.graficoGaussChart.destroy();
+    
+    window.graficoGaussChart = new Chart(ctxGauss, {
+        type: 'bar',
+        data: {
+            labels: labelsGauss,
+            datasets: [
+                { label: 'Curva Normal Teórica', data: normalCurveGauss, type: 'line', borderColor: '#c0392b', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.4 },
+                { label: 'Curva de Datos Reales', data: freqGauss, type: 'line', borderColor: '#d97706', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 4, tension: 0.4, borderDash: [5, 5] },
+                { label: 'Frecuencia Real (Barras)', data: freqGauss, backgroundColor: 'rgba(0, 74, 143, 0.6)', borderColor: '#004a8f', borderWidth: 1 }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                x: { title: { display: true, text: 'Intervalos de g/m²' } },
+                y: { title: { display: true, text: 'Frecuencia (Cantidad)' }, beginAtZero: true }
+            }
+        }
+    });
+});
+
+// --- Lógica de Guardado de Eficacia (Incertidumbre) ---
+document.getElementById('btnGuardarEficacia').addEventListener('click', async () => {
+    const producto = document.getElementById('efiProducto').value;
+    const fecha = document.getElementById('efiFecha').value;
+    const resultadosText = document.getElementById('efiResultados').value;
+    const conclusion = document.getElementById('efiConclusion').value;
+    const elaborado = document.getElementById('efiElaborado').value;
+    const revisado = document.getElementById('efiRevisado').value;
+    
+    const estConclusionNormalidad = document.getElementById('estConclusionNormalidad')?.value || '';
+    const estConclusionVarianzas = document.getElementById('estConclusionVarianzas')?.value || '';
+    const estConclusionMedias = document.getElementById('estConclusionMedias')?.value || '';
+    const estConclusionGauss = document.getElementById('estConclusionGauss')?.value || '';
+
+    const analistasData = {};
+    ['A1', 'A2', 'A3', 'A4'].forEach(id => {
+        const nombreInput = document.getElementById(`nombre-analista-${id}`);
+        const nombre = nombreInput ? nombreInput.value : '';
+        const mediciones = [];
+        for (let i = 1; i <= 10; i++) {
+            const inputs = document.querySelectorAll(`.efi-row-${id}-${i}`);
+            const rowVals = Array.from(inputs).map(inp => parseFloat(inp.value) || 0);
+            const promCell = document.getElementById(`efi-prom-${id}-${i}`);
+            const prom = (promCell && promCell.innerText !== '-') ? parseFloat(promCell.innerText) : 0;
+            mediciones.push({ repeticion: i, valores: rowVals, promedio: prom });
+        }
+        analistasData[id] = { nombre, mediciones };
+    });
+
+    const data = {
+        ensayo: "Masa por Unidad de Area ASTM D3776",
+        producto: producto,
+        fecha: fecha,
+        analistas: analistasData,
+        resultados: resultadosText,
+        conclusion: conclusion,
+        elaborado: elaborado,
+        revisado: revisado,
+        estConclusionNormalidad: estConclusionNormalidad,
+        estConclusionVarianzas: estConclusionVarianzas,
+        estConclusionMedias: estConclusionMedias,
+        estConclusionGauss: estConclusionGauss,
+        fechaRegistro: new Date().toISOString()
+    };
+
+    try {
+        await setDoc(doc(db, "incertidumbre", "MasaAreaASTM"), data);
+        alert("Registro de incertidumbre guardado exitosamente en la base de datos.");
+    } catch (error) {
+        console.error("Error al guardar registro de incertidumbre: ", error);
+        alert("Error al guardar el registro: " + error.message);
+    }
+});

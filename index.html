@@ -6,6 +6,7 @@
     <title>Sistema de Gramaje - Lab CTTC</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         /* Estilos Responsivos */
         @media (max-width: 768px) {
@@ -120,24 +121,189 @@
                 <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">7. RESULTADOS DE PARTICIPANTES</h3>
                 <div id="contenedorTablasEficacia" style="overflow-x: auto;"></div>
 
+                <div style="text-align: right;">
+                    <button type="button" class="btn-secondary" id="btnCalcularEstadistica" style="margin-top: 15px; cursor: pointer;">📊 Generar Evaluación Estadística</button>
+                </div>
+
+                <div id="evaluacionEstadistica" style="margin-top: 30px; border-top: 2px solid #004a8f; padding-top: 20px; display: none;">
+                    <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">EVALUACIÓN ESTADÍSTICA DE LOS RESULTADOS</h2>
+                    
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
+                        <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
+                        <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;">Área Física</td></tr>
+                        <tr><td style="padding: 5px;"><strong>3. DETERMINACION:</strong></td><td style="padding: 5px;">Gramaje</td></tr>
+                        <tr><td style="padding: 5px;"><strong>4. METODO USADO:</strong></td><td style="padding: 5px;">ASTM D3776/D3776M-20</td></tr>
+                        <tr><td style="padding: 5px;"><strong>5. PRODUCTO:</strong></td><td style="padding: 5px;" id="estProducto"></td></tr>
+                        <tr><td style="padding: 5px; vertical-align: top;"><strong>6. PARTICIPANTES:</strong></td>
+                            <td style="padding: 5px;">
+                                <span id="estA1"></span> (A1)<br>
+                                <span id="estA2"></span> (A2)<br>
+                                <span id="estA3"></span> (A3)<br>
+                                <span id="estA4"></span> (A4)
+                            </td>
+                        </tr>
+                    </table>
+
+                    <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">7. RESULTADOS <span style="float: right; font-size: 0.8em; font-weight: normal; margin-top: 5px;">FECHA: <span id="estFecha"></span></span></h3>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 0.9em; text-align: center;" border="1">
+                        <thead style="background: #f3f3f3;">
+                            <tr><th rowspan="2" style="padding: 8px;">#</th><th colspan="4" style="padding: 8px;">g/m²</th></tr>
+                            <tr><th style="padding: 8px;">A1</th><th style="padding: 8px;">A2</th><th style="padding: 8px;">A3</th><th style="padding: 8px;">A4</th></tr>
+                        </thead>
+                        <tbody id="estResultadosBody"></tbody>
+                    </table>
+
+                    <h3 style="color: #004a8f; margin-bottom: 15px;">ANALISIS DESCRIPTIVO</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin-bottom: 30px; font-size: 0.9em; text-align: center;" border="1">
+                        <thead style="background: #f3f3f3;">
+                            <tr>
+                                <th style="padding: 8px;">Variable</th>
+                                <th style="padding: 8px;">Media</th>
+                                <th style="padding: 8px;">Desv. Estándar</th>
+                                <th style="padding: 8px;">Mínimo</th>
+                                <th style="padding: 8px;">Mediana</th>
+                                <th style="padding: 8px;">Máximo</th>
+                            </tr>
+                        </thead>
+                        <tbody id="estDescriptivoBody"></tbody>
+                    </table>
+
+                    <h3 style="color: #004a8f; margin-bottom: 15px;">ANALISIS INFERENCIAL</h3>
+                    
+                    <h4 style="color: #333;">1. PRUEBA DE NORMALIDAD</h4>
+                    <p style="font-size: 0.95em; color: #555;">La distribución de los datos será evaluada mediante la prueba de normalidad de Anderson Darling, para conocer si los datos se distribuyen o no normalmente.</p>
+                    <ul style="font-size: 0.95em; color: #555;">
+                        <li><strong>Nivel de Significancia ( α ):</strong> 0.05</li>
+                        <li><strong>Nivel de Confianza:</strong> 95%</li>
+                    </ul>
+                    <p style="font-size: 0.95em; color: #555;"><strong>Criterio de Decisión:</strong> P valor &gt; alfa (0.05), entonces los datos se ajustan a una distribución normal.</p>
+                    
+                    <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch; border: 1px solid #ddd; padding: 15px; background: #fff; border-radius: 5px; margin: 20px 0;">
+                        <div style="flex: 1; min-width: 300px;">
+                            <canvas id="graficoNormalidad"></canvas>
+                        </div>
+                        <div style="width: 200px; background: #f9f9f9; border: 1px solid #ccc; padding: 15px; border-radius: 5px;">
+                            <h5 style="margin-top: 0; color: #004a8f; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Estadísticas</h5>
+                            <div style="font-size: 0.9em; line-height: 1.8;">
+                                <strong>Media:</strong> <span id="estNormMedia">-</span><br>
+                                <strong>Desv. Est.:</strong> <span id="estNormDesv">-</span><br>
+                                <strong>N:</strong> <span id="estNormN">-</span><br>
+                                <strong>AD:</strong> <span id="estNormAD">-</span><br>
+                                <strong>Valor p:</strong> <span id="estNormP">-</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="font-size: 0.85em; color: #666; margin-top: -10px; margin-bottom: 20px; padding: 10px; background: #f9f9f9; border-left: 3px solid #004a8f; border-radius: 0 4px 4px 0;">
+                        <strong>Nota metodológica (Algoritmos validados con Minitab):</strong>
+                        <ul style="margin-top: 5px; margin-bottom: 0; padding-left: 20px;">
+                            <li>Ajuste polinomial de <em>Abramowitz y Stegun</em> para aproximar la probabilidad acumulada (CDF).</li>
+                            <li>Fórmulas de corrección de <em>Stephens (1974)</em> para ajustar el estadístico AD* penalizado por el tamaño de muestra N.</li>
+                            <li>Cuatro ecuaciones exponenciales del modelo de Minitab para derivar el P-Valor exacto basado en el estadístico AD.</li>
+                        </ul>
+                    </div>
+
+                    <p style="font-size: 0.95em; color: #555; margin-bottom: 5px;"><strong>Interpretación:</strong></p>
+                    <textarea id="estConclusionNormalidad" style="width: 100%; padding: 8px; margin-top: 0; margin-bottom: 20px; height: 80px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;"></textarea>
+
+                    <h4 style="color: #333;">2. DETECCION DE PUNTOS ATIPICOS</h4>
+                    <p style="font-size: 0.95em; color: #555;">La detección de puntos atípicos se realizará mediante la evaluación del Z-score.</p>
+                    <div style="font-size: 0.95em; margin-bottom: 10px; color: #555; background: #f9f9f9; padding: 10px; border-left: 3px solid #004a8f;">
+                        <strong>CRITERIO DE DECISIÓN:</strong><br>
+                        /Z score/ ≤ 2 --&gt; el resultado es <strong>SATISFACTORIO</strong><br>
+                        2 &lt; /Z score/ &lt; 3 --&gt; el resultado es <strong>CUESTIONABLE</strong><br>
+                        /Z score/ ≥ 3 --&gt; el resultado es <strong>NO SATISFACTORIO</strong>
+                    </div>
+                    <div style="overflow-x: auto; max-height: 400px; margin-bottom: 10px; border: 1px solid #ccc;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.9em; text-align: center;" border="1">
+                            <thead style="background: #f3f3f3; position: sticky; top: 0;">
+                                <tr><th style="padding: 8px;">#</th><th style="padding: 8px;">g/m²</th><th style="padding: 8px;">Z-SCORE</th><th style="padding: 8px;">/Z SCORE/</th><th style="padding: 8px;">CALIFICACIÓN</th><th style="padding: 8px;">Analista</th></tr>
+                            </thead>
+                            <tbody id="estZscoreBody"></tbody>
+                        </table>
+                    </div>
+                    <div style="font-size: 0.95em; margin-bottom: 30px; background: #eef; padding: 10px; border-radius: 4px;">
+                        <strong>Media Global:</strong> <span id="estMediaGlobal"></span> &nbsp;|&nbsp; 
+                        <strong>Desv. Estándar Global:</strong> <span id="estDesvGlobal"></span>
+                    </div>
+
+                    <h4 style="color: #333;">3. PRUEBA DE HOMOGENIEDAD DE VARIANZAS</h4>
+                    <p style="font-size: 0.95em; color: #555;">Para evaluar la precisión entre analistas, se utilizara la prueba de homogeneidad de varianzas. Para datos con distribución Normal se realiza la Prueba Bartlett.</p>
+                    <ul style="font-size: 0.95em; color: #555;">
+                        <li><strong>Nivel de Significancia ( α ):</strong> 0.05</li>
+                        <li><strong>Nivel de Confianza:</strong> 95%</li>
+                    </ul>
+                    <p style="font-size: 0.95em; color: #555;"><strong>Criterio de Decisión:</strong><br>
+                    Pvalue &gt; alfa (0.05), entonces los analistas no presentan diferencia significativa entre sus varianzas, por tanto tienen similar precisión.<br><br>
+                    Pvalue ≤ alfa (0.05), entonces los analistas presentan diferencia significativa entre sus varianzas, por tanto tienen diferente precisión.</p>
+                    
+                    <div style="font-size: 0.95em; color: #333; margin-bottom: 20px; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+                        <h5 style="margin-top: 0; margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Método</h5>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                            <tr><td style="width: 30%; padding: 3px 0;"><strong>Hipótesis nula:</strong></td><td style="padding: 3px 0;">Todas las varianzas son iguales</td></tr>
+                            <tr><td style="padding: 3px 0;"><strong>Hipótesis alterna:</strong></td><td style="padding: 3px 0;">Por lo menos una varianza es diferente</td></tr>
+                            <tr><td style="padding: 3px 0;"><strong>Nivel de significancia:</strong></td><td style="padding: 3px 0;">α = 0.05</td></tr>
+                        </table>
+                        <p style="margin-bottom: 20px;">Se utiliza el método de Bartlett. Este método es exacto sólo para datos normales.</p>
+
+                        <h5 style="margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Intervalos de confianza de Bonferroni de 95% para desviaciones estándar</h5>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 5px; text-align: center;" border="1">
+                            <thead style="background: #f3f3f3;">
+                                <tr><th style="padding: 8px;">Muestra</th><th style="padding: 8px;">N</th><th style="padding: 8px;">Desv. Est.</th><th style="padding: 8px;">IC</th></tr>
+                            </thead>
+                            <tbody id="estBartlettBody"></tbody>
+                        </table>
+                        <p style="margin-top: 5px; font-size: 0.9em; color: #555; margin-bottom: 20px;" id="estBartlettConfLevel">Nivel de confianza individual = 98.75%</p>
+
+                        <h5 style="margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Pruebas</h5>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; text-align: center;" border="1">
+                            <thead style="background: #f3f3f3;">
+                                <tr><th style="padding: 8px;">Método</th><th style="padding: 8px;">Estadística de prueba</th><th style="padding: 8px;">Valor p</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 8px;">Bartlett</td>
+                                    <td style="padding: 8px;" id="estBartlettT">-</td>
+                                    <td style="padding: 8px;" id="estBartlettP">-</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <textarea id="estConclusionVarianzas" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">0.985(P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los analistas tienen similar precisión.</textarea>
+
+                    <h4 style="color: #333;">4. PRUEBA DE IGUALDAD DE MEDIDAS DE TENDENCIA CENTRAL</h4>
+                    <p style="font-size: 0.95em; color: #555;">Para evaluar la veracidad entre analistas, se utilizará la prueba de igualdad de media. Para datos con distribución Normal se realiza la Prueba ANOVA de un factor.</p>
+                    <textarea id="estConclusionMedias" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">0.848 (P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los resultados de los analistas son similares respecto a sus medias.</textarea>
+
+                    <h4 style="color: #333;">5. CAMPANA DE GAUSS (DISTRIBUCIÓN DE FRECUENCIAS)</h4>
+                    <p style="font-size: 0.95em; color: #555;">Representación visual de la distribución empírica de los resultados (Histograma) contrastada con la Curva Normal Teórica esperada según la media y desviación estándar global.</p>
+                    
+                    <div style="width: 100%; max-width: 700px; margin: 20px auto; border: 1px solid #ddd; padding: 15px; background: #fff; border-radius: 5px;">
+                        <canvas id="graficoCampanaGauss"></canvas>
+                    </div>
+                    <textarea id="estConclusionGauss" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">Visualmente, el histograma de frecuencias demuestra que los datos se agrupan en torno a la media central formando una campana simétrica, respaldando la distribución normal de los ensayos.</textarea>
+                    
+                </div>
+
                 <div style="margin-top: 30px;">
                     <h3 style="color: #333; margin-bottom: 10px;">Conclusiones y Resultados</h3>
                     <div style="margin-bottom: 15px;">
                         <strong>Resultados:</strong><br>
-                        <input type="text" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px;" value="Los analistas cumplen con la veracidad y precisión del método de ensayo.">
+                    <input type="text" id="efiResultados" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px;" value="Los analistas cumplen con la veracidad y precisión del método de ensayo.">
                     </div>
                     <div>
                         <strong>Conclusión:</strong><br>
-                        <textarea style="width: 100%; padding: 8px; margin-top: 5px; height: 60px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">Se comprobó que los analistas al 95% de confianza, cumplen con la veracidad y precisión, son aptos para realizar el ensayo ASTM D3776</textarea>
+                    <textarea id="efiConclusion" style="width: 100%; padding: 8px; margin-top: 5px; height: 60px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">Se comprobó que los analistas al 95% de confianza, cumplen con la veracidad y precisión, son aptos para realizar el ensayo ASTM D3776</textarea>
                     </div>
                     <div style="display: flex; justify-content: space-between; margin-top: 20px;">
                         <div style="width: 48%;">
                             <strong>ELABORADO POR:</strong><br>
-                            <input type="text" value="Jefatura (e) del Laboratorio" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px;">
+                        <input type="text" id="efiElaborado" value="Jefatura (e) del Laboratorio" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px;">
                         </div>
                         <div style="width: 48%;">
                             <strong>REVISADO POR:</strong><br>
-                            <input type="text" value="Gerencia del Laboratorio" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px;">
+                        <input type="text" id="efiRevisado" value="Gerencia del Laboratorio" style="width: 100%; padding: 8px; margin-top: 5px; border: 1px solid #ccc; border-radius: 3px;">
                         </div>
                     </div>
                 </div>
