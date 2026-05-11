@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.3.4/build/index.umd.min.js"></script>
     <style>
         /* Estilos Responsivos */
         @media (max-width: 768px) {
@@ -28,6 +29,11 @@
             .toolbar, #gramajeForm > div:last-child {
                 flex-wrap: wrap;
             }
+        }
+        /* Resaltado para la selección de casillas múltiple */
+        .selected-cell {
+            background-color: #d0e7ff !important;
+            outline: 2px solid #004a8f !important;
         }
     </style>
 </head>
@@ -126,7 +132,7 @@
                 </div>
 
                 <div id="evaluacionEstadistica" style="margin-top: 30px; border-top: 2px solid #004a8f; padding-top: 20px; display: none;">
-                    <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">EVALUACIÓN ESTADÍSTICA DE LOS RESULTADOS</h2>
+                    <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">I. EVALUACIÓN ESTADÍSTICA DE LOS RESULTADOS</h2>
                     
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
                         <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
@@ -268,12 +274,72 @@
                                 </tr>
                             </tbody>
                         </table>
+
+                        <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch; border: 1px solid #ddd; padding: 15px; background: #fff; border-radius: 5px; margin: 20px 0;">
+                            <div style="flex: 1; min-width: 300px;">
+                                <h5 style="text-align: center; color: #333; margin-top: 0;">Prueba de igualdad de varianzas: A1, A2, A3, A4</h5>
+                                <canvas id="graficoVarianzas"></canvas>
+                            </div>
+                            <div style="width: 200px; background: #f9f9f9; border: 1px solid #ccc; padding: 15px; border-radius: 5px; display: flex; flex-direction: column; justify-content: center;">
+                                <h5 style="margin-top: 0; color: #004a8f; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Prueba de Bartlett</h5>
+                                <div style="font-size: 0.9em; line-height: 1.8;">
+                                    <strong>Estadística de prueba:</strong> <span id="estBartlettTSide">-</span><br>
+                                    <strong>Valor p:</strong> <span id="estBartlettPSide">-</span>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <textarea id="estConclusionVarianzas" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">0.985(P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los analistas tienen similar precisión.</textarea>
 
                     <h4 style="color: #333;">4. PRUEBA DE IGUALDAD DE MEDIDAS DE TENDENCIA CENTRAL</h4>
-                    <p style="font-size: 0.95em; color: #555;">Para evaluar la veracidad entre analistas, se utilizará la prueba de igualdad de media. Para datos con distribución Normal se realiza la Prueba ANOVA de un factor.</p>
+                    <p style="font-size: 0.95em; color: #555;">Para evaluar la veracidad entre analistas, se utilizará la prueba de igualdad de media.<br><br>
+                    Para datos con distribución Normal se realiza la Prueba ANOVA de un factor.</p>
+                    <ul style="font-size: 0.95em; color: #555;">
+                        <li><strong>Nivel de Significancia ( α ):</strong> 0.05</li>
+                        <li><strong>Nivel de Confianza:</strong> 95%</li>
+                    </ul>
+                    <p style="font-size: 0.95em; color: #555;"><strong>Criterio de Decisión</strong><br>
+                    Pvalue &gt; alfa (0.05), entonces los analistas no presentan diferencia significativa entre sus media, por tanto los analistas son veraces entre si.<br><br>
+                    Pvalue ≤ alfa (0.05), entonces los analistas presentan diferencia significativa entre sus media, por tanto los analistas no son veraces entre si.</p>
+
+                    <div style="font-size: 0.95em; color: #333; margin-bottom: 20px; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+                        <h5 style="margin-top: 0; margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Método</h5>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                            <tr><td style="width: 30%; padding: 3px 0;"><strong>Hipótesis nula:</strong></td><td style="padding: 3px 0;">Todas las medias son iguales</td></tr>
+                            <tr><td style="padding: 3px 0;"><strong>Hipótesis alterna:</strong></td><td style="padding: 3px 0;">No todas las medias son iguales</td></tr>
+                            <tr><td style="padding: 3px 0;"><strong>Nivel de significancia:</strong></td><td style="padding: 3px 0;">α = 0,05</td></tr>
+                        </table>
+                        <p style="margin-bottom: 20px;">Se presupuso igualdad de varianzas para el análisis.</p>
+
+                        <h5 style="margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Análisis de varianza</h5>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; text-align: center;" border="1">
+                            <thead style="background: #f3f3f3;">
+                                <tr><th style="padding: 8px;">Fuente</th><th style="padding: 8px;">GL</th><th style="padding: 8px;">SC Ajust.</th><th style="padding: 8px;">MC Ajust.</th><th style="padding: 8px;">Valor F</th><th style="padding: 8px;">Valor p</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td style="padding: 8px;">Factor</td><td style="padding: 8px;" id="anovaFactorGL">-</td><td style="padding: 8px;" id="anovaFactorSC">-</td><td style="padding: 8px;" id="anovaFactorMC">-</td><td style="padding: 8px;" id="anovaFactorF">-</td><td style="padding: 8px;" id="anovaFactorP">-</td></tr>
+                                <tr><td style="padding: 8px;">Error</td><td style="padding: 8px;" id="anovaErrorGL">-</td><td style="padding: 8px;" id="anovaErrorSC">-</td><td style="padding: 8px;" id="anovaErrorMC">-</td><td style="padding: 8px;"></td><td style="padding: 8px;"></td></tr>
+                                <tr><td style="padding: 8px;">Total</td><td style="padding: 8px;" id="anovaTotalGL">-</td><td style="padding: 8px;" id="anovaTotalSC">-</td><td style="padding: 8px;"></td><td style="padding: 8px;"></td><td style="padding: 8px;"></td></tr>
+                            </tbody>
+                        </table>
+
+                        <h5 style="margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Medias</h5>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 10px; text-align: center;" border="1">
+                            <thead style="background: #f3f3f3;">
+                                <tr><th style="padding: 8px;">Factor</th><th style="padding: 8px;">N</th><th style="padding: 8px;">Media</th><th style="padding: 8px;">Desv.Est.</th><th style="padding: 8px;">IC de 95%</th></tr>
+                            </thead>
+                            <tbody id="anovaMediasBody"></tbody>
+                        </table>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 20px;"><strong>Desv. Est. Agrupada:</strong> <span id="anovaDesvAgrupada">-</span></p>
+
+                        <div style="width: 100%; max-width: 600px; margin: 20px auto; border: 1px solid #ddd; padding: 15px; background: #fff; border-radius: 5px;">
+                            <h5 style="text-align: center; color: #333; margin-top: 0;">Gráfica de intervalos de A1, A2, A3, A4</h5>
+                            <p style="text-align: center; font-size: 0.85em; color: #666; margin-bottom: 15px;">95% IC para la media</p>
+                            <canvas id="graficoIntervalos"></canvas>
+                            <p style="text-align: center; font-size: 0.85em; color: #666; margin-top: 10px;">La desviación estándar agrupada se utilizó para calcular los intervalos.</p>
+                        </div>
+                    </div>
                     <textarea id="estConclusionMedias" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">0.848 (P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los resultados de los analistas son similares respecto a sus medias.</textarea>
 
                     <h4 style="color: #333;">5. CAMPANA DE GAUSS (DISTRIBUCIÓN DE FRECUENCIAS)</h4>
@@ -284,6 +350,90 @@
                     </div>
                     <textarea id="estConclusionGauss" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">Visualmente, el histograma de frecuencias demuestra que los datos se agrupan en torno a la media central formando una campana simétrica, respaldando la distribución normal de los ensayos.</textarea>
                     
+                    <!-- NUEVA SECCION: VERACIDAD -->
+                    <div id="seccionVeracidad" style="margin-top: 40px; border-top: 2px solid #004a8f; padding-top: 20px;">
+                        <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">II. VERACIDAD</h2>
+                        <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">DESARROLLO DE LOS PARÁMETROS</h3>
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
+                            <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
+                            <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;">Área Física</td></tr>
+                            <tr><td style="padding: 5px;"><strong>3. DETERMINACION:</strong></td><td style="padding: 5px;">Gramaje</td></tr>
+                            <tr><td style="padding: 5px;"><strong>4. METODO USADO:</strong></td><td style="padding: 5px;">ASTM D3776/D3776M-20</td></tr>
+                            <tr><td style="padding: 5px;"><strong>5. CODIGO DE MUESTRA:</strong></td><td style="padding: 5px;" id="verCodigoMuestra">-</td></tr>
+                            <tr><td style="padding: 5px;"><strong>6. PRODUCTO:</strong></td><td style="padding: 5px;" id="verProducto"></td></tr>
+                            <tr><td style="padding: 5px; vertical-align: top;"><strong>7. PARTICIPANTES:</strong></td>
+                                <td style="padding: 5px;">
+                                    <span id="verA1"></span> (A1)<br>
+                                    <span id="verA2"></span> (A2)<br>
+                                    <span id="verA3"></span> (A3)<br>
+                                    <span id="verA4"></span> (A4)
+                                </td>
+                            </tr>
+                            <tr><td style="padding: 5px; vertical-align: top;"><strong>8. LABORATORIO:</strong></td>
+                                <td style="padding: 5px;">Centro Tecnológico Textil y Confecciones<br>Laboratorio externo</td>
+                            </tr>
+                            <tr><td style="padding: 5px;"><strong>9. RESULTADOS FECHA:</strong></td><td style="padding: 5px;" id="verFecha"></td></tr>
+                        </table>
+
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">1. DETERMINACION DE VERACIDAD</h4>
+                        <p style="font-size: 0.95em; color: #555;">La veracidad se evaluará mediante la comparación de valores obtenidos del laboratorio externo con el Laboratorio de CTTC, mediante la Prueba estadística T-student de 2 muestras.</p>
+
+                        <table style="width: 100%; max-width: 600px; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em; text-align: center;" border="1">
+                            <thead style="background: #f3f3f3;">
+                                <tr><th colspan="3" style="padding: 8px;">Gramaje (g/m²) - Lab externo</th><th style="padding: 8px;">Promedio</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td style="padding: 5px;"><input type="number" step="0.001" id="labExt1" class="lab-ext-input" style="width: 100%; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;" value="217.1"></td>
+                                    <td style="padding: 5px;"><input type="number" step="0.001" id="labExt2" class="lab-ext-input" style="width: 100%; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;" value="218.4"></td>
+                                    <td style="padding: 5px;"><input type="number" step="0.001" id="labExt3" class="lab-ext-input" style="width: 100%; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;" value="217.3"></td>
+                                    <td style="padding: 5px; font-weight: bold; background: #eef;" id="labExtProm">217.600</td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <ul style="font-size: 0.95em; color: #555;"><li><strong>Nivel de Significancia ( α ):</strong> 0.05</li><li><strong>Nivel de Confianza:</strong> 95%</li></ul>
+
+                        <div style="font-size: 0.95em; color: #333; margin-bottom: 20px; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+                            <h5 style="margin-top: 0; margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Hipótesis y Criterio de Decisión</h5>
+                            <p style="margin-bottom: 5px;"><strong>Ho:</strong> Los resultados obtenidos (CTTC) es igual a los resultados obtenidos de referencia (Lab Ext)</p>
+                            <p style="margin-bottom: 15px;"><strong>Ha:</strong> Los resultados obtenidos (CTTC) es diferente a los resultados obtenidos de referencia (Lab Ext)</p>
+                            <p style="margin-bottom: 5px; font-size: 0.95em; color: #555;">Si el P-value de la prueba &gt; alfa (0.05), se acepta la Ho, no existe diferencia significativa entre los valores obtenidos en CTTC y los valores obtenidos en el Laboratorio Externo, por lo tanto el método de ensayo cumple con el parámetro de veracidad.</p>
+                            <p style="margin-bottom: 15px; font-size: 0.95em; color: #555;">Si el P-value de la prueba ≤ alfa (0.05), se rechaza Ho, entonces el método de ensayo no cumple con la veracidad.</p>
+
+                            <h5 style="margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Método</h5>
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                                <tr><td style="width: 30%; padding: 3px 0;"><strong>μ₁:</strong></td><td style="padding: 3px 0;">media de g/m² CTTC</td></tr>
+                                <tr><td style="padding: 3px 0;"><strong>μ₂:</strong></td><td style="padding: 3px 0;">media de g/m² LABT - EXT</td></tr>
+                                <tr><td style="padding: 3px 0;"><strong>Diferencia:</strong></td><td style="padding: 3px 0;">μ₁ - μ₂</td></tr>
+                            </table>
+                            <p style="margin-bottom: 5px; font-size: 0.9em; color: #555;"><strong>Nota:</strong> La media y varianza de g/m² CTTC (μ₁) se calculan globalmente utilizando los <strong id="verCTTCDataCount">40</strong> datos obtenidos por los analistas.</p>
+                            <p style="margin-bottom: 20px;">Se presupuso igualdad de varianzas para este análisis.</p>
+
+                            <h5 style="margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Prueba</h5>
+                            <table style="width: 100%; border-collapse: collapse; margin-bottom: 15px;">
+                                <tr><td style="width: 30%; padding: 3px 0;"><strong>Hipótesis nula:</strong></td><td style="padding: 3px 0;">H₀: μ₁ - μ₂ = 0</td></tr>
+                                <tr><td style="padding: 3px 0;"><strong>Hipótesis alterna:</strong></td><td style="padding: 3px 0;">H₁: μ₁ - μ₂ ≠ 0</td></tr>
+                            </table>
+
+                            <table style="width: 100%; max-width: 400px; border-collapse: collapse; margin-bottom: 15px; text-align: center;" border="1">
+                                <thead style="background: #f3f3f3;"><tr><th style="padding: 8px;">Valor T</th><th style="padding: 8px;">GL</th><th style="padding: 8px;">Valor p</th></tr></thead>
+                                <tbody><tr><td style="padding: 8px;" id="verEstT">-</td><td style="padding: 8px;" id="verGL">-</td><td style="padding: 8px; font-weight: bold; color: #004a8f;" id="verPvalue">-</td></tr></tbody>
+                            </table>
+
+                            <div style="font-size: 0.85em; color: #666; margin-top: -10px; margin-bottom: 20px; padding: 10px; background: #f9f9f9; border-left: 3px solid #004a8f; border-radius: 0 4px 4px 0;">
+                                <strong>Nota metodológica:</strong> El cálculo de los estadísticos implementa el algoritmo exacto de <strong>Minitab</strong> para la prueba T-Student de 2 muestras presuponiendo igualdad de varianzas (Varianza Agrupada), calculando el P-Valor de 2 colas mediante la aproximación de la función Beta Incompleta.
+                            </div>
+
+                            <div style="width: 100%; max-width: 500px; margin: 20px auto; border: 1px solid #ddd; padding: 15px; background: #fff; border-radius: 5px;">
+                                <h5 style="text-align: center; color: #333; margin-top: 0;">Gráfica de caja de g/m² CTTC; g/m² LABT- EXT</h5>
+                                <canvas id="graficoVeracidadBoxplot"></canvas>
+                            </div>
+                        </div>
+
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 5px;"><strong>Conclusión de Veracidad:</strong></p>
+                        <textarea id="verConclusion" style="width: 100%; padding: 8px; margin-top: 0; margin-bottom: 20px; height: 70px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;"></textarea>
+                    </div>
                 </div>
 
                 <div style="margin-top: 30px;">
@@ -352,10 +502,15 @@
             </section>
 
             <section class="spreadsheet-view">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h3 style="margin: 0; color: #333;">Registros del Ensayo</h3>
+                    <button id="btnEliminarSeleccionados" class="btn-secondary" style="background-color: #c0392b; color: white; border: none; display: none; cursor: pointer; padding: 5px 10px; border-radius: 3px;">🗑️ Eliminar Seleccionados</button>
+                </div>
                 <div style="overflow-x: auto; width: 100%;">
                 <table id="tablaDatos">
                     <thead>
                         <tr>
+                            <th class="no-export" style="width: 40px; text-align: center;"><input type="checkbox" id="selectAllRecords" title="Seleccionar todos"></th>
                             <th>Tipo de Corte</th>
                             <th>Numero de probetas</th>
                             <th>Ancho espécimen (mm)</th>

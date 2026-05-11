@@ -44,9 +44,9 @@ function calcularDiferenciaCritica() {
     // Necesitamos al menos 2 registros para comparar
     if (rows.length >= 2) {
         // Asumimos que toma los dos más recientes (rows[0] es el último ingresado, rows[1] es el anterior)
-        // Columna 6 corresponde a "Promedio (g/m²)"
-        const valB = parseFloat(rows[0].cells[6].innerText); // Equivalente a J25 (Repetición)
-        const valA = parseFloat(rows[1].cells[6].innerText); // Equivalente a J22 (Original)
+        // Columna 7 corresponde a "Promedio (g/m²)" (desplazado por el checkbox nuevo)
+        const valB = parseFloat(rows[0].cells[7].innerText); // Equivalente a J25 (Repetición)
+        const valA = parseFloat(rows[1].cells[7].innerText); // Equivalente a J22 (Original)
         
         if (!isNaN(valA) && !isNaN(valB) && valA !== 0) {
             // 1. Diferencia simple: =ABS(J22-J25)
@@ -83,16 +83,16 @@ function calcularOpcionC() {
 
     // Buscar el registro original más reciente (que NO sea repetición)
     for (let i = 0; i < rows.length; i++) {
-        if (rows[i].cells[3].innerText === 'No') {
+        if (rows[i].cells[4].innerText === 'No') {
             rowOriginal = rows[i];
             break; // Tomamos el primero que cumpla (el más reciente)
         }
     }
 
     if (rowOriginal) {
-        const ancho = parseFloat(rowOriginal.cells[2].innerText); // Ancho en mm
-        const pesosStr = rowOriginal.cells[4].innerText;
-        const gramajesStr = rowOriginal.cells[5].innerText;
+        const ancho = parseFloat(rowOriginal.cells[3].innerText); // Ancho en mm
+        const pesosStr = rowOriginal.cells[5].innerText;
+        const gramajesStr = rowOriginal.cells[6].innerText;
 
         if (!isNaN(ancho) && ancho > 0 && pesosStr !== '-' && gramajesStr !== '-') {
             const pesos = pesosStr.split(',').map(p => parseFloat(p));
@@ -370,6 +370,7 @@ document.getElementById('gramajeForm').addEventListener('submit', async (e) => {
                 const gramajesIndDisplay = data.gramajesInd ? data.gramajesInd.map(g => parseFloat(Number(g).toFixed(4))).join(', ') : '-';
                 const grDisplay = data.gr !== undefined ? parseFloat(Number(data.gr).toFixed(4)) : '-';
             row.innerHTML = `
+                <td class="no-export" style="text-align: center;"><input type="checkbox" class="row-checkbox" value="${editandoId}"></td>
                 <td>${data.tipoCorte || '-'}</td>
                 <td>${data.numProbetas || '-'}</td>
                 <td>${anchoDisplay}</td>
@@ -409,6 +410,7 @@ function renderFila(id, data) {
     const gramajesIndDisplay = data.gramajesInd ? data.gramajesInd.map(g => parseFloat(Number(g).toFixed(4))).join(', ') : '-';
     const grDisplay = data.gr !== undefined ? parseFloat(Number(data.gr).toFixed(4)) : '-';
     row.innerHTML = `
+        <td class="no-export" style="text-align: center;"><input type="checkbox" class="row-checkbox" value="${id}"></td>
         <td>${data.tipoCorte || '-'}</td>
         <td>${data.numProbetas || '-'}</td>
         <td>${anchoDisplay}</td>
@@ -681,6 +683,14 @@ async function cargarDatosIncertidumbre() {
             if (data.estConclusionVarianzas) document.getElementById('estConclusionVarianzas').value = data.estConclusionVarianzas;
             if (data.estConclusionMedias) document.getElementById('estConclusionMedias').value = data.estConclusionMedias;
 
+            if (data.labExt) {
+                if (data.labExt[0]) document.getElementById('labExt1').value = data.labExt[0];
+                if (data.labExt[1]) document.getElementById('labExt2').value = data.labExt[1];
+                if (data.labExt[2]) document.getElementById('labExt3').value = data.labExt[2];
+            }
+            if (data.verConclusion) document.getElementById('verConclusion').value = data.verConclusion;
+            calcularVeracidad();
+
             if (data.analistas) {
                 ['A1', 'A2', 'A3', 'A4'].forEach(id => {
                     const aData = data.analistas[id];
@@ -748,6 +758,137 @@ function renderIncertidumbreEnsayos() {
 renderOTTray();
 renderIncertidumbreEnsayos();
 generarTablasEficacia();
+
+// --- Función para Calcular la Prueba de Veracidad (T-Student 2 Muestras) ---
+window.calcularVeracidad = function() {
+    let cttcData = [];
+    for (let a of ['A1', 'A2', 'A3', 'A4']) {
+        for (let i = 1; i <= 10; i++) {
+            const val = parseFloat(document.getElementById(`efi-prom-${a}-${i}`)?.innerText);
+            if (!isNaN(val) && val > 0) cttcData.push(val);
+        }
+    }
+    
+    let n1 = cttcData.length;
+    if (n1 < 2) return;
+    
+    if (document.getElementById('verCTTCDataCount')) {
+        document.getElementById('verCTTCDataCount').innerText = n1;
+    }
+    
+    let mean1 = cttcData.reduce((a,b)=>a+b, 0) / n1;
+    let var1 = cttcData.reduce((a,b)=>a+Math.pow(b-mean1,2), 0) / (n1 - 1);
+
+    let extData = [];
+    [1, 2, 3].forEach(i => {
+        let val = parseFloat(document.getElementById(`labExt${i}`)?.value);
+        if (!isNaN(val)) extData.push(val);
+    });
+    
+    let n2 = extData.length;
+    let extPromCell = document.getElementById('labExtProm');
+    if (n2 === 0) {
+        if (extPromCell) extPromCell.innerText = '-';
+        return;
+    }
+    let mean2 = extData.reduce((a,b)=>a+b, 0) / n2;
+    if (extPromCell) extPromCell.innerText = mean2.toFixed(3);
+    
+    if (n2 < 2) return;
+    let var2 = extData.reduce((a,b)=>a+Math.pow(b-mean2,2), 0) / (n2 - 1);
+
+    // Prueba T pooled variance (Igualdad de varianzas asumida)
+    let s_p_sq = ((n1 - 1) * var1 + (n2 - 1) * var2) / (n1 + n2 - 2);
+    let t = (mean1 - mean2) / Math.sqrt(s_p_sq * (1/n1 + 1/n2));
+    let df = n1 + n2 - 2;
+
+    function lGamma(x) {
+        let coef = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
+        let y = x; let tmp = x + 5.5; tmp -= (x + 0.5) * Math.log(tmp); let ser = 1.000000000190015;
+        for (let j = 0; j <= 5; j++) { ser += coef[j] / ++y; } return -tmp + Math.log(2.5066282746310005 * ser / x);
+    }
+
+    function bInc(x, a, b) {
+        let bt = 0; if (x === 0 || x === 1) return x;
+        bt = Math.exp(lGamma(a + b) - lGamma(a) - lGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+        let m = 1, m2 = 2, qab = a + b, qap = a + 1, qam = a - 1; let c = 1, d = 1 - qab * x / qap;
+        if (Math.abs(d) < 1e-30) d = 1e-30; d = 1 / d; let h = d;
+        for (m = 1; m <= 100; m++, m2 += 2) {
+            let aa = m * (b - m) * x / ((qam + m2) * (a + m2)); d = 1 + aa * d; if (Math.abs(d) < 1e-30) d = 1e-30; c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30; d = 1 / d; h *= d * c;
+            aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2)); d = 1 + aa * d; if (Math.abs(d) < 1e-30) d = 1e-30; c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30; d = 1 / d; let del = d * c; h *= del; if (Math.abs(del - 1) < 3e-7) break;
+        }
+        if (x < (a + 1) / (a + b + 2)) return bt * h / a; else return 1 - bt * h / b;
+    }
+
+    let x_beta = df / (df + t * t);
+    let p_value = bInc(x_beta, df / 2, 0.5);
+
+    document.getElementById('verEstT').innerText = t.toFixed(2);
+    document.getElementById('verGL').innerText = df;
+    document.getElementById('verPvalue').innerText = p_value.toFixed(3);
+
+    const txtConclusion = document.getElementById('verConclusion');
+    if (txtConclusion) {
+        if (p_value > 0.05) {
+            txtConclusion.value = `${p_value.toFixed(3)} (P-value) es mayor que alfa (0.05), se acepta la Ho, no existe diferencia significativa entre los valores obtenidos en CTTC y los valores obtenidos en el Laboratorio Externo, por lo tanto el método de ensayo cumple con el parámetro de veracidad.`;
+        } else {
+            txtConclusion.value = `${p_value.toFixed(3)} (P-value) es menor o igual a alfa (0.05), se rechaza Ho, entonces el método de ensayo no cumple con la veracidad.`;
+        }
+    }
+
+    const ctxVeracidad = document.getElementById('graficoVeracidadBoxplot')?.getContext('2d');
+    if (ctxVeracidad) {
+        if (window.graficoVeracidadChart) window.graficoVeracidadChart.destroy();
+        window.graficoVeracidadChart = new Chart(ctxVeracidad, {
+            type: 'boxplot',
+            data: {
+                labels: ['g/m² CTTC', 'g/m² LABT- EXT'],
+                datasets: [
+                    {
+                        label: 'Medias (Línea de Conexión)',
+                        type: 'line',
+                        data: [mean1, mean2],
+                        borderColor: '#333',
+                        backgroundColor: '#333',
+                        pointStyle: 'circle',
+                        pointRadius: 6,
+                        borderWidth: 2,
+                        showLine: true,
+                        order: 1
+                    },
+                    {
+                        label: 'Distribución',
+                        backgroundColor: 'rgba(0, 74, 143, 0.3)',
+                        borderColor: '#004a8f',
+                        borderWidth: 1.5,
+                        itemRadius: 0, // Ocultar puntos individuales de la caja
+                        outlierBackgroundColor: '#c0392b',
+                        data: [cttcData, extData],
+                        order: 2
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        title: { display: true, text: 'Datos' },
+                        min: Math.floor(Math.min(...cttcData, ...extData, mean1, mean2)) - 0.5,
+                        max: Math.ceil(Math.max(...cttcData, ...extData, mean1, mean2)) + 0.5
+                    }
+                },
+                plugins: {
+                    legend: { display: false }
+                }
+            }
+        });
+    }
+}
+
+document.getElementById('labExt1')?.addEventListener('input', calcularVeracidad);
+document.getElementById('labExt2')?.addEventListener('input', calcularVeracidad);
+document.getElementById('labExt3')?.addEventListener('input', calcularVeracidad);
+
 if (!document.getElementById('efiFecha').value) document.getElementById('efiFecha').value = new Date().toISOString().split('T')[0];
 
 // --- Lógica para Generar Evaluación Estadística ---
@@ -768,6 +909,15 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     document.getElementById('estA2').innerText = nombres.A2;
     document.getElementById('estA3').innerText = nombres.A3;
     document.getElementById('estA4').innerText = nombres.A4;
+    
+    // Rellenar cabeceras de Sección II: Veracidad
+    document.getElementById('verProducto').innerText = document.getElementById('efiProducto').value;
+    document.getElementById('verFecha').innerText = document.getElementById('efiFecha').value;
+    document.getElementById('verCodigoMuestra').innerText = currentMuestra || '-';
+    document.getElementById('verA1').innerText = nombres.A1;
+    document.getElementById('verA2').innerText = nombres.A2;
+    document.getElementById('verA3').innerText = nombres.A3;
+    document.getElementById('verA4').innerText = nombres.A4;
 
     const promedios = { A1: [], A2: [], A3: [], A4: [] };
     let todosLosDatos = [];
@@ -883,6 +1033,10 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     let bartlettHtml = '';
     let validGroups = 0, totalN = 0, sumNiMinus1_lnSi2 = 0, sumNiMinus1_Si2 = 0, sum1_NiMinus1 = 0;
 
+    let varianzaLabels = [];
+    let varianzaEst = [];
+    let varianzaCI = [];
+
     let kTotal = ['A1', 'A2', 'A3', 'A4'].filter(a => promedios[a].filter(v => v > 0).length > 1).length;
     let alpha = 0.05;
     let indAlpha = kTotal > 0 ? alpha / kTotal : alpha;
@@ -905,6 +1059,10 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
             let lowerCI = Math.sqrt((df * varA) / chi2inv(1 - indAlpha / 2, df));
             let upperCI = Math.sqrt((df * varA) / chi2inv(indAlpha / 2, df));
             
+            varianzaLabels.push(analista);
+            varianzaEst.push(Math.sqrt(varA));
+            varianzaCI.push([lowerCI, upperCI]);
+            
             bartlettHtml += `<tr><td style="padding: 8px;">${analista}</td><td style="padding: 8px;">${nA}</td><td style="padding: 8px;">${Math.sqrt(varA).toFixed(6)}</td><td style="padding: 8px;">(${lowerCI.toFixed(6)}; ${upperCI.toFixed(6)})</td></tr>`;
         }
     });
@@ -918,9 +1076,204 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
         document.getElementById('estBartlettT').innerText = bartlettT.toFixed(2);
         document.getElementById('estBartlettP').innerText = bartlettP.toFixed(3);
         
+        const bTSide = document.getElementById('estBartlettTSide');
+        const bPSide = document.getElementById('estBartlettPSide');
+        if (bTSide) bTSide.innerText = bartlettT.toFixed(2);
+        if (bPSide) bPSide.innerText = bartlettP.toFixed(3);
+        
         // Autocompletar la conclusión de Bartlett evaluando P-Valor
         const txtConclusionVar = document.getElementById('estConclusionVarianzas');
         if (txtConclusionVar) txtConclusionVar.value = `${bartlettP.toFixed(3)} (P valor) es ${bartlettP > alpha ? 'mayor' : 'menor o igual'} que el nivel de significancia (${alpha}) por lo que podemos afirmar, al 95% de confianza, que los analistas ${bartlettP > alpha ? 'tienen similar precisión' : 'presentan diferencia significativa entre sus varianzas'}.`;
+    }
+
+    const ctxVarianzas = document.getElementById('graficoVarianzas')?.getContext('2d');
+    if (ctxVarianzas) {
+        if (window.graficoVarianzasChart) window.graficoVarianzasChart.destroy();
+        window.graficoVarianzasChart = new Chart(ctxVarianzas, {
+            type: 'bar',
+            data: {
+                labels: varianzaLabels,
+                datasets: [
+                    {
+                        label: 'Desviación Estándar',
+                        data: varianzaEst,
+                        type: 'line',
+                        showLine: false,
+                        backgroundColor: '#c0392b',
+                        borderColor: '#c0392b',
+                        pointRadius: 6,
+                        pointStyle: 'circle'
+                    },
+                    {
+                        label: 'Intervalos de Confianza',
+                        data: varianzaCI,
+                        backgroundColor: 'rgba(0, 74, 143, 0.4)',
+                        borderColor: '#004a8f',
+                        borderWidth: 1,
+                        barPercentage: 0.3
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { title: { display: true, text: 'Desviación Estándar' }, beginAtZero: true }
+                },
+                plugins: { legend: { display: true } }
+            }
+        });
+    }
+
+    // --- Cálculos de ANOVA (Igualdad de Medias) ---
+    let kGroups = validGroups;
+    let anovaDFTrt = kGroups - 1;
+    let anovaDFE = totalN - kGroups;
+    let anovaDFT = totalN - 1;
+
+    let anovaSSTrt = 0;
+    let anovaSSE = sumNiMinus1_Si2; 
+    let grandMean = mean;
+    
+    let anovaMediasHtml = '';
+    let anovaLabels = [];
+    let anovaMeans = [];
+    let anovaCIs = [];
+
+    // Aproximación de la inversa T para 95% de confianza
+    let tVal = anovaDFE > 0 ? (1.95996 + (Math.pow(1.95996, 3) + 1.95996) / (4 * anovaDFE) + (5 * Math.pow(1.95996, 5) + 16 * Math.pow(1.95996, 3) + 3 * 1.95996) / (96 * Math.pow(anovaDFE, 2))) : 1.96;
+
+    let MSE = anovaDFE > 0 ? anovaSSE / anovaDFE : 0;
+    let pooledStd = Math.sqrt(MSE);
+
+    ['A1', 'A2', 'A3', 'A4'].forEach(analista => {
+        const arr = promedios[analista].filter(v => v > 0);
+        if (arr.length > 0) {
+            const nA = arr.length;
+            const meanA = arr.reduce((a, b) => a + b, 0) / nA;
+            const sumSqA = arr.reduce((a, b) => a + Math.pow(b - meanA, 2), 0);
+            const stdA = nA > 1 ? Math.sqrt(sumSqA / (nA - 1)) : 0;
+
+            anovaSSTrt += nA * Math.pow(meanA - grandMean, 2);
+
+            let margin = tVal * (pooledStd / Math.sqrt(nA));
+            let lowerCI = meanA - margin;
+            let upperCI = meanA + margin;
+
+            anovaMediasHtml += `<tr><td style="padding: 8px;">${analista}</td><td style="padding: 8px;">${nA}</td><td style="padding: 8px;">${meanA.toFixed(3)}</td><td style="padding: 8px;">${stdA.toFixed(3)}</td><td style="padding: 8px;">(${lowerCI.toFixed(3)}; ${upperCI.toFixed(3)})</td></tr>`;
+            
+            anovaLabels.push(analista);
+            anovaMeans.push(meanA);
+            anovaCIs.push([lowerCI, upperCI]);
+        }
+    });
+
+    let anovaSST = anovaSSTrt + anovaSSE;
+    let MSTrt = anovaDFTrt > 0 ? anovaSSTrt / anovaDFTrt : 0;
+    let FVal = MSE > 0 ? MSTrt / MSE : 0;
+    
+    // Función auxiliar Beta Incompleta para el P-Valor
+    function betaIncLocal(x, a, b) {
+        if (x === 0 || x === 1) return x;
+        let bt = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
+        function fraction(x, a, b) {
+            let m = 1, m2 = 2, qab = a + b, qap = a + 1, qam = a - 1;
+            let c = 1, d = 1 - qab * x / qap;
+            if (Math.abs(d) < 1e-30) d = 1e-30;
+            d = 1 / d;
+            let h = d;
+            for (m = 1; m <= 100; m++, m2 += 2) {
+                let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
+                d = 1 + aa * d;
+                if (Math.abs(d) < 1e-30) d = 1e-30;
+                c = 1 + aa / c;
+                if (Math.abs(c) < 1e-30) c = 1e-30;
+                d = 1 / d;
+                h *= d * c;
+                aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
+                d = 1 + aa * d;
+                if (Math.abs(d) < 1e-30) d = 1e-30;
+                c = 1 + aa / c;
+                if (Math.abs(c) < 1e-30) c = 1e-30;
+                d = 1 / d;
+                let del = d * c;
+                h *= del;
+                if (Math.abs(del - 1) < 3e-7) break;
+            }
+            return h;
+        }
+        if (x < (a + 1) / (a + b + 2)) return bt * fraction(x, a, b) / a;
+        else return 1 - bt * fraction(1 - x, b, a) / b;
+    }
+    
+    let anovaPVal = 0;
+    if (FVal > 0 && anovaDFTrt > 0 && anovaDFE > 0) {
+        let x = anovaDFTrt * FVal / (anovaDFTrt * FVal + anovaDFE);
+        anovaPVal = 1 - betaIncLocal(x, anovaDFTrt / 2, anovaDFE / 2);
+    }
+
+    if (document.getElementById('anovaFactorGL')) {
+        document.getElementById('anovaFactorGL').innerText = anovaDFTrt;
+        document.getElementById('anovaFactorSC').innerText = anovaSSTrt.toFixed(4);
+        document.getElementById('anovaFactorMC').innerText = MSTrt.toFixed(4);
+        document.getElementById('anovaFactorF').innerText = FVal.toFixed(2);
+        document.getElementById('anovaFactorP').innerText = anovaPVal.toFixed(3);
+        
+        document.getElementById('anovaErrorGL').innerText = anovaDFE;
+        document.getElementById('anovaErrorSC').innerText = anovaSSE.toFixed(4);
+        document.getElementById('anovaErrorMC').innerText = MSE.toFixed(4);
+        
+        document.getElementById('anovaTotalGL').innerText = anovaDFT;
+        document.getElementById('anovaTotalSC').innerText = anovaSST.toFixed(4);
+        
+        document.getElementById('anovaMediasBody').innerHTML = anovaMediasHtml;
+        document.getElementById('anovaDesvAgrupada').innerText = pooledStd.toFixed(4);
+        
+        const txtConclusionMedias = document.getElementById('estConclusionMedias');
+        if (txtConclusionMedias) {
+            txtConclusionMedias.value = `${anovaPVal.toFixed(3)} (P valor) es ${anovaPVal > alpha ? 'mayor' : 'menor o igual'} que el nivel de significancia (${alpha}) por lo que podemos afirmar, al 95% de confianza, que los resultados de los analistas ${anovaPVal > alpha ? 'son similares respecto a sus medias' : 'presentan diferencia significativa entre sus medias'}.`;
+        }
+
+        const ctxIntervalos = document.getElementById('graficoIntervalos')?.getContext('2d');
+        if (ctxIntervalos) {
+            if (window.graficoIntervalosChart) window.graficoIntervalosChart.destroy();
+            window.graficoIntervalosChart = new Chart(ctxIntervalos, {
+                type: 'bar',
+                data: {
+                    labels: anovaLabels,
+                    datasets: [
+                        {
+                            label: 'Media',
+                            data: anovaMeans,
+                            type: 'line',
+                            showLine: false,
+                            backgroundColor: '#004a8f',
+                            borderColor: '#004a8f',
+                            pointRadius: 6,
+                            pointStyle: 'circle'
+                        },
+                        {
+                            label: 'Intervalos de Confianza (95%)',
+                            data: anovaCIs,
+                            backgroundColor: 'rgba(0, 74, 143, 0.2)',
+                            borderColor: '#004a8f',
+                            borderWidth: 1.5,
+                            barPercentage: 0.1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: { 
+                            title: { display: true, text: 'Datos' },
+                            min: anovaCIs.length > 0 ? Math.floor(Math.min(...anovaCIs.map(ci => ci[0]))) - 0.5 : 0,
+                            max: anovaCIs.length > 0 ? Math.ceil(Math.max(...anovaCIs.map(ci => ci[1]))) + 0.5 : 0
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                }
+            });
+        }
     }
 
     // --- Gráfico de Prueba de Normalidad y Anderson-Darling ---
@@ -1084,6 +1437,9 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
             }
         }
     });
+    
+    // Ejecutar prueba de Veracidad
+    calcularVeracidad();
 });
 
 // --- Lógica de Guardado de Eficacia (Incertidumbre) ---
@@ -1099,6 +1455,12 @@ document.getElementById('btnGuardarEficacia').addEventListener('click', async ()
     const estConclusionVarianzas = document.getElementById('estConclusionVarianzas')?.value || '';
     const estConclusionMedias = document.getElementById('estConclusionMedias')?.value || '';
     const estConclusionGauss = document.getElementById('estConclusionGauss')?.value || '';
+    const verConclusion = document.getElementById('verConclusion')?.value || '';
+    const labExt = [
+        document.getElementById('labExt1')?.value || '',
+        document.getElementById('labExt2')?.value || '',
+        document.getElementById('labExt3')?.value || ''
+    ];
 
     const analistasData = {};
     ['A1', 'A2', 'A3', 'A4'].forEach(id => {
@@ -1128,6 +1490,8 @@ document.getElementById('btnGuardarEficacia').addEventListener('click', async ()
         estConclusionVarianzas: estConclusionVarianzas,
         estConclusionMedias: estConclusionMedias,
         estConclusionGauss: estConclusionGauss,
+        verConclusion: verConclusion,
+        labExt: labExt,
         fechaRegistro: new Date().toISOString()
     };
 
@@ -1137,5 +1501,80 @@ document.getElementById('btnGuardarEficacia').addEventListener('click', async ()
     } catch (error) {
         console.error("Error al guardar registro de incertidumbre: ", error);
         alert("Error al guardar el registro: " + error.message);
+    }
+});
+
+// --- Lógica de Selección y Borrado Múltiple para Eficacia ---
+let isSelecting = false;
+
+document.addEventListener('mousedown', (e) => {
+    if (e.target.classList.contains('efi-input')) {
+        isSelecting = true;
+        if (!e.shiftKey && !e.ctrlKey) {
+            document.querySelectorAll('.selected-cell').forEach(el => el.classList.remove('selected-cell'));
+        }
+        e.target.classList.add('selected-cell');
+    } else if (!e.target.closest('#contenedorTablasEficacia')) {
+        document.querySelectorAll('.selected-cell').forEach(el => el.classList.remove('selected-cell'));
+    }
+});
+
+document.addEventListener('mouseover', (e) => {
+    if (isSelecting && e.target.classList.contains('efi-input')) {
+        e.target.classList.add('selected-cell');
+    }
+});
+
+document.addEventListener('mouseup', () => {
+    isSelecting = false;
+});
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Delete' || e.key === 'Backspace') {
+        const selectedCells = document.querySelectorAll('.selected-cell');
+        if (selectedCells.length > 1 || (selectedCells.length === 1 && document.activeElement !== selectedCells[0])) {
+            e.preventDefault();
+            selectedCells.forEach(cell => {
+                cell.value = '';
+                cell.dispatchEvent(new Event('input', { bubbles: true }));
+            });
+        }
+    }
+});
+
+// --- Lógica de Borrado Masivo para Tabla de Gramajes ---
+document.getElementById('selectAllRecords')?.addEventListener('change', (e) => {
+    const checkboxes = document.querySelectorAll('.row-checkbox');
+    checkboxes.forEach(cb => cb.checked = e.target.checked);
+    toggleBtnEliminarSeleccionados();
+});
+
+document.getElementById('resultadoCuerpo')?.addEventListener('change', (e) => {
+    if (e.target.classList.contains('row-checkbox')) {
+        toggleBtnEliminarSeleccionados();
+        const totalBoxes = document.querySelectorAll('.row-checkbox').length;
+        const checkedBoxes = document.querySelectorAll('.row-checkbox:checked').length;
+        const selectAll = document.getElementById('selectAllRecords');
+        if (selectAll) selectAll.checked = (totalBoxes === checkedBoxes && totalBoxes > 0);
+    }
+});
+
+function toggleBtnEliminarSeleccionados() {
+    const hasChecked = document.querySelectorAll('.row-checkbox:checked').length > 0;
+    const btn = document.getElementById('btnEliminarSeleccionados');
+    if (btn) btn.style.display = hasChecked ? 'inline-block' : 'none';
+}
+
+document.getElementById('btnEliminarSeleccionados')?.addEventListener('click', async () => {
+    const checkedBoxes = document.querySelectorAll('.row-checkbox:checked');
+    if (checkedBoxes.length > 0 && confirm(`¿Desea borrar permanentemente ${checkedBoxes.length} registro(s)?`)) {
+        for (const cb of checkedBoxes) {
+            await deleteDoc(doc(db, "gramajes", cb.value));
+            document.getElementById(cb.value)?.remove();
+        }
+        document.getElementById('selectAllRecords').checked = false;
+        toggleBtnEliminarSeleccionados();
+        calcularDiferenciaCritica();
+        calcularOpcionC();
     }
 });
