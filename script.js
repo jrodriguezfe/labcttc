@@ -802,26 +802,8 @@ window.calcularVeracidad = function() {
     let t = (mean1 - mean2) / Math.sqrt(s_p_sq * (1/n1 + 1/n2));
     let df = n1 + n2 - 2;
 
-    function lGamma(x) {
-        let coef = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
-        let y = x; let tmp = x + 5.5; tmp -= (x + 0.5) * Math.log(tmp); let ser = 1.000000000190015;
-        for (let j = 0; j <= 5; j++) { ser += coef[j] / ++y; } return -tmp + Math.log(2.5066282746310005 * ser / x);
-    }
-
-    function bInc(x, a, b) {
-        let bt = 0; if (x === 0 || x === 1) return x;
-        bt = Math.exp(lGamma(a + b) - lGamma(a) - lGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
-        let m = 1, m2 = 2, qab = a + b, qap = a + 1, qam = a - 1; let c = 1, d = 1 - qab * x / qap;
-        if (Math.abs(d) < 1e-30) d = 1e-30; d = 1 / d; let h = d;
-        for (m = 1; m <= 100; m++, m2 += 2) {
-            let aa = m * (b - m) * x / ((qam + m2) * (a + m2)); d = 1 + aa * d; if (Math.abs(d) < 1e-30) d = 1e-30; c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30; d = 1 / d; h *= d * c;
-            aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2)); d = 1 + aa * d; if (Math.abs(d) < 1e-30) d = 1e-30; c = 1 + aa / c; if (Math.abs(c) < 1e-30) c = 1e-30; d = 1 / d; let del = d * c; h *= del; if (Math.abs(del - 1) < 3e-7) break;
-        }
-        if (x < (a + 1) / (a + b + 2)) return bt * h / a; else return 1 - bt * h / b;
-    }
-
-    let x_beta = df / (df + t * t);
-    let p_value = bInc(x_beta, df / 2, 0.5);
+    // P-Valor de 2 colas usando la librería jStat
+    let p_value = 2 * (1 - jStat.studentt.cdf(Math.abs(t), df));
 
     document.getElementById('verEstT').innerText = t.toFixed(2);
     document.getElementById('verGL').innerText = df;
@@ -839,32 +821,82 @@ window.calcularVeracidad = function() {
     const ctxVeracidad = document.getElementById('graficoVeracidadBoxplot')?.getContext('2d');
     if (ctxVeracidad) {
         if (window.graficoVeracidadChart) window.graficoVeracidadChart.destroy();
+
+        // Plugin personalizado para dibujar la línea y los símbolos de medias (Círculo con Cruz) tipo Minitab
+        const connectMeansPlugin = {
+            id: 'connectMeans',
+            afterDatasetsDraw(chart) {
+                try {
+                    const ctx = chart.ctx;
+                    const meta = chart.getDatasetMeta(0);
+                    
+                    // Validación estricta para evitar bloqueos durante la renderización
+                    if (!meta || !meta.data || meta.data.length < 2) return;
+                    
+                    const point1 = meta.data[0];
+                    const point2 = meta.data[1];
+                    
+                    const x1 = point1.x;
+                    const x2 = point2.x;
+                    if (x1 === undefined || x2 === undefined) return;
+
+                    const yAxis = chart.scales.y;
+                    if (!yAxis) return;
+
+                    const y1 = yAxis.getPixelForValue(mean1);
+                    const y2 = yAxis.getPixelForValue(mean2);
+                    if (isNaN(y1) || isNaN(y2)) return;
+                    
+                    // Dibujar línea de conexión
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.moveTo(x1, y1);
+                    ctx.lineTo(x2, y2);
+                    ctx.strokeStyle = '#333';
+                    ctx.lineWidth = 2;
+                    ctx.stroke();
+                    
+                    // Dibujar círculos con cruz para las medias
+                    [ {x: x1, y: y1}, {x: x2, y: y2} ].forEach(pt => {
+                        ctx.beginPath();
+                        ctx.arc(pt.x, pt.y, 6, 0, 2 * Math.PI);
+                        ctx.fillStyle = '#004a8f';
+                        ctx.fill();
+                        ctx.strokeStyle = '#fff';
+                        ctx.lineWidth = 1.5;
+                        ctx.beginPath();
+                        ctx.moveTo(pt.x - 4, pt.y);
+                        ctx.lineTo(pt.x + 4, pt.y);
+                        ctx.moveTo(pt.x, pt.y - 4);
+                        ctx.lineTo(pt.x, pt.y + 4);
+                        ctx.stroke();
+                    });
+                    ctx.restore();
+                } catch (e) {
+                    console.error("No se pudo dibujar las medias conectadas: ", e);
+                }
+            }
+        };
+        
+        // Calcular límites seguros para el eje Y
+        let minValGlobal = Math.min(...cttcData, ...extData, mean1, mean2);
+        let maxValGlobal = Math.max(...cttcData, ...extData, mean1, mean2);
+        let safeMin = isFinite(minValGlobal) ? Math.floor(minValGlobal) - 0.5 : 215;
+        let safeMax = isFinite(maxValGlobal) ? Math.ceil(maxValGlobal) + 0.5 : 219;
+
         window.graficoVeracidadChart = new Chart(ctxVeracidad, {
             type: 'boxplot',
             data: {
                 labels: ['g/m² CTTC', 'g/m² LABT- EXT'],
                 datasets: [
                     {
-                        label: 'Medias (Línea de Conexión)',
-                        type: 'line',
-                        data: [mean1, mean2],
-                        borderColor: '#333',
-                        backgroundColor: '#333',
-                        pointStyle: 'circle',
-                        pointRadius: 6,
-                        borderWidth: 2,
-                        showLine: true,
-                        order: 1
-                    },
-                    {
                         label: 'Distribución',
                         backgroundColor: 'rgba(0, 74, 143, 0.3)',
                         borderColor: '#004a8f',
                         borderWidth: 1.5,
-                        itemRadius: 0, // Ocultar puntos individuales de la caja
+                        itemRadius: 0,
                         outlierBackgroundColor: '#c0392b',
                         data: [cttcData, extData],
-                        order: 2
                     }
                 ]
             },
@@ -873,14 +905,15 @@ window.calcularVeracidad = function() {
                 scales: {
                     y: {
                         title: { display: true, text: 'Datos' },
-                        min: Math.floor(Math.min(...cttcData, ...extData, mean1, mean2)) - 0.5,
-                        max: Math.ceil(Math.max(...cttcData, ...extData, mean1, mean2)) + 0.5
+                        min: safeMin,
+                        max: safeMax
                     }
                 },
                 plugins: {
                     legend: { display: false }
                 }
-            }
+            },
+            plugins: [connectMeansPlugin]
         });
     }
 }
@@ -995,41 +1028,6 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     document.getElementById('estZscoreBody').innerHTML = zScoreHtml;
 
     // --- Cálculos de Prueba de Homogeneidad de Varianzas (Bartlett) ---
-    // Funciones estadísticas auxiliares para Bartlett
-    function logGamma(x) {
-        let coef = [76.18009172947146, -86.50532032941677, 24.01409824083091, -1.231739572450155, 0.1208650973866179e-2, -0.5395239384953e-5];
-        let y = x;
-        let tmp = x + 5.5;
-        tmp -= (x + 0.5) * Math.log(tmp);
-        let ser = 1.000000000190015;
-        for (let j = 0; j <= 5; j++) { ser += coef[j] / ++y; }
-        return -tmp + Math.log(2.5066282746310005 * ser / x);
-    }
-    
-    function chi2cdf(x, k) {
-        if (x <= 0) return 0;
-        let s = x / 2;
-        let a = k / 2;
-        let sum = 1.0, term = 1.0;
-        for (let i = 1; i < 100; i++) {
-            term = term * s / (a + i);
-            sum += term;
-            if (term < 1e-8) break;
-        }
-        let gamma = Math.exp(-s + a * Math.log(s) - logGamma(a + 1));
-        return gamma * sum;
-    }
-    
-    function chi2inv(p, df) {
-        let low = 0.0, high = 1000.0, mid = 0;
-        for (let i = 0; i < 100; i++) {
-            mid = (low + high) / 2;
-            if (chi2cdf(mid, df) < p) low = mid; else high = mid;
-            if (high - low < 1e-6) break;
-        }
-        return mid;
-    }
-
     let bartlettHtml = '';
     let validGroups = 0, totalN = 0, sumNiMinus1_lnSi2 = 0, sumNiMinus1_Si2 = 0, sum1_NiMinus1 = 0;
 
@@ -1056,8 +1054,8 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
             sumNiMinus1_lnSi2 += df * Math.log(varA);
             sum1_NiMinus1 += 1 / df;
             
-            let lowerCI = Math.sqrt((df * varA) / chi2inv(1 - indAlpha / 2, df));
-            let upperCI = Math.sqrt((df * varA) / chi2inv(indAlpha / 2, df));
+            let lowerCI = Math.sqrt((df * varA) / jStat.chisquare.inv(1 - indAlpha / 2, df));
+            let upperCI = Math.sqrt((df * varA) / jStat.chisquare.inv(indAlpha / 2, df));
             
             varianzaLabels.push(analista);
             varianzaEst.push(Math.sqrt(varA));
@@ -1071,7 +1069,7 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     if (validGroups > 1) {
         let dfTotal = totalN - validGroups, pooledVar = sumNiMinus1_Si2 / dfTotal;
         let bartlettT = (dfTotal * Math.log(pooledVar) - sumNiMinus1_lnSi2) / (1 + (1 / (3 * (validGroups - 1))) * (sum1_NiMinus1 - 1 / dfTotal));
-        let bartlettP = 1 - chi2cdf(bartlettT, validGroups - 1);
+        let bartlettP = 1 - jStat.chisquare.cdf(bartlettT, validGroups - 1);
 
         document.getElementById('estBartlettT').innerText = bartlettT.toFixed(2);
         document.getElementById('estBartlettP').innerText = bartlettP.toFixed(3);
@@ -1140,7 +1138,7 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     let anovaCIs = [];
 
     // Aproximación de la inversa T para 95% de confianza
-    let tVal = anovaDFE > 0 ? (1.95996 + (Math.pow(1.95996, 3) + 1.95996) / (4 * anovaDFE) + (5 * Math.pow(1.95996, 5) + 16 * Math.pow(1.95996, 3) + 3 * 1.95996) / (96 * Math.pow(anovaDFE, 2))) : 1.96;
+    let tVal = anovaDFE > 0 ? jStat.studentt.inv(0.975, anovaDFE) : 1.96;
 
     let MSE = anovaDFE > 0 ? anovaSSE / anovaDFE : 0;
     let pooledStd = Math.sqrt(MSE);
@@ -1171,44 +1169,9 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     let MSTrt = anovaDFTrt > 0 ? anovaSSTrt / anovaDFTrt : 0;
     let FVal = MSE > 0 ? MSTrt / MSE : 0;
     
-    // Función auxiliar Beta Incompleta para el P-Valor
-    function betaIncLocal(x, a, b) {
-        if (x === 0 || x === 1) return x;
-        let bt = Math.exp(logGamma(a + b) - logGamma(a) - logGamma(b) + a * Math.log(x) + b * Math.log(1 - x));
-        function fraction(x, a, b) {
-            let m = 1, m2 = 2, qab = a + b, qap = a + 1, qam = a - 1;
-            let c = 1, d = 1 - qab * x / qap;
-            if (Math.abs(d) < 1e-30) d = 1e-30;
-            d = 1 / d;
-            let h = d;
-            for (m = 1; m <= 100; m++, m2 += 2) {
-                let aa = m * (b - m) * x / ((qam + m2) * (a + m2));
-                d = 1 + aa * d;
-                if (Math.abs(d) < 1e-30) d = 1e-30;
-                c = 1 + aa / c;
-                if (Math.abs(c) < 1e-30) c = 1e-30;
-                d = 1 / d;
-                h *= d * c;
-                aa = -(a + m) * (qab + m) * x / ((a + m2) * (qap + m2));
-                d = 1 + aa * d;
-                if (Math.abs(d) < 1e-30) d = 1e-30;
-                c = 1 + aa / c;
-                if (Math.abs(c) < 1e-30) c = 1e-30;
-                d = 1 / d;
-                let del = d * c;
-                h *= del;
-                if (Math.abs(del - 1) < 3e-7) break;
-            }
-            return h;
-        }
-        if (x < (a + 1) / (a + b + 2)) return bt * fraction(x, a, b) / a;
-        else return 1 - bt * fraction(1 - x, b, a) / b;
-    }
-    
     let anovaPVal = 0;
     if (FVal > 0 && anovaDFTrt > 0 && anovaDFE > 0) {
-        let x = anovaDFTrt * FVal / (anovaDFTrt * FVal + anovaDFE);
-        anovaPVal = 1 - betaIncLocal(x, anovaDFTrt / 2, anovaDFE / 2);
+        anovaPVal = 1 - jStat.centralF.cdf(FVal, anovaDFTrt, anovaDFE);
     }
 
     if (document.getElementById('anovaFactorGL')) {
@@ -1276,20 +1239,6 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
         }
     }
 
-    // --- Gráfico de Prueba de Normalidad y Anderson-Darling ---
-    function erf(x) {
-        var sign = (x >= 0) ? 1 : -1;
-        x = Math.abs(x);
-        var a1 =  0.254829592, a2 = -0.284496736, a3 =  1.421413741, a4 = -1.453152027, a5 =  1.061405429, p  =  0.3275911;
-        var t = 1.0/(1.0 + p*x);
-        var y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*Math.exp(-x*x);
-        return sign*y;
-    }
-    function normalCDF(x, m, s) {
-        if (s === 0) return 0.5;
-        return 0.5 * (1 + erf((x - m) / (s * Math.sqrt(2))));
-    }
-
     const valoresOrdenados = todosLosDatos.map(d => d.val).sort((a, b) => a - b);
     const nNorm = valoresOrdenados.length;
     
@@ -1304,8 +1253,8 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     for (let i = 0; i < nNorm; i++) {
         let x_i = valoresOrdenados[i];
         let x_rev = valoresOrdenados[nNorm - 1 - i];
-        let f_i = normalCDF(x_i, estNormMedia, estNormDesv);
-        let f_rev = normalCDF(x_rev, estNormMedia, estNormDesv);
+        let f_i = jStat.normal.cdf(x_i, estNormMedia, estNormDesv);
+        let f_rev = jStat.normal.cdf(x_rev, estNormMedia, estNormDesv);
         f_i = Math.max(Math.min(f_i, 0.9999999), 0.0000001);
         f_rev = Math.max(Math.min(f_rev, 0.9999999), 0.0000001);
         sumAD += (2 * (i + 1) - 1) * (Math.log(f_i) + Math.log(1 - f_rev));
@@ -1346,7 +1295,7 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     const lineData = [];
     for (let i = 0; i <= 50; i++) {
         let x = minVal - span * 0.1 + (span * 1.2) * (i / 50);
-        let y = normalCDF(x, estNormMedia, estNormDesv) * 100;
+        let y = jStat.normal.cdf(x, estNormMedia, estNormDesv) * 100;
         lineData.push({ x: x, y: y });
     }
 

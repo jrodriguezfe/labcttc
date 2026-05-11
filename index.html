@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="style.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@sgratzl/chartjs-chart-boxplot@4.3.4/build/index.umd.min.js"></script>
+    <script src="https://unpkg.com/@sgratzl/chartjs-chart-boxplot@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
     <style>
         /* Estilos Responsivos */
         @media (max-width: 768px) {
@@ -422,7 +423,7 @@
                             </table>
 
                             <div style="font-size: 0.85em; color: #666; margin-top: -10px; margin-bottom: 20px; padding: 10px; background: #f9f9f9; border-left: 3px solid #004a8f; border-radius: 0 4px 4px 0;">
-                                <strong>Nota metodológica:</strong> El cálculo de los estadísticos implementa el algoritmo exacto de <strong>Minitab</strong> para la prueba T-Student de 2 muestras presuponiendo igualdad de varianzas (Varianza Agrupada), calculando el P-Valor de 2 colas mediante la aproximación de la función Beta Incompleta.
+                                <strong>Nota metodológica:</strong> El cálculo de los estadísticos implementa el algoritmo exacto de <strong>Minitab</strong> para la prueba T-Student de 2 muestras presuponiendo igualdad de varianzas (Varianza Agrupada), calculando el P-Valor de 2 colas mediante la función de distribución acumulada t-Student.
                             </div>
 
                             <div style="width: 100%; max-width: 500px; margin: 20px auto; border: 1px solid #ddd; padding: 15px; background: #fff; border-radius: 5px;">
