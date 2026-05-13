@@ -9,6 +9,14 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/@sgratzl/chartjs-chart-boxplot@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
+    <script>
+      MathJax = {
+        tex: {
+          inlineMath: [['$', '$'], ['\\(', '\\)']]
+        }
+      };
+    </script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <style>
         /* Estilos Responsivos */
         @media (max-width: 768px) {
@@ -434,6 +442,166 @@
 
                         <p style="font-size: 0.95em; color: #555; margin-bottom: 5px;"><strong>Conclusión de Veracidad:</strong></p>
                         <textarea id="verConclusion" style="width: 100%; padding: 8px; margin-top: 0; margin-bottom: 20px; height: 70px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;"></textarea>
+                    </div>
+                    
+                    <!-- NUEVA SECCION: PRECISIÓN -->
+                    <div id="seccionPrecision" style="margin-top: 40px; border-top: 2px solid #004a8f; padding-top: 20px;">
+                        <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">III. PRECISIÓN</h2>
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">
+                            <h3 style="color: #333; margin: 0;">DETERMINACION DE LA PRECISION</h3>
+                            <span style="font-size: 0.8em; color: #666;">Pagina 8 de 8</span>
+                        </div>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 15px;">La precisión del método, es evaluada mediante la varianza experimental y la varianza Teórica ( ASTM -Programa de prueba de competencia textil. Agosto 2022).</p>
+                        
+                        <div style="font-size: 0.95em; color: #333; margin-bottom: 20px; background: #f9f9f9; padding: 15px; border-left: 3px solid #004a8f; border-radius: 4px;">
+                            <h5 style="margin-top: 0; margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Criterio de Decisión</h5>
+                            <p style="margin-bottom: 5px;">Si S²r es menor o igual a la S²(teórica), el método es <strong>preciso</strong>.</p>
+                            <p style="margin-bottom: 15px;">Si S²r es mayor a la S²(teórica), el método es <strong>no preciso</strong>.</p>
+                            <p style="margin-bottom: 0;">La precisión del método es evaluada mediante la prueba de repetibilidad y reproducibilidad, comparando los RSD de repetibilidad y de reproducibilidad con un RSDHorwitz (criterio de precisión teórico).</p>
+                        </div>
+
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">ESTADÍSTICOS DE PRECISIÓN</h4>
+                        <div style="display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px;">
+                            <div style="flex: 1; min-width: 250px;">
+                                <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 0.9em;" border="1">
+                                    <thead style="background: #f3f3f3;">
+                                        <tr><th colspan="2" style="padding: 8px;">PROMEDIO</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td style="padding: 8px; font-weight: bold;">General</td><td style="padding: 8px;" id="precPromGeneral">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A1</td><td style="padding: 8px;" id="precPromA1">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A2</td><td style="padding: 8px;" id="precPromA2">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A3</td><td style="padding: 8px;" id="precPromA3">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A4</td><td style="padding: 8px;" id="precPromA4">-</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="flex: 1; min-width: 250px;">
+                                <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 0.9em;" border="1">
+                                    <thead style="background: #f3f3f3;">
+                                        <tr><th colspan="2" style="padding: 8px;">DESVIACIÓN ESTÁNDAR</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td style="padding: 8px; font-weight: bold;">General</td><td style="padding: 8px;" id="precDesvGeneral">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A1</td><td style="padding: 8px;" id="precDesvA1">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A2</td><td style="padding: 8px;" id="precDesvA2">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A3</td><td style="padding: 8px;" id="precDesvA3">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A4</td><td style="padding: 8px;" id="precDesvA4">-</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div style="flex: 1; min-width: 250px;">
+                                <table style="width: 100%; border-collapse: collapse; text-align: center; font-size: 0.9em;" border="1">
+                                    <thead style="background: #f3f3f3;">
+                                        <tr><th colspan="2" style="padding: 8px;">VARIANZA</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td style="padding: 8px; font-weight: bold;">General</td><td style="padding: 8px;" id="precVarGeneral">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A1</td><td style="padding: 8px;" id="precVarA1">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A2</td><td style="padding: 8px;" id="precVarA2">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A3</td><td style="padding: 8px;" id="precVarA3">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A4</td><td style="padding: 8px;" id="precVarA4">-</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- NUEVA SUBSECCIÓN: FORMULAS A USAR -->
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px;">FÓRMULAS A USAR</h4>
+                        
+                        <div style="font-size: 0.95em; color: #333; margin-bottom: 20px; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+                            <h5 style="margin-top: 0; margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Cálculos de las Sumatorias ($T_n$)</h5>
+                            <ul style="list-style-type: none; padding-left: 0; line-height: 1.8;">
+                                <li>$T_1 = \sum n_I \overline{Y}_I$</li>
+                                <li>$T_2 = \sum n_I \overline{Y}_I^2$</li>
+                                <li>$T_3 = \sum n_I$</li>
+                                <li>$T_4 = \sum n_I^2$</li>
+                                <li>$T_5 = \sum (n_I - 1) S_i^2$</li>
+                            </ul>
+
+                            <h5 style="margin-top: 20px; margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Componentes de Varianza</h5>
+                            <p style="margin-bottom: 5px;"><strong>Varianza de Repetibilidad ($S_r^2$):</strong></p>
+                            <div style="text-align: center; margin-bottom: 15px; overflow-x: auto;">
+                                $$S_r^2 = \frac{T_5}{T_3 - p}$$
+                            </div>
+                            <p style="margin-bottom: 5px;"><strong>Varianza entre Laboratorios ($S_L^2$):</strong></p>
+                            <div style="text-align: center; margin-bottom: 15px; overflow-x: auto;">
+                                $$S_L^2 = \left[ \frac{T_2 T_3 - T_1^2}{T_3 (p - 1)} - S_r^2 \right] \left[ \frac{T_3 (p - 1)}{T_3^2 - T_4} \right]$$
+                            </div>
+
+                            <h5 style="margin-top: 20px; margin-bottom: 10px; color: #004a8f; font-size: 1.05em;">Desviación Estándar de Reproducibilidad ($S_R$)</h5>
+                            <p style="margin-bottom: 5px;"><strong>Reproducibilidad total:</strong></p>
+                            <div style="text-align: center; margin-bottom: 10px; overflow-x: auto;">
+                                $$S_R = \sqrt{S_r^2 + S_L^2}$$
+                            </div>
+                        </div>
+
+                        <!-- NUEVA SUBSECCIÓN: DATOS TEORICOS Y RESULTADOS DE PRECISIÓN -->
+                        <div style="margin-top: 30px; border-top: 1px solid #ccc; padding-top: 20px;">
+                            <h4 style="color: #333; margin-bottom: 15px;">DATOS DE REFERENCIA Y RESULTADOS DE PRECISIÓN</h4>
+                            
+                            <div style="margin-bottom: 20px; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center;">
+                                    <input type="text" value="WOV2208 ASTM -Programa de prueba de competencia textil. AGOSTO 2022" style="flex: 2; min-width: 250px; padding: 8px; border: 1px solid #ccc; border-radius: 3px;">
+                                    <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 200px;">
+                                        <label style="font-weight: bold; white-space: nowrap;">S²(Prueba de aptitud):</label>
+                                        <input type="number" step="0.001" id="precRefVar" value="2.22" style="width: 80px; padding: 8px; text-align: center; border: 1px solid #ccc; border-radius: 3px;">
+                                    </div>
+                                </div>
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: center; margin-top: 10px;">
+                                    <input type="text" value="D3776 Peso de la tela: Opción C: MEDIUM (g / m2) Desv. Std." style="flex: 2; min-width: 250px; padding: 8px; border: 1px solid #ccc; border-radius: 3px;">
+                                    <div style="display: flex; align-items: center; gap: 5px; flex: 1; min-width: 200px;">
+                                        <label style="font-weight: bold; white-space: nowrap;">Desv. Std:</label>
+                                        <input type="number" step="0.001" id="precRefStd" value="1.49" style="width: 80px; padding: 8px; text-align: center; border: 1px solid #ccc; border-radius: 3px;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                                <!-- TABLA T1-T5 -->
+                                <table style="flex: 1; min-width: 150px; border-collapse: collapse; text-align: center; font-size: 0.9em;" border="1">
+                                    <thead style="background: #f3f3f3;"><tr><th colspan="2" style="padding: 8px;">Sumatorias</th></tr></thead>
+                                    <tbody>
+                                        <tr><td style="padding: 5px; font-weight: bold;">T1</td><td style="padding: 5px;" id="valT1">-</td></tr>
+                                        <tr><td style="padding: 5px; font-weight: bold;">T2</td><td style="padding: 5px;" id="valT2">-</td></tr>
+                                        <tr><td style="padding: 5px; font-weight: bold;">T3</td><td style="padding: 5px;" id="valT3">-</td></tr>
+                                        <tr><td style="padding: 5px; font-weight: bold;">T4</td><td style="padding: 5px;" id="valT4">-</td></tr>
+                                        <tr><td style="padding: 5px; font-weight: bold;">T5</td><td style="padding: 5px;" id="valT5">-</td></tr>
+                                    </tbody>
+                                </table>
+                                
+                                <!-- TABLA VARIANZAS -->
+                                <table style="flex: 1; min-width: 180px; border-collapse: collapse; text-align: center; font-size: 0.9em;" border="1">
+                                    <thead style="background: #f3f3f3;"><tr><th colspan="2" style="padding: 8px;">Componentes</th></tr></thead>
+                                    <tbody>
+                                        <tr><td style="padding: 5px; font-weight: bold;">S²r</td><td style="padding: 5px;" id="valS2r">-</td></tr>
+                                        <tr><td style="padding: 5px; font-weight: bold;">S²L</td><td style="padding: 5px;" id="valS2L">-</td></tr>
+                                        <tr><td style="padding: 5px; font-weight: bold;">S²R</td><td style="padding: 5px;" id="valS2R">-</td></tr>
+                                        <tr><td style="padding: 5px; font-weight: bold;">Sr</td><td style="padding: 5px;" id="valSr">-</td></tr>
+                                        <tr><td style="padding: 5px; font-weight: bold;">SR</td><td style="padding: 5px;" id="valSR">-</td></tr>
+                                    </tbody>
+                                </table>
+
+                                <!-- TABLA LIMITES -->
+                                <table style="flex: 1; min-width: 250px; border-collapse: collapse; text-align: center; font-size: 0.9em;" border="1">
+                                    <thead style="background: #f3f3f3;"><tr><th colspan="2" style="padding: 8px;">Límites (g/m²)</th></tr></thead>
+                                    <tbody>
+                                        <tr><td style="padding: 5px; font-weight: bold;">r (Límite de Repetibilidad)</td><td style="padding: 5px;" id="valLimR">-</td></tr>
+                                        <tr><td style="padding: 5px; font-weight: bold;">R (Límite de Reproducibilidad)</td><td style="padding: 5px;" id="valLimRepro">-</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- CONCLUSION -->
+                            <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px;">CONCLUSIÓN</h4>
+                            <div style="background: #eef; padding: 15px; border-radius: 5px; border-left: 4px solid #004a8f; margin-bottom: 20px;">
+                                <table style="width: 100%; border: none; text-align: center; margin-bottom: 10px; font-size: 1.05em;">
+                                    <tr><td style="width: 20%;">S²r <strong id="concS2r">-</strong></td><td style="width: 5%;">+</td><td style="width: 20%;">S²R <strong id="concS2R">-</strong></td><td style="width: 10%;"><strong id="concSigno">≤</strong></td><td style="width: 45%;">S²(Prueba de aptitud) <strong id="concS2Teo">-</strong></td></tr>
+                                    <tr style="font-size: 0.85em; color: #555;"><td>(Experimental)</td><td></td><td>(Experimental)</td><td></td><td>(Teórico)</td></tr>
+                                </table>
+                                <div id="concResultado" style="font-weight: bold; color: #217346; margin-top: 10px; font-size: 1.05em;">, por lo tanto el método es preciso.</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

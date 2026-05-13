@@ -922,6 +922,30 @@ document.getElementById('labExt1')?.addEventListener('input', calcularVeracidad)
 document.getElementById('labExt2')?.addEventListener('input', calcularVeracidad);
 document.getElementById('labExt3')?.addEventListener('input', calcularVeracidad);
 
+window.calcularConclusionPrecision = function() {
+    let s2r_val = parseFloat(document.getElementById('valS2r')?.innerText) || 0;
+    let s2R_val = parseFloat(document.getElementById('valS2R')?.innerText) || 0;
+    let s2teo = parseFloat(document.getElementById('precRefVar')?.value) || 0;
+    
+    if (document.getElementById('concS2r')) {
+        document.getElementById('concS2r').innerText = s2r_val.toFixed(3);
+        document.getElementById('concS2R').innerText = s2R_val.toFixed(3);
+        document.getElementById('concS2Teo').innerText = s2teo.toFixed(3);
+        
+        let preciso = (s2r_val + s2R_val) <= s2teo;
+        
+        if (preciso) {
+            document.getElementById('concSigno').innerText = '≤';
+            document.getElementById('concResultado').innerText = ', por lo tanto el método es preciso.';
+            document.getElementById('concResultado').style.color = '#217346';
+        } else {
+            document.getElementById('concSigno').innerText = '>';
+            document.getElementById('concResultado').innerText = ', por lo tanto el método es no preciso.';
+            document.getElementById('concResultado').style.color = '#c0392b';
+        }
+    }
+};
+
 if (!document.getElementById('efiFecha').value) document.getElementById('efiFecha').value = new Date().toISOString().split('T')[0];
 
 // --- Lógica para Generar Evaluación Estadística ---
@@ -956,11 +980,21 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     let todosLosDatos = [];
     let tablaResultadosHtml = '';
     
+    const getExactMean = (analista, row) => {
+        const inputs = document.querySelectorAll(`.efi-row-${analista}-${row}`);
+        let sum = 0, count = 0;
+        inputs.forEach(inp => {
+            const val = parseFloat(inp.value);
+            if (!isNaN(val)) { sum += val; count++; }
+        });
+        return count > 0 ? parseFloat((sum / count).toFixed(4)) : 0; // Redondear a 4 decimales como MINITAB
+    };
+
     for (let i = 1; i <= 10; i++) {
-        const p1 = parseFloat(document.getElementById(`efi-prom-A1-${i}`)?.innerText) || 0;
-        const p2 = parseFloat(document.getElementById(`efi-prom-A2-${i}`)?.innerText) || 0;
-        const p3 = parseFloat(document.getElementById(`efi-prom-A3-${i}`)?.innerText) || 0;
-        const p4 = parseFloat(document.getElementById(`efi-prom-A4-${i}`)?.innerText) || 0;
+        const p1 = getExactMean('A1', i);
+        const p2 = getExactMean('A2', i);
+        const p3 = getExactMean('A3', i);
+        const p4 = getExactMean('A4', i);
         
         promedios.A1.push(p1); promedios.A2.push(p2); promedios.A3.push(p3); promedios.A4.push(p4);
         
@@ -986,8 +1020,16 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     document.getElementById('estMediaGlobal').innerText = mean.toFixed(3);
     document.getElementById('estDesvGlobal').innerText = stdDev.toFixed(3);
 
+    if (document.getElementById('precPromGeneral')) {
+        document.getElementById('precPromGeneral').innerText = mean.toFixed(4);
+        document.getElementById('precDesvGeneral').innerText = stdDev.toFixed(4);
+        document.getElementById('precVarGeneral').innerText = variance.toFixed(4);
+    }
+
     // --- Cálculos de Análisis Descriptivo (Por Analista) ---
     let descriptivoHtml = '';
+    let T1 = 0, T2 = 0, T3 = 0, T4 = 0, T5 = 0, pAnalistas = 0;
+
     ['A1', 'A2', 'A3', 'A4'].forEach(analista => {
         const arr = promedios[analista].filter(v => v > 0);
         if (arr.length > 0) {
@@ -997,7 +1039,17 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
             
             const sumSqA = arr.reduce((a, b) => a + Math.pow(b - meanA, 2), 0);
             const stdDevA = nA > 1 ? Math.sqrt(sumSqA / (nA - 1)) : 0;
+            const varA = nA > 1 ? (sumSqA / (nA - 1)) : 0;
             
+            if (nA > 1) {
+                pAnalistas++;
+                T1 += nA * meanA;
+                T2 += nA * Math.pow(meanA, 2);
+                T3 += nA;
+                T4 += Math.pow(nA, 2);
+                T5 += (nA - 1) * varA;
+            }
+
             const minA = Math.min(...arr);
             const maxA = Math.max(...arr);
             
@@ -1006,11 +1058,65 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
             const medianA = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 
             descriptivoHtml += `<tr><td style="padding: 5px; font-weight: bold;">${analista}</td><td style="padding: 5px;">${meanA.toFixed(3)}</td><td style="padding: 5px;">${stdDevA.toFixed(3)}</td><td style="padding: 5px;">${minA.toFixed(3)}</td><td style="padding: 5px;">${medianA.toFixed(3)}</td><td style="padding: 5px;">${maxA.toFixed(3)}</td></tr>`;
+            
+            if (document.getElementById(`precProm${analista}`)) {
+                document.getElementById(`precProm${analista}`).innerText = meanA.toFixed(4);
+                document.getElementById(`precDesv${analista}`).innerText = stdDevA.toFixed(4);
+                document.getElementById(`precVar${analista}`).innerText = varA.toFixed(4);
+            }
         } else {
             descriptivoHtml += `<tr><td style="padding: 5px; font-weight: bold;">${analista}</td><td colspan="5" style="padding: 5px; color: #888;">Sin datos</td></tr>`;
+            
+            if (document.getElementById(`precProm${analista}`)) {
+                document.getElementById(`precProm${analista}`).innerText = '-';
+                document.getElementById(`precDesv${analista}`).innerText = '-';
+                document.getElementById(`precVar${analista}`).innerText = '-';
+            }
         }
     });
     document.getElementById('estDescriptivoBody').innerHTML = descriptivoHtml;
+
+    // --- Cálculos de la Sección de Precisión (T1 a T5, Varianza, etc.) ---
+    let S2r = 0, S2L = 0, S2R = 0, Sr = 0, SR = 0, lim_r = 0, lim_R = 0;
+
+    if (pAnalistas > 0 && T3 > pAnalistas) {
+        S2r = T5 / (T3 - pAnalistas);
+        
+        let denom1 = T3 * (pAnalistas - 1);
+        let denom2 = Math.pow(T3, 2) - T4;
+        
+        if (denom1 > 0 && denom2 > 0) {
+            let part1 = ((T2 * T3 - Math.pow(T1, 2)) / denom1) - S2r;
+            let part2 = denom1 / denom2;
+            S2L = part1 * part2;
+            if (S2L < 0) S2L = 0; // La varianza estimada no puede ser menor a 0
+        }
+        
+        S2R = S2r + S2L;
+        Sr = Math.sqrt(S2r);
+        SR = Math.sqrt(S2R);
+        lim_r = 2.8 * Sr; // 2.8 es el multiplicador estándar ASTM para límites del 95%
+        lim_R = 2.8 * SR;
+    }
+
+    if (document.getElementById('valT1')) {
+        const fPrec = num => num.toFixed(4);
+        document.getElementById('valT1').innerText = fPrec(T1);
+        document.getElementById('valT2').innerText = fPrec(T2);
+        document.getElementById('valT3').innerText = T3;
+        document.getElementById('valT4').innerText = T4;
+        document.getElementById('valT5').innerText = fPrec(T5);
+        
+        document.getElementById('valS2r').innerText = fPrec(S2r);
+        document.getElementById('valS2L').innerText = fPrec(S2L);
+        document.getElementById('valS2R').innerText = fPrec(S2R);
+        document.getElementById('valSr').innerText = fPrec(Sr);
+        document.getElementById('valSR').innerText = fPrec(SR);
+        document.getElementById('valLimR').innerText = fPrec(lim_r);
+        document.getElementById('valLimRepro').innerText = fPrec(lim_R);
+        
+        window.calcularConclusionPrecision();
+    }
 
     let zScoreHtml = '';
     let counter = 1;
@@ -1157,7 +1263,8 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
             let lowerCI = meanA - margin;
             let upperCI = meanA + margin;
 
-            anovaMediasHtml += `<tr><td style="padding: 8px;">${analista}</td><td style="padding: 8px;">${nA}</td><td style="padding: 8px;">${meanA.toFixed(3)}</td><td style="padding: 8px;">${stdA.toFixed(3)}</td><td style="padding: 8px;">(${lowerCI.toFixed(3)}; ${upperCI.toFixed(3)})</td></tr>`;
+            const fNum = (num, dec) => num.toFixed(dec).replace('.', ',');
+            anovaMediasHtml += `<tr><td style="padding: 8px;">${analista}</td><td style="padding: 8px;">${nA}</td><td style="padding: 8px;">${fNum(meanA, 3)}</td><td style="padding: 8px;">${fNum(stdA, 3)}</td><td style="padding: 8px;">(${fNum(lowerCI, 3)}; ${fNum(upperCI, 3)})</td></tr>`;
             
             anovaLabels.push(analista);
             anovaMeans.push(meanA);
@@ -1166,30 +1273,35 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     });
 
     let anovaSST = anovaSSTrt + anovaSSE;
-    let MSTrt = anovaDFTrt > 0 ? anovaSSTrt / anovaDFTrt : 0;
-    let FVal = MSE > 0 ? MSTrt / MSE : 0;
+    let MSTrt = anovaDFTrt > 0 ? Math.max(0, anovaSSTrt / anovaDFTrt) : 0;
+    let FVal = MSE > 0 ? Math.max(0, MSTrt / MSE) : 0;
     
-    let anovaPVal = 0;
-    if (FVal > 0 && anovaDFTrt > 0 && anovaDFE > 0) {
-        anovaPVal = 1 - jStat.centralF.cdf(FVal, anovaDFTrt, anovaDFE);
+    let anovaPVal = 1; // Inicializar en 1 (Ho aceptada por defecto si no hay varianza)
+    if (FVal >= 0 && anovaDFTrt > 0 && anovaDFE > 0) {
+        // Usamos la función Beta Incompleta directamente para el P-Valor (evita bugs de jStat.centralF)
+        let x_beta = anovaDFE / (anovaDFE + anovaDFTrt * FVal);
+        let p = jStat.ibeta(x_beta, anovaDFE / 2, anovaDFTrt / 2);
+        anovaPVal = isNaN(p) ? 1 : Math.max(0, Math.min(1, p)); // Blindaje matemático
     }
 
     if (document.getElementById('anovaFactorGL')) {
+        const formatNumber = (num, decimals) => num.toFixed(decimals).replace('.', ',');
+
         document.getElementById('anovaFactorGL').innerText = anovaDFTrt;
-        document.getElementById('anovaFactorSC').innerText = anovaSSTrt.toFixed(4);
-        document.getElementById('anovaFactorMC').innerText = MSTrt.toFixed(4);
-        document.getElementById('anovaFactorF').innerText = FVal.toFixed(2);
-        document.getElementById('anovaFactorP').innerText = anovaPVal.toFixed(3);
+        document.getElementById('anovaFactorSC').innerText = formatNumber(anovaSSTrt, 4);
+        document.getElementById('anovaFactorMC').innerText = formatNumber(MSTrt, 5);
+        document.getElementById('anovaFactorF').innerText = formatNumber(FVal, 2);
+        document.getElementById('anovaFactorP').innerText = formatNumber(anovaPVal, 3);
         
         document.getElementById('anovaErrorGL').innerText = anovaDFE;
-        document.getElementById('anovaErrorSC').innerText = anovaSSE.toFixed(4);
-        document.getElementById('anovaErrorMC').innerText = MSE.toFixed(4);
+        document.getElementById('anovaErrorSC').innerText = formatNumber(anovaSSE, 4);
+        document.getElementById('anovaErrorMC').innerText = formatNumber(MSE, 5);
         
         document.getElementById('anovaTotalGL').innerText = anovaDFT;
-        document.getElementById('anovaTotalSC').innerText = anovaSST.toFixed(4);
+        document.getElementById('anovaTotalSC').innerText = formatNumber(anovaSST, 4);
         
         document.getElementById('anovaMediasBody').innerHTML = anovaMediasHtml;
-        document.getElementById('anovaDesvAgrupada').innerText = pooledStd.toFixed(4);
+        document.getElementById('anovaDesvAgrupada').innerText = formatNumber(pooledStd, 4);
         
         const txtConclusionMedias = document.getElementById('estConclusionMedias');
         if (txtConclusionMedias) {
@@ -1390,6 +1502,9 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     // Ejecutar prueba de Veracidad
     calcularVeracidad();
 });
+
+// Evento para re-calcular conclusión de precisión en tiempo real si el usuario cambia S2 Teórico
+document.getElementById('precRefVar')?.addEventListener('input', window.calcularConclusionPrecision);
 
 // --- Lógica de Guardado de Eficacia (Incertidumbre) ---
 document.getElementById('btnGuardarEficacia').addEventListener('click', async () => {
