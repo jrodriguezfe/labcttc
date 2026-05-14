@@ -44,6 +44,21 @@
             background-color: #d0e7ff !important;
             outline: 2px solid #004a8f !important;
         }
+        /* Estilos para el diagrama de Ishikawa editable */
+        .ishikawa-input {
+            position: absolute;
+            background: transparent;
+            border: 1px dashed transparent;
+            font-family: Arial, sans-serif;
+            color: #333;
+            padding: 2px;
+            z-index: 10;
+        }
+        .ishikawa-input:hover, .ishikawa-input:focus {
+            border: 1px dashed #004a8f;
+            outline: none;
+            background: rgba(255, 255, 255, 0.9);
+        }
     </style>
 </head>
 <body>
@@ -600,6 +615,302 @@
                                     <tr style="font-size: 0.85em; color: #555;"><td>(Experimental)</td><td></td><td>(Experimental)</td><td></td><td>(Teórico)</td></tr>
                                 </table>
                                 <div id="concResultado" style="font-weight: bold; color: #217346; margin-top: 10px; font-size: 1.05em;">, por lo tanto el método es preciso.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- NUEVA SECCION: FUENTE DE INCERTIDUMBRE -->
+                    <div id="seccionIncertidumbre" style="margin-top: 40px; border-top: 2px solid #004a8f; padding-top: 20px;">
+                        <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">IV. FUENTE DE INCERTIDUMBRE</h2>
+                        <h3 style="color: #333; margin-bottom: 15px;">INCERTIDUMBRE</h3>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 20px;">La estimación de la Incertidumbre de <strong>ASTM D3776/D3776M-20</strong>, se realiza acuerdo a la Directriz de estimación de incertidumbre de la medición.</p>
+                        
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">IDENTIFICACION DE LAS FUENTES DE INCERTIDUMBRE</h4>
+                        <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; border-left: 4px solid #004a8f; margin-bottom: 20px;">
+                            <p style="margin: 0; font-size: 0.95em; color: #333; font-weight: bold;">Determinacion de Masa por Unidad de Area (Peso) de tejido</p>
+                        </div>
+
+                        <!-- Diagrama de Ishikawa -->
+                        <div style="overflow-x: auto; width: 100%; margin-bottom: 30px;">
+                            <div style="position: relative; width: 800px; height: 400px; margin: 0 auto; border: 1px solid #ccc; background: #fff; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                                <svg width="800" height="400" viewBox="0 0 800 400">
+                                    <defs>
+                                        <marker id="arrowHead" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+                                            <path d="M0,0 L0,6 L9,3 z" fill="#004a8f" />
+                                        </marker>
+                                    </defs>
+                                    
+                                    <!-- Espina dorsal -->
+                                    <line x1="50" y1="200" x2="700" y2="200" stroke="#004a8f" stroke-width="3" marker-end="url(#arrowHead)" />
+                                    
+                                    <!-- Superiores -->
+                                    <!-- Area -->
+                                    <line x1="200" y1="50" x2="350" y2="200" stroke="#004a8f" stroke-width="2" marker-end="url(#arrowHead)" />
+                                    <line x1="120" y1="125" x2="275" y2="125" stroke="#004a8f" stroke-width="1.5" marker-end="url(#arrowHead)" />
+                                    <line x1="160" y1="85" x2="197" y2="125" stroke="#004a8f" stroke-width="1" marker-end="url(#arrowHead)" />
+                                    
+                                    <!-- Peso -->
+                                    <line x1="480" y1="50" x2="630" y2="200" stroke="#004a8f" stroke-width="2" marker-end="url(#arrowHead)" />
+                                    <line x1="400" y1="125" x2="555" y2="125" stroke="#004a8f" stroke-width="1.5" marker-end="url(#arrowHead)" />
+                                    <line x1="440" y1="85" x2="477" y2="125" stroke="#004a8f" stroke-width="1" marker-end="url(#arrowHead)" />
+                                    
+                                    <!-- Inferiores -->
+                                    <!-- Sesgo -->
+                                    <line x1="200" y1="350" x2="350" y2="200" stroke="#004a8f" stroke-width="2" marker-end="url(#arrowHead)" />
+                                    <line x1="120" y1="275" x2="275" y2="275" stroke="#004a8f" stroke-width="1.5" marker-end="url(#arrowHead)" />
+                                    <line x1="160" y1="315" x2="197" y2="275" stroke="#004a8f" stroke-width="1" marker-end="url(#arrowHead)" />
+                                    
+                                    <!-- Repetibilidad -->
+                                    <line x1="480" y1="350" x2="630" y2="200" stroke="#004a8f" stroke-width="2" marker-end="url(#arrowHead)" />
+                                    <line x1="400" y1="275" x2="555" y2="275" stroke="#004a8f" stroke-width="1.5" marker-end="url(#arrowHead)" />
+                                    <line x1="440" y1="315" x2="477" y2="275" stroke="#004a8f" stroke-width="1" marker-end="url(#arrowHead)" />
+                                </svg>
+
+                                <!-- Textos / Inputs Editables -->
+                                <div style="position: absolute; top: 185px; left: 710px; font-weight: bold; font-size: 1.2em; color: #004a8f;">$(g/m^2)$</div>
+                                
+                                <input type="text" class="ishikawa-input" value="AREA (A)" style="top: 25px; left: 150px; font-weight: bold; font-size: 1.1em; width: 100px; text-align: center;">
+                                <input type="text" class="ishikawa-input" value="Sacabocado" placeholder="Sub-causa..." style="top: 100px; left: 20px; font-size: 0.95em; width: 95px; text-align: right;">
+                                <input type="text" class="ishikawa-input" value="" placeholder="Sub-causa..." style="top: 60px; left: 80px; font-size: 0.85em; width: 75px; text-align: right;">
+                                
+                                <input type="text" class="ishikawa-input" value="PESO (W)" style="top: 25px; left: 430px; font-weight: bold; font-size: 1.1em; width: 100px; text-align: center;">
+                                <input type="text" class="ishikawa-input" value="Balanza" placeholder="Sub-causa..." style="top: 100px; left: 300px; font-size: 0.95em; width: 95px; text-align: right;">
+                                <input type="text" class="ishikawa-input" value="Resolucion" placeholder="Sub-causa..." style="top: 60px; left: 360px; font-size: 0.85em; width: 75px; text-align: right;">
+                                
+                                <input type="text" class="ishikawa-input" value="SESGO" style="top: 355px; left: 150px; font-weight: bold; font-size: 1.1em; width: 100px; text-align: center;">
+                                <input type="text" class="ishikawa-input" value="" placeholder="Sub-causa..." style="top: 250px; left: 20px; font-size: 0.95em; width: 95px; text-align: right;">
+                                <input type="text" class="ishikawa-input" value="" placeholder="Sub-causa..." style="top: 310px; left: 80px; font-size: 0.85em; width: 75px; text-align: right;">
+                                
+                                <input type="text" class="ishikawa-input" value="REPETIBILIDAD" style="top: 355px; left: 410px; font-weight: bold; font-size: 1.1em; width: 140px; text-align: center;">
+                                <input type="text" class="ishikawa-input" value="" placeholder="Sub-causa..." style="top: 250px; left: 300px; font-size: 0.95em; width: 95px; text-align: right;">
+                                <input type="text" class="ishikawa-input" value="" placeholder="Sub-causa..." style="top: 310px; left: 360px; font-size: 0.85em; width: 75px; text-align: right;">
+                            </div>
+                        </div>
+
+                        <!-- Cálculos y Definiciones -->
+                        <div style="margin-bottom: 20px;">
+                            <p style="font-size: 0.95em; color: #333; margin-bottom: 10px;"><strong>Cálculo:</strong> Determinacion de Masa por Unidad de Area (Peso) de tejido</p>
+                            <p style="font-size: 1.2em; color: #004a8f; text-align: center; margin-bottom: 10px; font-weight: bold;">$g/m^2$</p>
+                            <p style="font-size: 0.95em; color: #333; margin-bottom: 5px;"><strong>Donde:</strong></p>
+                            <ul style="font-size: 0.95em; color: #555; list-style-type: none; padding-left: 0; margin-bottom: 20px;">
+                                <li><strong>AREA (A):</strong> Area del tejido.</li>
+                                <li><strong>PESO (W):</strong> Peso del tejido</li>
+                            </ul>
+                        </div>
+
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">RESULTADOS OBTENIDOS PARA LA ESTIMACIÓN DE LA INCERTIDUMBRE</h4>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 20px;">Los datos que serán utilizados para el cálculo de la incertidumbre, son los obtenidos en el desarrollo de la precisión del método, el cual fue realizado por tres analistas.</p>
+
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">ESTADISTICA APLICADA A LOS RESULTADOS</h4>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 20px;">Los resultados de ensayo están bajo control estadístico. Ver Evaluación estadística de los resultados.</p>
+
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 10px;">CALCULO DE LA INCERTIDUMBRE</h4>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 10px;">Para la estimación de la incertidumbre de medición se identificaron 3 fuentes importantes de incertidumbre:</p>
+                        <ul style="font-size: 0.95em; color: #555; list-style-type: none; padding-left: 20px; margin-bottom: 30px;">
+                            <li style="margin-bottom: 5px;"><strong>A.</strong> Incertidumbre del Sesgo</li>
+                            <li style="margin-bottom: 5px;"><strong>B.</strong> Incertidumbre de Analistas</li>
+                            <li style="margin-bottom: 5px;"><strong>C.</strong> Incertidumbre del Método</li>
+                        </ul>
+
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; margin-bottom: 10px;">A. INCERTIDUMBRE DEL SESGO</h4>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 15px;">La incertidumbre del sesgo de cada analista será determinado comparando el promedio de cada uno de ellos respecto al valor nominal.</p>
+                        
+                        <div style="overflow-x: auto; margin-bottom: 30px;">
+                            <table style="width: 100%; max-width: 600px; border-collapse: collapse; font-size: 0.9em; text-align: center;" border="1">
+                                <thead style="background: #f3f3f3;">
+                                    <tr>
+                                        <th style="padding: 8px;">ANALISTA</th>
+                                        <th style="padding: 8px;">MEDIA</th>
+                                        <th style="padding: 8px;">REFERENCIA</th>
+                                        <th style="padding: 8px;">SESGO</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="incertidumbreSesgoBody">
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; margin-bottom: 10px;">B. INCERTIDUMBRE DE ANALISTAS</h4>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 15px;">Para la determinación de la incertidumbre de los analistas se tomará como referencia la Desv. Estándar hallado en el cálculo de la precisión del método.</p>
+                        
+                        <div style="overflow-x: auto; margin-bottom: 30px;">
+                            <table style="width: 100%; max-width: 400px; border-collapse: collapse; font-size: 0.9em; text-align: center;" border="1">
+                                <thead style="background: #f3f3f3;">
+                                    <tr>
+                                        <th style="padding: 8px;">ANALISTA</th>
+                                        <th style="padding: 8px;">Sr</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="incertidumbreAnalistasBody">
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; margin-bottom: 10px;">C. INCERTIDUMBRE DEL METODO</h4>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 15px;">De acuerdo al método, la incertidumbre de método se calcula por medio de la propagación de incertidumbres.</p>
+                        
+                        <div style="margin-bottom: 20px;">
+                            <p style="font-size: 1.2em; color: #004a8f; text-align: center; margin-bottom: 10px; font-weight: bold;">$g/m^2$</p>
+                            <p style="font-size: 0.95em; color: #333; margin-bottom: 5px;"><strong>Donde:</strong></p>
+                            <ul style="font-size: 0.95em; color: #555; list-style-type: none; padding-left: 0; margin-bottom: 20px;">
+                                <li><strong>AREA (A):</strong> Area del tejido.</li>
+                                <li><strong>PESO (W):</strong> Peso del tejido</li>
+                            </ul>
+                        </div>
+
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 15px;">Por lo tanto la propagación de la Incertidumbre del método es:</p>
+
+                        <div style="text-align: center; margin-bottom: 20px; font-size: 1.2em; color: #004a8f; overflow-x: auto;">
+                            $$U_{Me} = \sqrt{\left(\frac{U_G}{A}\right)^2 + \left(\frac{U_A \times G}{A^2}\right)^2}$$
+                        </div>
+
+                        <div style="margin-bottom: 20px;">
+                            <p style="font-size: 0.95em; color: #333; margin-bottom: 5px;"><strong>Donde:</strong></p>
+                            <ul style="font-size: 0.95em; color: #555; list-style-type: none; padding-left: 0; margin-bottom: 20px;">
+                                <li><strong>UG =</strong> Incertidumbre de la masa</li>
+                                <li><strong>A =</strong> Area</li>
+                                <li><strong>UA =</strong> Incertidumbre del Area</li>
+                            </ul>
+                        </div>
+
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; margin-bottom: 10px;">INCERTIDUMBRE COMBINADA</h4>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 20px;">Se calculo al combinar las incertidumbres del analista, sesgo y metodo.</p>
+                        
+                        <div style="text-align: center; margin-bottom: 30px; font-size: 1.2em; color: #004a8f; overflow-x: auto;">
+                            $$U_{Co} = \sqrt{(U \text{ sesgo})^2 + (U \text{ analista})^2 + (U \text{ Me})^2}$$
+                        </div>
+
+                        <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; margin-bottom: 10px;">INCERTIDUMBRE EXPANDIDA</h4>
+                        <p style="font-size: 0.95em; color: #555; margin-bottom: 20px;">Se calcula al multiplicar el factor de cobertura al 95% de confianza.</p>
+                        
+                        <div style="text-align: center; margin-bottom: 30px; font-size: 1.2em; color: #004a8f; overflow-x: auto;">
+                            $$U_{ex} = K \times U_{co}$$
+                        </div>
+                    </div>
+
+                    <!-- NUEVA SECCION: CALCULO DE INCERTIDUMBRE DE FACTORES EN EL ENSAYO -->
+                    <div id="seccionCalculoFactores" style="margin-top: 40px; border-top: 2px solid #004a8f; padding-top: 20px;">
+                        <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">V. CALCULO DE INCERTIDUMBRE DE FACTORES EN EL ENSAYO</h2>
+                        
+                        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
+                            <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
+                            <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;">Área Física</td></tr>
+                            <tr><td style="padding: 5px;"><strong>3. DETERMINACION:</strong></td><td style="padding: 5px;">Gramaje</td></tr>
+                            <tr><td style="padding: 5px;"><strong>4. METODO USADO:</strong></td><td style="padding: 5px;">ASTM D3776/D3776M-20</td></tr>
+                            <tr><td style="padding: 5px;"><strong>5. CODIGO DE MUESTRA:</strong></td><td style="padding: 5px;" id="factoresCodigoMuestra">-</td></tr>
+                            <tr><td style="padding: 5px;"><strong>6. PRODUCTO:</strong></td><td style="padding: 5px;" id="factoresProducto"></td></tr>
+                            <tr><td style="padding: 5px; vertical-align: top;"><strong>7. PARTICIPANTES:</strong></td>
+                                <td style="padding: 5px;">
+                                    <span id="factoresA1"></span> (A1)<br>
+                                    <span id="factoresA2"></span> (A2)<br>
+                                    <span id="factoresA3"></span> (A3)<br>
+                                    <span id="factoresA4"></span> (A4)
+                                </td>
+                            </tr>
+                        </table>
+
+                        <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">
+                            <h3 style="color: #333; margin: 0;">8. DATOS DE CERTIFICADO DE BALANZA</h3>
+                            <span style="font-size: 0.8em; color: #666; font-weight: normal;">FECHA: <span id="factoresFecha"></span></span>
+                        </div>
+
+                        <div style="overflow-x: auto; margin-bottom: 30px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.95em;" border="1">
+                                <tbody>
+                                    <tr style="background: #eef;">
+                                        <td colspan="2" style="padding: 8px; font-weight: bold;">DATOS DE CERTIFICADO DE BALANZA</td>
+                                        <td colspan="2" style="padding: 8px;"><input type="text" id="certBalanzaCodigo" value="1AMC-0484-2024" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px; width: 40%;">Incertidumbre Expandida de Medición:</td>
+                                        <td style="padding: 8px; font-weight: bold; width: 20%;">UR:</td>
+                                        <td style="padding: 8px; width: 20%;"><input type="number" step="any" id="certBalanzaUR1" value="7.78e-9" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                        <td style="padding: 8px; width: 20%;"><input type="number" step="any" id="certBalanzaUR2" value="1.36e-10" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px;">Lectura Corregida de la Balanza:</td>
+                                        <td style="padding: 8px; font-weight: bold;">R corregida :</td>
+                                        <td style="padding: 8px;"><input type="number" step="any" id="certBalanzaR" value="0.00000334" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                        <td style="padding: 8px; text-align: center; color: #888;">......</td>
+                                    </tr>
+                                    <tr style="background: #eef;">
+                                        <td colspan="2" style="padding: 8px; font-weight: bold;">DATOS DE CERTIFICADO DE SACA BOCADO</td>
+                                        <td colspan="2" style="padding: 8px;"><input type="text" id="certSacabocadoCodigo" value="IT-227-2024" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px;">Incertidumbre Expandida de Medición:</td>
+                                        <td style="padding: 8px; font-weight: bold;">U exp (m²)</td>
+                                        <td style="padding: 8px;"><input type="number" step="any" id="certSacaUexp" value="0.000015" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                        <td style="padding: 8px;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px;">Valor Promedio Encontrado:</td>
+                                        <td style="padding: 8px; font-weight: bold;">(m²)</td>
+                                        <td style="padding: 8px;"><input type="number" step="any" id="certSacaProm1" value="0.010021" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                        <td style="padding: 8px;"><input type="number" step="any" id="certSacaProm2" value="0.000021" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px;">Area Nominal:</td>
+                                        <td style="padding: 8px; font-weight: bold;">(m²)</td>
+                                        <td style="padding: 8px;"><input type="number" step="any" id="certSacaNominal" value="0.01" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                        <td style="padding: 8px;"></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">9. CALCULO DE INCERTIDUMBRE</h3>
+                        <h4 style="color: #333; margin-bottom: 15px;">9.1 ESTIMACION DE LA INCERTIDUMBRE DEL SESGO</h4>
+                        
+                        <div style="margin-bottom: 30px; font-size: 0.95em;">
+                            <div style="display: flex; gap: 15px; margin-bottom: 15px; align-items: center;">
+                                <strong style="width: 80px;">Usesgo:</strong>
+                                <span id="valUsesgo" style="padding: 5px 15px; border: 1px solid #ccc; border-radius: 3px; background: #eef; font-weight: bold; min-width: 80px; text-align: center;">0.000</span>
+                                <span>g/m²</span>
+                            </div>
+
+                            <div style="overflow-x: auto;">
+                                <table style="width: 100%; max-width: 800px; border-collapse: collapse; text-align: center;" border="1">
+                                    <thead style="background: #f3f3f3;">
+                                        <tr><th colspan="6" style="padding: 8px;">Ensayo</th></tr>
+                                        <tr>
+                                            <th style="padding: 8px;">Analista</th>
+                                            <th style="padding: 8px;">SI/NO</th>
+                                            <th style="padding: 8px;">SESGO</th>
+                                            <th style="padding: 8px;">Media</th>
+                                            <th style="padding: 8px;">V.Referencia</th>
+                                            <th style="padding: 8px;">PESO</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tablaSesgoEnsayoBody"></tbody>
+                                    <tfoot>
+                                        <tr style="background: #eef;"><td colspan="5" style="padding: 8px; text-align: right; font-weight: bold;">Suma:</td><td style="padding: 8px; font-weight: bold;" id="sumaPesosSesgo">0.0000</td></tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <h4 style="color: #333; margin-bottom: 15px; margin-top: 30px;">9.2 ESTIMACION DE LA INCERTIDUMBRE DEL ANALISTA</h4>
+                        <div style="margin-bottom: 30px; font-size: 0.95em;">
+                            <div style="display: flex; gap: 15px; margin-bottom: 15px; align-items: center;">
+                                <strong style="width: 80px;">Uanalista:</strong>
+                                <span id="valUanalistaTotal" style="padding: 5px 15px; border: 1px solid #ccc; border-radius: 3px; background: #eef; font-weight: bold; min-width: 80px; text-align: center;">0.000</span>
+                                <span>g/m²</span>
+                            </div>
+
+                            <div style="overflow-x: auto;">
+                                <table style="width: 100%; max-width: 600px; border-collapse: collapse; text-align: center;" border="1">
+                                    <thead style="background: #f3f3f3;">
+                                        <tr><th colspan="4" style="padding: 8px;">Ensayo</th></tr>
+                                        <tr>
+                                            <th style="padding: 8px;">Analista</th>
+                                            <th style="padding: 8px;">SI/NO</th>
+                                            <th style="padding: 8px;">U analista</th>
+                                            <th style="padding: 8px;">S²r</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tablaAnalistaEnsayoBody"></tbody>
+                                </table>
                             </div>
                         </div>
                     </div>

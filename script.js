@@ -787,14 +787,52 @@ window.calcularVeracidad = function() {
     
     let n2 = extData.length;
     let extPromCell = document.getElementById('labExtProm');
-    if (n2 === 0) {
-        if (extPromCell) extPromCell.innerText = '-';
-        return;
-    }
-    let mean2 = extData.reduce((a,b)=>a+b, 0) / n2;
-    if (extPromCell) extPromCell.innerText = mean2.toFixed(3);
+    let mean2 = n2 > 0 ? extData.reduce((a,b)=>a+b, 0) / n2 : 0;
     
+    if (extPromCell) {
+        extPromCell.innerText = n2 > 0 ? mean2.toFixed(3) : '-';
+    }
+    
+    // --- Actualizar Tabla de Sesgo (Incertidumbre) ---
+    let tbodySesgo = document.getElementById('incertidumbreSesgoBody');
+    let tbodySesgoEnsayo = document.getElementById('tablaSesgoEnsayoBody');
+    if (tbodySesgo) {
+        let sesgoHtml = '';
+        let sesgoEnsayoHtml = '';
+        ['A1', 'A2', 'A3', 'A4'].forEach((a, index) => {
+            let sumA = 0; let countA = 0;
+            for (let i = 1; i <= 10; i++) {
+                const val = parseFloat(document.getElementById(`efi-prom-${a}-${i}`)?.innerText);
+                if (!isNaN(val) && val > 0) { sumA += val; countA++; }
+            }
+            if (countA > 0) {
+                let meanA = sumA / countA;
+                let refText = n2 > 0 ? mean2.toFixed(3) : '-';
+                let sesgoText = n2 > 0 ? Math.abs(meanA - mean2).toFixed(3) : '-';
+                sesgoHtml += `<tr><td style="padding: 8px; font-weight: bold;">${a}</td><td style="padding: 8px;">${meanA.toFixed(3)}</td><td style="padding: 8px;">${refText}</td><td style="padding: 8px;">${sesgoText}</td></tr>`;
+                
+                let selectVal = index === 0 ? 'SI' : 'NO';
+                sesgoEnsayoHtml += `<tr>
+                    <td style="padding: 8px; font-weight: bold;">${a}</td>
+                    <td style="padding: 8px;">
+                        <select class="sesgo-ensayo-select" data-analista="${a}" data-sesgo="${sesgoText}" data-media="${meanA.toFixed(3)}" onchange="window.calcularPesosSesgo()">
+                            <option value="SI" ${selectVal === 'SI' ? 'selected' : ''}>SI</option>
+                            <option value="NO" ${selectVal === 'NO' ? 'selected' : ''}>NO</option>
+                        </select>
+                    </td>
+                    <td style="padding: 8px;">${sesgoText}</td>
+                    <td style="padding: 8px;">${meanA.toFixed(3)}</td>
+                    <td style="padding: 8px;">${refText}</td>
+                    <td style="padding: 8px;" class="sesgo-ensayo-peso" id="sesgo-peso-${a}">0.0000</td>
+                </tr>`;
+            }
+        });
+        tbodySesgo.innerHTML = sesgoHtml;
+        if (tbodySesgoEnsayo) { tbodySesgoEnsayo.innerHTML = sesgoEnsayoHtml; window.calcularPesosSesgo(); }
+    }
+
     if (n2 < 2) return;
+    
     let var2 = extData.reduce((a,b)=>a+Math.pow(b-mean2,2), 0) / (n2 - 1);
 
     // Prueba T pooled variance (Igualdad de varianzas asumida)
@@ -922,6 +960,60 @@ document.getElementById('labExt1')?.addEventListener('input', calcularVeracidad)
 document.getElementById('labExt2')?.addEventListener('input', calcularVeracidad);
 document.getElementById('labExt3')?.addEventListener('input', calcularVeracidad);
 
+window.calcularPesosSesgo = function() {
+    const certSacaProm1 = parseFloat(document.getElementById('certSacaProm1')?.value) || 0;
+    const selects = document.querySelectorAll('.sesgo-ensayo-select');
+    let sumaPesos = 0;
+    let usesgoVal = 0;
+
+    selects.forEach(select => {
+        const analista = select.getAttribute('data-analista');
+        const sesgo = parseFloat(select.getAttribute('data-sesgo')) || 0;
+        const media = parseFloat(select.getAttribute('data-media')) || 0;
+        const tdPeso = document.getElementById(`sesgo-peso-${analista}`);
+        
+        let peso = 0;
+        if (select.value === 'SI') {
+            peso = media * certSacaProm1;
+            usesgoVal += sesgo; 
+        }
+        
+        if (tdPeso) {
+            tdPeso.innerText = peso > 0 ? peso.toFixed(4) : "0.0000";
+        }
+        sumaPesos += peso;
+    });
+
+    if (document.getElementById('sumaPesosSesgo')) document.getElementById('sumaPesosSesgo').innerText = sumaPesos.toFixed(4);
+    if (document.getElementById('valUsesgo')) document.getElementById('valUsesgo').innerText = usesgoVal.toFixed(3);
+};
+
+document.getElementById('certSacaProm1')?.addEventListener('input', window.calcularPesosSesgo);
+
+window.calcularUAnalista = function() {
+    const selects = document.querySelectorAll('.analista-ensayo-select');
+    let sumaS2r = 0;
+
+    selects.forEach(select => {
+        const analista = select.getAttribute('data-analista');
+        const std = parseFloat(select.getAttribute('data-std')) || 0;
+        const varA = parseFloat(select.getAttribute('data-var')) || 0;
+        const tdU = document.getElementById(`uanalista-val-${analista}`);
+        
+        let uVal = 0;
+        if (select.value === 'SI') {
+            uVal = std;
+            sumaS2r += varA; // Sumando los cuadrados (Varianza)
+        }
+        
+        if (tdU) tdU.innerText = uVal > 0 ? uVal.toFixed(3) : "0.000";
+    });
+
+    if (document.getElementById('valUanalistaTotal')) {
+        document.getElementById('valUanalistaTotal').innerText = Math.sqrt(sumaS2r).toFixed(3);
+    }
+};
+
 window.calcularConclusionPrecision = function() {
     let s2r_val = parseFloat(document.getElementById('valS2r')?.innerText) || 0;
     let s2R_val = parseFloat(document.getElementById('valS2R')?.innerText) || 0;
@@ -976,6 +1068,17 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     document.getElementById('verA3').innerText = nombres.A3;
     document.getElementById('verA4').innerText = nombres.A4;
 
+    // Rellenar cabeceras de Sección V: Cálculo de Incertidumbre de Factores
+    if (document.getElementById('factoresProducto')) {
+        document.getElementById('factoresProducto').innerText = document.getElementById('efiProducto').value;
+        document.getElementById('factoresFecha').innerText = document.getElementById('efiFecha').value;
+        document.getElementById('factoresCodigoMuestra').innerText = currentMuestra || '-';
+        document.getElementById('factoresA1').innerText = nombres.A1;
+        document.getElementById('factoresA2').innerText = nombres.A2;
+        document.getElementById('factoresA3').innerText = nombres.A3;
+        document.getElementById('factoresA4').innerText = nombres.A4;
+    }
+
     const promedios = { A1: [], A2: [], A3: [], A4: [] };
     let todosLosDatos = [];
     let tablaResultadosHtml = '';
@@ -1028,10 +1131,13 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
 
     // --- Cálculos de Análisis Descriptivo (Por Analista) ---
     let descriptivoHtml = '';
+    let incertidumbreAnalistasHtml = '';
+    let analistaEnsayoHtml = '';
     let T1 = 0, T2 = 0, T3 = 0, T4 = 0, T5 = 0, pAnalistas = 0;
 
-    ['A1', 'A2', 'A3', 'A4'].forEach(analista => {
+    ['A1', 'A2', 'A3', 'A4'].forEach((analista, index) => {
         const arr = promedios[analista].filter(v => v > 0);
+        let selectVal = index === 0 ? 'SI' : 'NO';
         if (arr.length > 0) {
             const nA = arr.length;
             const sumA = arr.reduce((a, b) => a + b, 0);
@@ -1058,23 +1164,56 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
             const medianA = sorted.length % 2 !== 0 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 
             descriptivoHtml += `<tr><td style="padding: 5px; font-weight: bold;">${analista}</td><td style="padding: 5px;">${meanA.toFixed(3)}</td><td style="padding: 5px;">${stdDevA.toFixed(3)}</td><td style="padding: 5px;">${minA.toFixed(3)}</td><td style="padding: 5px;">${medianA.toFixed(3)}</td><td style="padding: 5px;">${maxA.toFixed(3)}</td></tr>`;
+            incertidumbreAnalistasHtml += `<tr><td style="padding: 8px; font-weight: bold;">${analista}</td><td style="padding: 8px;">${stdDevA.toFixed(3)}</td></tr>`;
             
             if (document.getElementById(`precProm${analista}`)) {
                 document.getElementById(`precProm${analista}`).innerText = meanA.toFixed(4);
                 document.getElementById(`precDesv${analista}`).innerText = stdDevA.toFixed(4);
                 document.getElementById(`precVar${analista}`).innerText = varA.toFixed(4);
             }
+            
+            analistaEnsayoHtml += `<tr>
+                <td style="padding: 8px; font-weight: bold;">${analista}</td>
+                <td style="padding: 8px;">
+                    <select class="analista-ensayo-select" data-analista="${analista}" data-std="${stdDevA.toFixed(3)}" data-var="${varA.toFixed(3)}" onchange="window.calcularUAnalista()">
+                        <option value="SI" ${selectVal === 'SI' ? 'selected' : ''}>SI</option>
+                        <option value="NO" ${selectVal === 'NO' ? 'selected' : ''}>NO</option>
+                    </select>
+                </td>
+                <td style="padding: 8px;" id="uanalista-val-${analista}">0.000</td>
+                <td style="padding: 8px;">${varA.toFixed(3)}</td>
+            </tr>`;
         } else {
             descriptivoHtml += `<tr><td style="padding: 5px; font-weight: bold;">${analista}</td><td colspan="5" style="padding: 5px; color: #888;">Sin datos</td></tr>`;
+            incertidumbreAnalistasHtml += `<tr><td style="padding: 8px; font-weight: bold;">${analista}</td><td style="padding: 8px; color: #888;">-</td></tr>`;
             
             if (document.getElementById(`precProm${analista}`)) {
                 document.getElementById(`precProm${analista}`).innerText = '-';
                 document.getElementById(`precDesv${analista}`).innerText = '-';
                 document.getElementById(`precVar${analista}`).innerText = '-';
             }
+            
+            analistaEnsayoHtml += `<tr>
+                <td style="padding: 8px; font-weight: bold;">${analista}</td>
+                <td style="padding: 8px;">
+                    <select class="analista-ensayo-select" data-analista="${analista}" data-std="0" data-var="0" onchange="window.calcularUAnalista()">
+                        <option value="SI" ${selectVal === 'SI' ? 'selected' : ''}>SI</option>
+                        <option value="NO" ${selectVal === 'NO' ? 'selected' : ''}>NO</option>
+                    </select>
+                </td>
+                <td style="padding: 8px;" id="uanalista-val-${analista}">0.000</td>
+                <td style="padding: 8px;">0.000</td>
+            </tr>`;
         }
     });
     document.getElementById('estDescriptivoBody').innerHTML = descriptivoHtml;
+    if (document.getElementById('incertidumbreAnalistasBody')) {
+        document.getElementById('incertidumbreAnalistasBody').innerHTML = incertidumbreAnalistasHtml;
+    }
+    if (document.getElementById('tablaAnalistaEnsayoBody')) {
+        document.getElementById('tablaAnalistaEnsayoBody').innerHTML = analistaEnsayoHtml;
+        window.calcularUAnalista();
+    }
 
     // --- Cálculos de la Sección de Precisión (T1 a T5, Varianza, etc.) ---
     let S2r = 0, S2L = 0, S2R = 0, Sr = 0, SR = 0, lim_r = 0, lim_R = 0;
