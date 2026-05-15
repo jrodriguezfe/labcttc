@@ -986,9 +986,256 @@ window.calcularPesosSesgo = function() {
 
     if (document.getElementById('sumaPesosSesgo')) document.getElementById('sumaPesosSesgo').innerText = sumaPesos.toFixed(4);
     if (document.getElementById('valUsesgo')) document.getElementById('valUsesgo').innerText = usesgoVal.toFixed(3);
+    if (document.getElementById('gramosBalanzaVal')) document.getElementById('gramosBalanzaVal').innerText = sumaPesos.toFixed(6);
+
+    if (typeof window.actualizarFormulasBalanza === 'function') {
+        window.actualizarFormulasBalanza();
+    }
+    if (typeof window.actualizarFormulasSacabocado === 'function') {
+        window.actualizarFormulasSacabocado();
+    }
 };
 
 document.getElementById('certSacaProm1')?.addEventListener('input', window.calcularPesosSesgo);
+
+window.actualizarFormulasBalanza = function() {
+    const ur1 = parseFloat(document.getElementById('certBalanzaUR1')?.value) || 0;
+    const ur2 = parseFloat(document.getElementById('certBalanzaUR2')?.value) || 0;
+    const rCorregidaCoef = parseFloat(document.getElementById('certBalanzaR')?.value) || 0;
+    
+    const rVal = parseFloat(document.getElementById('gramosBalanzaVal')?.innerText) || 0;
+
+    const formatScientific = (num) => {
+        if (num === 0) return "0";
+        let [base, exp] = num.toExponential(2).split('e');
+        base = base.replace('.', ',');
+        let sign = exp.charAt(0);
+        let expNum = exp;
+        if (sign === '+' || sign === '-') {
+            expNum = exp.substring(1);
+        } else {
+            sign = '+';
+        }
+        if (expNum.length === 1) expNum = '0' + expNum;
+        let formattedExp = (sign === '-' ? '-' : '+') + expNum;
+        if (sign === '+') formattedExp = formattedExp.replace('+', '');
+        return `${base}\\text{E}${formattedExp}`;
+    };
+
+    const calcRCorregida = rVal - rCorregidaCoef * rVal;
+    const calcUR = 2 * Math.sqrt(ur1 + ur2 * Math.pow(calcRCorregida, 2));
+    const calcURBase = 2 * Math.sqrt(ur1 + ur2 * Math.pow(0, 2));
+
+    const formatCalcSci = (num) => {
+        if (num === 0) return "0";
+        let [base, exp] = num.toExponential(4).split('e');
+        base = base.replace('.', ',');
+        let sign = exp.charAt(0);
+        let expNum = exp;
+        if (sign === '+' || sign === '-') {
+            expNum = exp.substring(1);
+        } else {
+            sign = '+';
+        }
+        if (expNum.length === 1) expNum = '0' + expNum;
+        let formattedExp = (sign === '-' ? '-' : '+') + expNum;
+        if (sign === '+') formattedExp = formattedExp.replace('+', '');
+        return `${base}\\text{E}${formattedExp}`;
+    };
+
+
+    const factorCobertura = parseFloat(document.getElementById('factorCoberturaBalanza')?.value) || 1;
+
+    const uEstandarConR = calcUR / factorCobertura;
+    const uEstandarSinR = calcURBase / factorCobertura;
+    const uGFinal = Math.sqrt(Math.pow(uEstandarConR, 2) + Math.pow(uEstandarSinR, 2));
+
+    const formatCalcTextSci = (num) => {
+        if (num === 0) return "0";
+        let [base, exp] = num.toExponential(4).split('e');
+        base = base.replace('.', ',');
+        let sign = exp.charAt(0);
+        let expNum = exp;
+        if (sign === '+' || sign === '-') expNum = exp.substring(1);
+        else sign = '+';
+        if (expNum.length === 1) expNum = '0' + expNum;
+        let formattedExp = (sign === '-' ? '-' : '+') + expNum;
+        if (sign === '+') formattedExp = formattedExp.replace('+', '');
+        let decimalStr = num.toFixed(8).replace('.', ',');
+        return `${base}E${formattedExp} = ${decimalStr}`;
+    };
+
+    const elEstandarConR = document.getElementById('valUestandarConR');
+    const elEstandarSinR = document.getElementById('valUestandarSinR');
+    const elUgFinal = document.getElementById('valUgFinal');
+
+    if (elEstandarConR) elEstandarConR.innerText = formatCalcTextSci(uEstandarConR);
+    if (elEstandarSinR) elEstandarSinR.innerText = formatCalcTextSci(uEstandarSinR);
+    if (elUgFinal) elUgFinal.innerText = formatCalcTextSci(uGFinal);
+
+    const containerUR = document.getElementById('formulaURContainer');
+    const containerRCorr = document.getElementById('formulaRCorregidaContainer');
+    const containerURBase = document.getElementById('formulaURBaseContainer');
+
+    if (containerUR && containerRCorr && containerURBase) {
+        containerRCorr.innerHTML = `$$R\\text{ corregida} = ${rVal.toFixed(6).replace('.', ',')} - ${formatScientific(rCorregidaCoef)} \\times ${rVal.toFixed(6).replace('.', ',')} = ${calcRCorregida.toFixed(6).replace('.', ',')}\\text{ g}$$`;
+        containerUR.innerHTML = `$$U_R = 2 \\cdot \\sqrt{${formatScientific(ur1)} + ${formatScientific(ur2)} \\times ${calcRCorregida.toFixed(6).replace('.', ',')}^2} = ${formatCalcSci(calcUR)}\\text{ g}$$`;
+
+        containerURBase.innerHTML = `$$U_R = 2 \\cdot \\sqrt{${formatScientific(ur1)} + ${formatScientific(ur2)} \\times 0^2} = ${formatCalcSci(calcURBase)}\\text{ g}$$`;
+
+        if (window.MathJax && MathJax.typesetPromise) {
+            MathJax.typesetPromise([containerUR, containerRCorr, containerURBase]).catch((err) => console.error(err.message));
+        }
+    }
+
+    if (typeof window.calcularResumenMetodo === 'function') {
+        window.calcularResumenMetodo();
+    }
+};
+
+document.getElementById('certBalanzaUR1')?.addEventListener('input', window.actualizarFormulasBalanza);
+document.getElementById('certBalanzaUR2')?.addEventListener('input', window.actualizarFormulasBalanza);
+document.getElementById('certBalanzaR')?.addEventListener('input', window.actualizarFormulasBalanza);
+document.getElementById('factorCoberturaBalanza')?.addEventListener('input', window.actualizarFormulasBalanza);
+
+window.actualizarFactorCoberturaBalanza = function() {
+    const codigo = document.getElementById('codigoBalanza')?.value;
+    const factorInput = document.getElementById('factorCoberturaBalanza');
+    
+    if (factorInput) {
+        if (codigo === "1") {
+            factorInput.value = 2;
+        } else if (codigo === "2") {
+            factorInput.value = Math.sqrt(3).toFixed(6);
+        } else if (codigo === "3") {
+            factorInput.value = Math.sqrt(6).toFixed(6);
+        } else {
+            factorInput.value = 0;
+        }
+        
+        if (typeof window.actualizarFormulasBalanza === 'function') {
+            window.actualizarFormulasBalanza();
+        }
+    }
+};
+
+document.getElementById('codigoBalanza')?.addEventListener('input', window.actualizarFactorCoberturaBalanza);
+
+window.actualizarFactorCoberturaSacabocado = function() {
+    const codigo = document.getElementById('codigoSacabocado')?.value;
+    const factorInput = document.getElementById('factorCoberturaSacabocado');
+    
+    if (factorInput) {
+        if (codigo === "1") {
+            factorInput.value = 2;
+        } else if (codigo === "2") {
+            factorInput.value = Math.sqrt(3).toFixed(6);
+        } else if (codigo === "3") {
+            factorInput.value = Math.sqrt(6).toFixed(6);
+        } else {
+            factorInput.value = 0;
+        }
+        if (typeof window.actualizarFormulasSacabocado === 'function') {
+            window.actualizarFormulasSacabocado();
+        }
+    }
+};
+
+document.getElementById('codigoSacabocado')?.addEventListener('input', window.actualizarFactorCoberturaSacabocado);
+
+window.actualizarFormulasSacabocado = function() {
+    const certSacaNominal = parseFloat(document.getElementById('certSacaNominal')?.value) || 0;
+    const certSacaProm2 = parseFloat(document.getElementById('certSacaProm2')?.value) || 0;
+    const certSacaUexp = parseFloat(document.getElementById('certSacaUexp')?.value) || 0;
+    const factorCoberturaSaca = parseFloat(document.getElementById('factorCoberturaSacabocado')?.value) || 1;
+
+    // Area Certificado (m²)
+    const areaCertificado = certSacaNominal + certSacaProm2;
+    
+    // U estandar
+    const uEstandarSaca = factorCoberturaSaca > 0 ? certSacaUexp / factorCoberturaSaca : 0;
+    
+    // U (final)
+    const uFinalSaca = uEstandarSaca;
+
+    if (document.getElementById('valAreaCertificado')) {
+        document.getElementById('valAreaCertificado').innerText = areaCertificado.toFixed(6);
+    }
+    if (document.getElementById('valUestandarSaca')) {
+        document.getElementById('valUestandarSaca').innerText = uEstandarSaca === 0 ? "0.0000E+0" : uEstandarSaca.toExponential(4).toUpperCase();
+    }
+    if (document.getElementById('valUfinalSaca')) {
+        document.getElementById('valUfinalSaca').innerText = uFinalSaca === 0 ? "0.0000E+0" : uFinalSaca.toExponential(4).toUpperCase();
+    }
+
+    if (typeof window.calcularResumenMetodo === 'function') {
+        window.calcularResumenMetodo();
+    }
+};
+
+document.getElementById('certSacaNominal')?.addEventListener('input', window.actualizarFormulasSacabocado);
+document.getElementById('certSacaProm2')?.addEventListener('input', window.actualizarFormulasSacabocado);
+document.getElementById('certSacaUexp')?.addEventListener('input', window.actualizarFormulasSacabocado);
+document.getElementById('factorCoberturaSacabocado')?.addEventListener('input', window.actualizarFormulasSacabocado);
+
+window.calcularResumenMetodo = function() {
+    const rVal = parseFloat(document.getElementById('gramosBalanzaVal')?.innerText) || 0;
+    const rCorregidaCoef = parseFloat(document.getElementById('certBalanzaR')?.value) || 0;
+    const calcRCorregida = rVal - rCorregidaCoef * rVal;
+    
+    const ur1 = parseFloat(document.getElementById('certBalanzaUR1')?.value) || 0;
+    const ur2 = parseFloat(document.getElementById('certBalanzaUR2')?.value) || 0;
+    const factorCoberturaBalanza = parseFloat(document.getElementById('factorCoberturaBalanza')?.value) || 1;
+    
+    const calcUR = 2 * Math.sqrt(ur1 + ur2 * Math.pow(calcRCorregida, 2));
+    const calcURBase = 2 * Math.sqrt(ur1 + ur2 * Math.pow(0, 2));
+    const uEstandarConR = factorCoberturaBalanza > 0 ? calcUR / factorCoberturaBalanza : 0;
+    const uEstandarSinR = factorCoberturaBalanza > 0 ? calcURBase / factorCoberturaBalanza : 0;
+    const uGFinalBalanza = Math.sqrt(Math.pow(uEstandarConR, 2) + Math.pow(uEstandarSinR, 2));
+
+    const certSacaNominal = parseFloat(document.getElementById('certSacaNominal')?.value) || 0;
+    const certSacaProm2 = parseFloat(document.getElementById('certSacaProm2')?.value) || 0;
+    const certSacaUexp = parseFloat(document.getElementById('certSacaUexp')?.value) || 0;
+    const factorCoberturaSaca = parseFloat(document.getElementById('factorCoberturaSacabocado')?.value) || 1;
+
+    const areaCertificado = certSacaNominal + certSacaProm2;
+    const uFinalSaca = factorCoberturaSaca > 0 ? certSacaUexp / factorCoberturaSaca : 0;
+
+    const wVal = calcRCorregida;
+    const uxiW = uGFinalBalanza;
+    const ciW = areaCertificado > 0 ? 1 / areaCertificado : 0;
+    const contribW = Math.pow(uxiW * ciW, 2);
+
+    const aVal = certSacaNominal;
+    const uxiA = uFinalSaca;
+    const ciA = areaCertificado > 0 ? wVal / Math.pow(areaCertificado, 2) : 0;
+    const contribA = Math.pow(uxiA * ciA, 2);
+
+    const u2 = contribW + contribA;
+    const u = Math.sqrt(u2);
+
+    const formatN = (num, dec) => num.toFixed(dec);
+    
+    if (document.getElementById('resW_val')) document.getElementById('resW_val').innerText = formatN(wVal, 3);
+    if (document.getElementById('resW_Uxi')) document.getElementById('resW_Uxi').innerText = formatN(uxiW, 4);
+    if (document.getElementById('resW_Ci')) document.getElementById('resW_Ci').innerText = formatN(ciW, 3);
+    if (document.getElementById('resW_Contrib')) document.getElementById('resW_Contrib').innerText = formatN(contribW, 9);
+
+    if (document.getElementById('resA_val')) document.getElementById('resA_val').innerText = formatN(aVal, 3);
+    if (document.getElementById('resA_Uxi')) document.getElementById('resA_Uxi').innerText = formatN(uxiA, 5);
+    if (document.getElementById('resA_Ci')) document.getElementById('resA_Ci').innerText = formatN(ciA, 3);
+    if (document.getElementById('resA_Contrib')) document.getElementById('resA_Contrib').innerText = formatN(contribA, 4);
+
+    if (document.getElementById('resU2')) document.getElementById('resU2').innerText = formatN(u2, 4);
+    if (document.getElementById('resU')) document.getElementById('resU').innerText = formatN(u, 4);
+
+    if (document.getElementById('valUme')) {
+        document.getElementById('valUme').innerText = formatN(u, 3); // Este valor va a la vista global
+    }
+    if (typeof window.calcularIncertidumbreCombinada === 'function') {
+        window.calcularIncertidumbreCombinada();
+    }
+};
 
 window.calcularUAnalista = function() {
     const selects = document.querySelectorAll('.analista-ensayo-select');
@@ -1012,7 +1259,57 @@ window.calcularUAnalista = function() {
     if (document.getElementById('valUanalistaTotal')) {
         document.getElementById('valUanalistaTotal').innerText = Math.sqrt(sumaS2r).toFixed(3);
     }
+    if (typeof window.calcularIncertidumbreCombinada === 'function') {
+        window.calcularIncertidumbreCombinada();
+    }
 };
+
+window.calcularIncertidumbreCombinada = function() {
+    const usesgo = parseFloat(document.getElementById('valUsesgo')?.innerText) || 0;
+    const uanalista = parseFloat(document.getElementById('valUanalistaTotal')?.innerText) || 0;
+    const umed = parseFloat(document.getElementById('valUme')?.innerText) || 0;
+
+    const uc = Math.sqrt(Math.pow(usesgo, 2) + Math.pow(uanalista, 2) + Math.pow(umed, 2));
+
+    if (document.getElementById('valUcUsesgo')) document.getElementById('valUcUsesgo').innerText = usesgo.toFixed(3);
+    if (document.getElementById('valUcUanalista')) document.getElementById('valUcUanalista').innerText = uanalista.toFixed(3);
+    if (document.getElementById('valUcUMed')) document.getElementById('valUcUMed').innerText = umed.toFixed(4);
+    if (document.getElementById('valUcTotal')) document.getElementById('valUcTotal').innerText = uc.toFixed(2) + " g/m²";
+
+    if (typeof window.calcularIncertidumbreExpandida === 'function') {
+        window.calcularIncertidumbreExpandida(uc);
+    }
+};
+
+window.calcularIncertidumbreExpandida = function(uc) {
+    // Si no se provee por parámetro, se intenta rescatar del DOM
+    if (uc === undefined) {
+        const ucText = document.getElementById('valUcTotal')?.innerText || "0";
+        uc = parseFloat(ucText.replace(' g/m²', '')) || 0;
+    }
+    const factor = parseFloat(document.getElementById('factorCoberturaExpandida')?.value) || 2;
+    const uex = uc * factor;
+    
+    // Gramaje = W (Peso con R corregida) / A (Area certificado)
+    const rVal = parseFloat(document.getElementById('gramosBalanzaVal')?.innerText) || 0;
+    const rCorregidaCoef = parseFloat(document.getElementById('certBalanzaR')?.value) || 0;
+    const wVal = rVal - rCorregidaCoef * rVal;
+
+    const certSacaNominal = parseFloat(document.getElementById('certSacaNominal')?.value) || 0;
+    const certSacaProm2 = parseFloat(document.getElementById('certSacaProm2')?.value) || 0;
+    const areaCertificado = certSacaNominal + certSacaProm2;
+
+    let gramaje = 0;
+    if (areaCertificado > 0) {
+        gramaje = wVal / areaCertificado;
+    }
+    
+    if (document.getElementById('valUExpandida')) document.getElementById('valUExpandida').innerText = uex.toFixed(3);
+    if (document.getElementById('valGramajeExpandida')) document.getElementById('valGramajeExpandida').innerText = gramaje.toFixed(3);
+    if (document.getElementById('valUExpandidaFinal')) document.getElementById('valUExpandidaFinal').innerText = uex.toFixed(3);
+};
+
+document.getElementById('factorCoberturaExpandida')?.addEventListener('input', () => window.calcularIncertidumbreExpandida());
 
 window.calcularConclusionPrecision = function() {
     let s2r_val = parseFloat(document.getElementById('valS2r')?.innerText) || 0;

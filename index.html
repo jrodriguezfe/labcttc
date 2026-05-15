@@ -913,6 +913,199 @@
                                 </table>
                             </div>
                         </div>
+                        <h4 style="color: #333; margin-bottom: 15px; margin-top: 30px;">9.3 ESTIMACION DE LA INCERTIDUMBRE DEL METODO (UMe)</h4>
+                        <div style="margin-bottom: 30px; font-size: 0.95em;">
+                            <div style="display: flex; gap: 15px; margin-bottom: 15px; align-items: center;">
+                                <strong style="width: 80px;">Ume:</strong>
+                                <span id="valUme" style="padding: 5px 15px; border: 1px solid #ccc; border-radius: 3px; background: #eef; font-weight: bold; min-width: 80px; text-align: center;">0.163</span>
+                            </div>
+
+                            <h5 style="color: #333; margin-bottom: 10px; margin-top: 20px; font-size: 1.05em;">9.3.1 GRAMOS DE BALANZA (W)</h5>
+                            
+                            <div style="margin-bottom: 15px;">
+                                <table style="width: 100%; max-width: 300px; border-collapse: collapse; text-align: center;" border="1">
+                                    <tbody>
+                                        <tr>
+                                            <td style="padding: 8px; font-weight: bold; background: #f3f3f3; width: 50%;">Gramos</td>
+                                            <td style="padding: 8px; width: 50%;" id="gramosBalanzaVal">2.182534</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div style="margin-bottom: 20px; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px;">
+                                <h6 style="color: #333; margin-top: 0; margin-bottom: 5px; font-size: 0.95em;">LECTURA CORREGIDA DE LA BALANZA ( g ) (con R)</h6>
+                                <div style="text-align: center; margin-bottom: 15px; font-size: 1.1em; color: #004a8f; overflow-x: auto;" id="formulaRCorregidaContainer">
+                                    $$R\text{ corregida} = R - 3,34\text{E}-06 \times R$$
+                                </div>
+                                
+                                <h6 style="color: #333; margin-top: 0; margin-bottom: 5px; font-size: 0.95em;">INCERTIDUMBRE EXPANDIDA DE MEDICIÓN (con R)</h6>
+                                <div style="text-align: center; margin-bottom: 25px; font-size: 1.1em; color: #004a8f; overflow-x: auto;" id="formulaURContainer">
+                                    $$U_R = 2 \cdot \sqrt{7,78\text{E}-09 + 1,36\text{E}-10 \times R\text{ corregida}^2}\text{ g}$$
+                                </div>
+
+                                <div style="border-top: 1px dashed #ccc; padding-top: 15px;">
+                                    <h6 style="color: #333; margin-top: 0; margin-bottom: 5px; font-size: 0.95em;">INCERTIDUMBRE EXPANDIDA DE MEDICIÓN (sin R)</h6>
+                                    <div style="text-align: center; margin-bottom: 15px; font-size: 1.1em; color: #004a8f; overflow-x: auto;" id="formulaURBaseContainer">
+                                        $$U_R = 2 \cdot \sqrt{7,78\text{E}-09 + 1,36\text{E}-10 \times R^2}\text{ g}$$
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: flex; flex-wrap: wrap; gap: 30px;">
+                                <div style="overflow-x: auto;">
+                                    <table style="width: 100%; min-width: 250px; border-collapse: collapse; text-align: center;" border="1">
+                                        <thead style="background: #f3f3f3;">
+                                            <tr><th style="padding: 8px;">Distribución</th><th style="padding: 8px;">Codigo</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td style="padding: 8px; text-align: left;">Normal</td><td style="padding: 8px;">1</td></tr>
+                                            <tr><td style="padding: 8px; text-align: left;">Rectangular</td><td style="padding: 8px;">2</td></tr>
+                                            <tr><td style="padding: 8px; text-align: left;">Triangular</td><td style="padding: 8px;">3</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div style="display: flex; flex-direction: column; justify-content: center; gap: 15px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <strong style="width: 150px;">Codigo:</strong>
+                                        <input type="number" id="codigoBalanza" value="1" style="width: 80px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;">
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <strong style="width: 150px;">Factor de cobertura:</strong>
+                                        <input type="number" id="factorCoberturaBalanza" value="2" step="any" style="width: 80px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 20px; background: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 5px; max-width: 500px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
+                                    <strong style="color: #333;">U estándar (con R):</strong>
+                                    <span id="valUestandarConR" style="color: #004a8f; font-weight: bold;">-</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
+                                    <strong style="color: #333;">U estándar (sin R):</strong>
+                                    <span id="valUestandarSinR" style="color: #004a8f; font-weight: bold;">-</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <strong style="color: #333;">U (g) (final):</strong>
+                                    <span id="valUgFinal" style="color: #004a8f; font-weight: bold; font-size: 1.1em;">-</span>
+                                </div>
+                            </div>
+
+                            <h5 style="color: #333; margin-bottom: 10px; margin-top: 40px; font-size: 1.05em;">9.3.2 AREA DE SACABOCADO (A)</h5>
+                            
+                            <div style="display: flex; flex-wrap: wrap; gap: 30px; margin-bottom: 20px;">
+                                <div style="overflow-x: auto;">
+                                    <table style="width: 100%; min-width: 250px; border-collapse: collapse; text-align: center;" border="1">
+                                        <thead style="background: #f3f3f3;">
+                                            <tr><th style="padding: 8px;">Distribución</th><th style="padding: 8px;">Codigo</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr><td style="padding: 8px; text-align: left;">Normal</td><td style="padding: 8px;">1</td></tr>
+                                            <tr><td style="padding: 8px; text-align: left;">Rectangular</td><td style="padding: 8px;">2</td></tr>
+                                            <tr><td style="padding: 8px; text-align: left;">Triangular</td><td style="padding: 8px;">3</td></tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+
+                                <div style="display: flex; flex-direction: column; justify-content: center; gap: 15px;">
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <strong style="width: 150px;">Codigo:</strong>
+                                        <input type="number" id="codigoSacabocado" value="1" style="width: 80px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;">
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <strong style="width: 150px;">Factor de cobertura:</strong>
+                                        <input type="number" id="factorCoberturaSacabocado" value="2" step="any" style="width: 80px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 20px; background: #f9f9f9; padding: 15px; border: 1px solid #ddd; border-radius: 5px; max-width: 500px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
+                                    <strong style="color: #333;">Area Certificado (m²):</strong>
+                                    <span id="valAreaCertificado" style="color: #004a8f; font-weight: bold;">0.010021</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 5px;">
+                                    <strong style="color: #333;">U estándar:</strong>
+                                    <span id="valUestandarSaca" style="color: #004a8f; font-weight: bold;">7.5000E-6</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <strong style="color: #333;">U (final):</strong>
+                                    <span id="valUfinalSaca" style="color: #004a8f; font-weight: bold; font-size: 1.1em;">7.5000E-6</span>
+                                </div>
+                            </div>
+
+                            <h5 style="color: #333; margin-bottom: 10px; margin-top: 40px; font-size: 1.05em;">9.3.3 RESUMEN DE COMPONENTES</h5>
+                            <div style="overflow-x: auto; margin-bottom: 30px;">
+                                <table style="width: 100%; max-width: 800px; border-collapse: collapse; text-align: center; font-size: 0.95em;" border="1">
+                                    <thead style="background: #f3f3f3;">
+                                        <tr>
+                                            <th style="padding: 8px;">Componentes</th>
+                                            <th style="padding: 8px;">Valores</th>
+                                            <th style="padding: 8px;">Uxi</th>
+                                            <th style="padding: 8px;">Ci</th>
+                                            <th style="padding: 8px;">Contribuciones</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr><td style="padding: 8px; font-weight: bold;">W (peso)</td><td style="padding: 8px;" id="resW_val">-</td><td style="padding: 8px;" id="resW_Uxi">-</td><td style="padding: 8px;" id="resW_Ci">-</td><td style="padding: 8px;" id="resW_Contrib">-</td></tr>
+                                        <tr><td style="padding: 8px; font-weight: bold;">A (Área)</td><td style="padding: 8px;" id="resA_val">-</td><td style="padding: 8px;" id="resA_Uxi">-</td><td style="padding: 8px;" id="resA_Ci">-</td><td style="padding: 8px;" id="resA_Contrib">-</td></tr>
+                                    </tbody>
+                                    <tfoot>
+                                        <tr style="background: #eef;">
+                                            <td colspan="4" style="padding: 8px; text-align: right; font-weight: bold;">U²</td><td style="padding: 8px; font-weight: bold;" id="resU2">-</td>
+                                        </tr>
+                                        <tr style="background: #eef;">
+                                            <td colspan="4" style="padding: 8px; text-align: right; font-weight: bold;">U</td><td style="padding: 8px; font-weight: bold; color: #004a8f;" id="resU">-</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+
+                        <h4 style="color: #333; margin-bottom: 15px; margin-top: 30px;">9.4 ESTIMACION DE LA INCERTIDUMBRE COMBINADA</h4>
+                        <div style="overflow-x: auto; margin-bottom: 30px;">
+                            <table style="width: 100%; max-width: 600px; border-collapse: collapse; text-align: center; font-size: 0.95em;" border="1">
+                                <thead style="background: #f3f3f3;">
+                                    <tr>
+                                        <th style="padding: 8px;">(Uc)</th>
+                                        <th style="padding: 8px;">Usesgo</th>
+                                        <th style="padding: 8px;">Uanalista</th>
+                                        <th style="padding: 8px;">U Med</th>
+                                        <th style="padding: 8px;">Uc</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td style="padding: 8px; font-weight: bold;">URDIMBRE</td>
+                                        <td style="padding: 8px;" id="valUcUsesgo">-</td>
+                                        <td style="padding: 8px;" id="valUcUanalista">-</td>
+                                        <td style="padding: 8px;" id="valUcUMed">-</td>
+                                        <td style="padding: 8px; font-weight: bold; color: #004a8f;" id="valUcTotal">- g/m²</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <h4 style="color: #333; margin-bottom: 15px; margin-top: 30px;">9.5 ESTIMACION DE LA INCERTIDUMBRE EXPANDIDA AL 95% DE CONFIANZA (U ex)</h4>
+                        <div style="margin-bottom: 30px; font-size: 0.95em;">
+                            <table style="width: 100%; max-width: 600px; border-collapse: collapse; text-align: left; margin-bottom: 15px;" border="0">
+                                <tbody>
+                                    <tr>
+                                        <td style="padding: 8px; font-weight: bold; width: 60%;">GRAMAJE (g/m²) Factor de cobertura al 95% de confianza</td>
+                                        <td style="padding: 8px;"><input type="number" id="factorCoberturaExpandida" value="2" step="any" style="width: 80px; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+                                    </tr>
+                                    <tr>
+                                        <td style="padding: 8px; font-weight: bold;">U expandida</td>
+                                        <td style="padding: 8px;"><span id="valUExpandida" style="padding: 5px 15px; border: 1px solid #ccc; border-radius: 3px; background: #eef; font-weight: bold; display: inline-block; min-width: 60px; text-align: center;">-</span></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                            <div style="background: #eef; padding: 15px; border-radius: 5px; border-left: 4px solid #004a8f; display: inline-block; font-size: 1.1em;">
+                                <strong>Gramaje</strong> <span id="valGramajeExpandida">-</span> ± <span id="valUExpandidaFinal">-</span> g/m²
+                            </div>
+                        </div>
                     </div>
                 </div>
 
