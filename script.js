@@ -24,7 +24,7 @@ let currentEnsayo = null;
 let esRepeticionActiva = false;
 
 const mockEnsayos = [
-    "Control de Gramaje y Rendimiento",
+    "GRAMAJE ASTM D3776",
     "Solides",
     "Encogimiento"
 ];
@@ -646,7 +646,7 @@ function seleccionarEnsayo(ensayo) {
     document.getElementById('headerApp').style.display = 'flex';
     document.getElementById('tituloEnsayo').textContent = ensayo;
 
-    if (ensayo === "Control de Gramaje y Rendimiento") {
+    if (ensayo === "GRAMAJE ASTM D3776") {
         document.getElementById('toolbarEnsayo').style.display = '';
         document.getElementById('areaGramaje').style.display = 'block';
         document.getElementById('ensayoConstruccion').style.display = 'none';
@@ -747,7 +747,7 @@ function renderIncertidumbreEnsayos() {
         div.onclick = () => {
             const areaEficacia = document.getElementById('areaEficacia');
 
-            if (ensayo === "Control de Gramaje y Rendimiento") {
+            if (ensayo === "GRAMAJE ASTM D3776") {
                 // Alternar visibilidad si ya está abierto
                 if (areaEficacia.style.display === 'block') {
                     areaEficacia.style.display = 'none';
@@ -2073,24 +2073,26 @@ window.prepareForExport = function() {
     });
 };
 
-window.exportarAWord = function() {
+window.exportarAExcel = function() {
     window.prepareForExport();
     const element = document.getElementById('areaEficacia').cloneNode(true);
     element.querySelectorAll('button').forEach(btn => btn.remove());
     
-    let preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML To Doc</title></head><body>";
+    let preHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Eficacia</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>`;
     let postHtml = "</body></html>";
     let html = preHtml + element.innerHTML + postHtml;
 
-    let blob = new Blob(['\ufeff', html], { type: 'application/msword' });
-    let url = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(html);
-    let filename = 'Registro_Eficacia_' + new Date().toISOString().split('T')[0] + '.doc';
+    let blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel' });
+    let url = URL.createObjectURL(blob);
+    let filename = 'Registro_Eficacia_' + new Date().toISOString().split('T')[0] + '.xls';
     
     let downloadLink = document.createElement("a");
     document.body.appendChild(downloadLink);
-    if(navigator.msSaveOrOpenBlob) navigator.msSaveOrOpenBlob(blob, filename);
-    else { downloadLink.href = url; downloadLink.download = filename; downloadLink.click(); }
+    downloadLink.href = url;
+    downloadLink.download = filename;
+    downloadLink.click();
     document.body.removeChild(downloadLink);
+    URL.revokeObjectURL(url);
 };
 
 window.exportarAPdf = function() {
@@ -2112,7 +2114,7 @@ window.exportarAPdf = function() {
     html2pdf().set(opt).from(element).save().catch(err => console.error("Error al exportar PDF:", err));
 };
 
-document.getElementById('btnExportarWordTop')?.addEventListener('click', window.exportarAWord);
+document.getElementById('btnExportarExcelTop')?.addEventListener('click', window.exportarAExcel);
 document.getElementById('btnExportarPdfTop')?.addEventListener('click', window.exportarAPdf);
 
 document.addEventListener('mouseover', (e) => {
