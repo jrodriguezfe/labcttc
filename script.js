@@ -1962,63 +1962,65 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
 document.getElementById('precRefVar')?.addEventListener('input', window.calcularConclusionPrecision);
 
 // --- Lógica de Guardado de Eficacia (Incertidumbre) ---
-document.getElementById('btnGuardarEficacia').addEventListener('click', async () => {
-    const producto = document.getElementById('efiProducto').value;
-    const fecha = document.getElementById('efiFecha').value;
-    const resultadosText = document.getElementById('efiResultados').value;
-    const conclusion = document.getElementById('efiConclusion').value;
-    const elaborado = document.getElementById('efiElaborado').value;
-    const revisado = document.getElementById('efiRevisado').value;
-    
-    const estConclusionNormalidad = document.getElementById('estConclusionNormalidad')?.value || '';
-    const estConclusionVarianzas = document.getElementById('estConclusionVarianzas')?.value || '';
-    const estConclusionMedias = document.getElementById('estConclusionMedias')?.value || '';
-    const verConclusion = document.getElementById('verConclusion')?.value || '';
-    const labExt = [
-        document.getElementById('labExt1')?.value || '',
-        document.getElementById('labExt2')?.value || '',
-        document.getElementById('labExt3')?.value || ''
-    ];
+document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
+    btn.addEventListener('click', async () => {
+        const producto = document.getElementById('efiProducto').value;
+        const fecha = document.getElementById('efiFecha').value;
+        const resultadosText = document.getElementById('efiResultados').value;
+        const conclusion = document.getElementById('efiConclusion').value;
+        const elaborado = document.getElementById('efiElaborado').value;
+        const revisado = document.getElementById('efiRevisado').value;
+        
+        const estConclusionNormalidad = document.getElementById('estConclusionNormalidad')?.value || '';
+        const estConclusionVarianzas = document.getElementById('estConclusionVarianzas')?.value || '';
+        const estConclusionMedias = document.getElementById('estConclusionMedias')?.value || '';
+        const verConclusion = document.getElementById('verConclusion')?.value || '';
+        const labExt = [
+            document.getElementById('labExt1')?.value || '',
+            document.getElementById('labExt2')?.value || '',
+            document.getElementById('labExt3')?.value || ''
+        ];
 
-    const analistasData = {};
-    ['A1', 'A2', 'A3', 'A4'].forEach(id => {
-        const nombreInput = document.getElementById(`nombre-analista-${id}`);
-        const nombre = nombreInput ? nombreInput.value : '';
-        const mediciones = [];
-        for (let i = 1; i <= 10; i++) {
-            const inputs = document.querySelectorAll(`.efi-row-${id}-${i}`);
-            const rowVals = Array.from(inputs).map(inp => parseFloat(inp.value) || 0);
-            const promCell = document.getElementById(`efi-prom-${id}-${i}`);
-            const prom = (promCell && promCell.innerText !== '-') ? parseFloat(promCell.innerText) : 0;
-            mediciones.push({ repeticion: i, valores: rowVals, promedio: prom });
+        const analistasData = {};
+        ['A1', 'A2', 'A3', 'A4'].forEach(id => {
+            const nombreInput = document.getElementById(`nombre-analista-${id}`);
+            const nombre = nombreInput ? nombreInput.value : '';
+            const mediciones = [];
+            for (let i = 1; i <= 10; i++) {
+                const inputs = document.querySelectorAll(`.efi-row-${id}-${i}`);
+                const rowVals = Array.from(inputs).map(inp => parseFloat(inp.value) || 0);
+                const promCell = document.getElementById(`efi-prom-${id}-${i}`);
+                const prom = (promCell && promCell.innerText !== '-') ? parseFloat(promCell.innerText) : 0;
+                mediciones.push({ repeticion: i, valores: rowVals, promedio: prom });
+            }
+            analistasData[id] = { nombre, mediciones };
+        });
+
+        const data = {
+            ensayo: "Masa por Unidad de Area ASTM D3776",
+            producto: producto,
+            fecha: fecha,
+            analistas: analistasData,
+            resultados: resultadosText,
+            conclusion: conclusion,
+            elaborado: elaborado,
+            revisado: revisado,
+            estConclusionNormalidad: estConclusionNormalidad,
+            estConclusionVarianzas: estConclusionVarianzas,
+            estConclusionMedias: estConclusionMedias,
+            verConclusion: verConclusion,
+            labExt: labExt,
+            fechaRegistro: new Date().toISOString()
+        };
+
+        try {
+            await setDoc(doc(db, "incertidumbre", "MasaAreaASTM"), data);
+            alert("Registro de incertidumbre guardado exitosamente en la base de datos.");
+        } catch (error) {
+            console.error("Error al guardar registro de incertidumbre: ", error);
+            alert("Error al guardar el registro: " + error.message);
         }
-        analistasData[id] = { nombre, mediciones };
     });
-
-    const data = {
-        ensayo: "Masa por Unidad de Area ASTM D3776",
-        producto: producto,
-        fecha: fecha,
-        analistas: analistasData,
-        resultados: resultadosText,
-        conclusion: conclusion,
-        elaborado: elaborado,
-        revisado: revisado,
-        estConclusionNormalidad: estConclusionNormalidad,
-        estConclusionVarianzas: estConclusionVarianzas,
-        estConclusionMedias: estConclusionMedias,
-        verConclusion: verConclusion,
-        labExt: labExt,
-        fechaRegistro: new Date().toISOString()
-    };
-
-    try {
-        await setDoc(doc(db, "incertidumbre", "MasaAreaASTM"), data);
-        alert("Registro de incertidumbre guardado exitosamente en la base de datos.");
-    } catch (error) {
-        console.error("Error al guardar registro de incertidumbre: ", error);
-        alert("Error al guardar el registro: " + error.message);
-    }
 });
 
 // --- Lógica de Selección y Borrado Múltiple para Eficacia ---
@@ -2035,6 +2037,71 @@ document.addEventListener('mousedown', (e) => {
         document.querySelectorAll('.selected-cell').forEach(el => el.classList.remove('selected-cell'));
     }
 });
+
+// --- Funciones de Exportación a Word y PDF ---
+window.prepareForExport = function() {
+    document.querySelectorAll('#areaEficacia input').forEach(el => {
+        if (el.type === 'checkbox' || el.type === 'radio') {
+            if (el.checked) el.setAttribute('checked', 'checked');
+            else el.removeAttribute('checked');
+        } else {
+            el.setAttribute('value', el.value);
+        }
+    });
+    document.querySelectorAll('#areaEficacia textarea').forEach(el => {
+        el.textContent = el.value;
+    });
+    document.querySelectorAll('#areaEficacia select').forEach(el => {
+        const selectedOpt = el.options[el.selectedIndex];
+        if(selectedOpt) {
+            el.querySelectorAll('option').forEach(opt => opt.removeAttribute('selected'));
+            selectedOpt.setAttribute('selected', 'selected');
+        }
+    });
+};
+
+window.exportarAWord = function() {
+    window.prepareForExport();
+    const element = document.getElementById('areaEficacia').cloneNode(true);
+    element.querySelectorAll('button').forEach(btn => btn.remove());
+    
+    let preHtml = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export HTML To Doc</title></head><body>";
+    let postHtml = "</body></html>";
+    let html = preHtml + element.innerHTML + postHtml;
+
+    let blob = new Blob(['\ufeff', html], { type: 'application/msword' });
+    let url = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(html);
+    let filename = 'Registro_Eficacia_' + new Date().toISOString().split('T')[0] + '.doc';
+    
+    let downloadLink = document.createElement("a");
+    document.body.appendChild(downloadLink);
+    if(navigator.msSaveOrOpenBlob) navigator.msSaveOrOpenBlob(blob, filename);
+    else { downloadLink.href = url; downloadLink.download = filename; downloadLink.click(); }
+    document.body.removeChild(downloadLink);
+};
+
+window.exportarAPdf = function() {
+    window.prepareForExport();
+    const element = document.getElementById('areaEficacia');
+    const originalDisplays = [];
+    const botones = element.querySelectorAll('button');
+    botones.forEach(btn => { originalDisplays.push(btn.style.display); btn.style.display = 'none'; });
+    
+    const opt = {
+        margin: 0.3, filename: 'Registro_Eficacia_' + new Date().toISOString().split('T')[0] + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(element).save().then(() => {
+        botones.forEach((btn, index) => { btn.style.display = originalDisplays[index]; });
+    });
+};
+
+document.getElementById('btnExportarWordTop')?.addEventListener('click', window.exportarAWord);
+document.getElementById('btnExportarPdfTop')?.addEventListener('click', window.exportarAPdf);
+document.getElementById('btnExportarWordBottom')?.addEventListener('click', window.exportarAWord);
+document.getElementById('btnExportarPdfBottom')?.addEventListener('click', window.exportarAPdf);
 
 document.addEventListener('mouseover', (e) => {
     if (isSelecting && e.target.classList.contains('efi-input')) {
