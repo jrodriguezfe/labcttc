@@ -151,13 +151,64 @@
                 <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">7. RESULTADOS DE PARTICIPANTES</h3>
                 <div id="contenedorTablasEficacia" style="overflow-x: auto;"></div>
 
+                <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; margin-bottom: 15px;">8. DATOS DE CERTIFICADOS (BALANZA Y SACABOCADO)</h3>
+                <div style="overflow-x: auto; margin-bottom: 20px;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.95em;" border="1">
+                        <tbody>
+                            <tr style="background: #eef;">
+                                <td colspan="2" style="padding: 8px; font-weight: bold;">DATOS DE CERTIFICADO DE BALANZA</td>
+                                <td colspan="2" style="padding: 8px;"><input type="text" id="certBalanzaCodigo" value="1AMC-0484-2024" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px;"></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; width: 40%;">Incertidumbre Expandida de Medición:</td>
+                                <td style="padding: 8px; font-weight: bold; width: 20%;">UR:</td>
+                                <td style="padding: 8px; width: 20%;"><input type="number" step="any" id="certBalanzaUR1" value="7.78e-9" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                <td style="padding: 8px; width: 20%;"><input type="number" step="any" id="certBalanzaUR2" value="1.36e-10" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;">Lectura Corregida de la Balanza:</td>
+                                <td style="padding: 8px; font-weight: bold;">R corregida :</td>
+                                <td style="padding: 8px;"><input type="number" step="any" id="certBalanzaR" value="0.00000334" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                <td style="padding: 8px; text-align: center; color: #888;">......</td>
+                            </tr>
+                            <tr style="background: #eef;">
+                                <td colspan="2" style="padding: 8px; font-weight: bold;">DATOS DE CERTIFICADO DE SACA BOCADO</td>
+                                <td colspan="2" style="padding: 8px;"><input type="text" id="certSacabocadoCodigo" value="IT-227-2024" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px;"></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;">Incertidumbre Expandida de Medición:</td>
+                                <td style="padding: 8px; font-weight: bold;">U exp (m²)</td>
+                                <td style="padding: 8px;"><input type="number" step="any" id="certSacaUexp" value="0.000015" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                <td style="padding: 8px;"></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;">Valor Promedio Encontrado:</td>
+                                <td style="padding: 8px; font-weight: bold;">(m²)</td>
+                                <td style="padding: 8px;"><input type="number" step="any" id="certSacaProm1" value="0.010021" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                <td style="padding: 8px;"><input type="number" step="any" id="certSacaProm2" value="0.000021" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;">Area Nominal:</td>
+                                <td style="padding: 8px; font-weight: bold;">(m²)</td>
+                                <td style="padding: 8px;"><input type="number" step="any" id="certSacaNominal" value="0.01" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                <td style="padding: 8px;"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
                 <div style="text-align: right;">
                     <button type="button" class="btn-secondary" id="btnCalcularEstadistica" style="margin-top: 15px; cursor: pointer;">📊 Generar Evaluación Estadística</button>
                 </div>
 
                 <div id="evaluacionEstadistica" style="margin-top: 30px; border-top: 2px solid #004a8f; padding-top: 20px; display: none;">
-                    <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">I. EVALUACIÓN ESTADÍSTICA DE LOS RESULTADOS</h2>
+                    <h2 style="color: #004a8f; margin-bottom: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 5px; border: 1px solid #ddd;" onclick="toggleSection('contentEstadistica', this)">
+                        <span style="font-size: 0.8em; color: transparent;">▶</span>
+                        <span style="text-align: center;">I. EVALUACIÓN ESTADÍSTICA DE LOS RESULTADOS <span id="statusEstadistica"></span></span>
+                        <span style="font-size: 0.8em; color: #555;">▶</span>
+                    </h2>
                     
+                    <div id="contentEstadistica" style="display: none;">
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
                         <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
                         <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;">Área Física</td></tr>
@@ -200,13 +251,19 @@
 
                     <h3 style="color: #004a8f; margin-bottom: 15px;">ANALISIS INFERENCIAL</h3>
                     
-                    <h4 style="color: #333;">1. PRUEBA DE NORMALIDAD</h4>
+                    <h4 style="color: #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f0f0f0; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('contentNormalidad', this)">
+                        <span>1. PRUEBA DE NORMALIDAD <span id="statusNormalidad"></span></span>
+                        <span style="font-size: 0.8em;">▶</span>
+                    </h4>
+                    <div id="contentNormalidad" style="display: none;">
                     <p style="font-size: 0.95em; color: #555;">La distribución de los datos será evaluada mediante la prueba de normalidad de Anderson Darling, para conocer si los datos se distribuyen o no normalmente.</p>
                     <ul style="font-size: 0.95em; color: #555;">
                         <li><strong>Nivel de Significancia ( α ):</strong> 0.05</li>
                         <li><strong>Nivel de Confianza:</strong> 95%</li>
                     </ul>
-                    <p style="font-size: 0.95em; color: #555;"><strong>Criterio de Decisión:</strong> P valor &gt; alfa (0.05), entonces los datos se ajustan a una distribución normal.</p>
+                    <p style="font-size: 0.95em; color: #555;"><strong>Criterio de Decisión:</strong><br>
+                    P valor &gt; alfa (0.05), entonces los datos se ajustan a una distribución normal.<br><br>
+                    Pvalue ≤ alfa (0.05), entonces los datos no se ajustan a una distribución normal.</p>
                     
                     <div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: stretch; border: 1px solid #ddd; padding: 15px; background: #fff; border-radius: 5px; margin: 20px 0;">
                         <div style="flex: 1; min-width: 300px;">
@@ -235,8 +292,13 @@
 
                     <p style="font-size: 0.95em; color: #555; margin-bottom: 5px;"><strong>Interpretación:</strong></p>
                     <textarea id="estConclusionNormalidad" style="width: 100%; padding: 8px; margin-top: 0; margin-bottom: 20px; height: 80px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;"></textarea>
+                    </div>
 
-                    <h4 style="color: #333;">2. DETECCION DE PUNTOS ATIPICOS</h4>
+                    <h4 style="color: #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f0f0f0; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('contentAtipicos', this)">
+                        <span>2. DETECCION DE PUNTOS ATIPICOS <span id="statusAtipicos"></span></span>
+                        <span style="font-size: 0.8em;">▶</span>
+                    </h4>
+                    <div id="contentAtipicos" style="display: none;">
                     <p style="font-size: 0.95em; color: #555;">La detección de puntos atípicos se realizará mediante la evaluación del Z-score.</p>
                     <div style="font-size: 0.95em; margin-bottom: 10px; color: #555; background: #f9f9f9; padding: 10px; border-left: 3px solid #004a8f;">
                         <strong>CRITERIO DE DECISIÓN:</strong><br>
@@ -256,8 +318,13 @@
                         <strong>Media Global:</strong> <span id="estMediaGlobal"></span> &nbsp;|&nbsp; 
                         <strong>Desv. Estándar Global:</strong> <span id="estDesvGlobal"></span>
                     </div>
+                    </div>
 
-                    <h4 style="color: #333;">3. PRUEBA DE HOMOGENIEDAD DE VARIANZAS</h4>
+                    <h4 style="color: #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f0f0f0; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('contentHomogeneidad', this)">
+                        <span>3. PRUEBA DE HOMOGENIEDAD DE VARIANZAS <span id="statusHomogeneidad"></span></span>
+                        <span style="font-size: 0.8em;">▶</span>
+                    </h4>
+                    <div id="contentHomogeneidad" style="display: none;">
                     <p style="font-size: 0.95em; color: #555;">Para evaluar la precisión entre analistas, se utilizara la prueba de homogeneidad de varianzas. Para datos con distribución Normal se realiza la Prueba Bartlett.</p>
                     <ul style="font-size: 0.95em; color: #555;">
                         <li><strong>Nivel de Significancia ( α ):</strong> 0.05</li>
@@ -315,8 +382,13 @@
                     </div>
 
                     <textarea id="estConclusionVarianzas" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">0.985(P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los analistas tienen similar precisión.</textarea>
+                    </div>
 
-                    <h4 style="color: #333;">4. PRUEBA DE IGUALDAD DE MEDIDAS DE TENDENCIA CENTRAL</h4>
+                    <h4 style="color: #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f0f0f0; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('contentIgualdadMedias', this)">
+                        <span>4. PRUEBA DE IGUALDAD DE MEDIDAS DE TENDENCIA CENTRAL <span id="statusIgualdadMedias"></span></span>
+                        <span style="font-size: 0.8em;">▶</span>
+                    </h4>
+                    <div id="contentIgualdadMedias" style="display: none;">
                     <p style="font-size: 0.95em; color: #555;">Para evaluar la veracidad entre analistas, se utilizará la prueba de igualdad de media.<br><br>
                     Para datos con distribución Normal se realiza la Prueba ANOVA de un factor.</p>
                     <ul style="font-size: 0.95em; color: #555;">
@@ -365,18 +437,17 @@
                         </div>
                     </div>
                     <textarea id="estConclusionMedias" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">0.848 (P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los resultados de los analistas son similares respecto a sus medias.</textarea>
-
-                    <h4 style="color: #333;">5. CAMPANA DE GAUSS (DISTRIBUCIÓN DE FRECUENCIAS)</h4>
-                    <p style="font-size: 0.95em; color: #555;">Representación visual de la distribución empírica de los resultados (Histograma) contrastada con la Curva Normal Teórica esperada según la media y desviación estándar global.</p>
-                    
-                    <div style="width: 100%; max-width: 700px; margin: 20px auto; border: 1px solid #ddd; padding: 15px; background: #fff; border-radius: 5px;">
-                        <canvas id="graficoCampanaGauss"></canvas>
                     </div>
-                    <textarea id="estConclusionGauss" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">Visualmente, el histograma de frecuencias demuestra que los datos se agrupan en torno a la media central formando una campana simétrica, respaldando la distribución normal de los ensayos.</textarea>
-                    
+                    </div>
+
                     <!-- NUEVA SECCION: VERACIDAD -->
                     <div id="seccionVeracidad" style="margin-top: 40px; border-top: 2px solid #004a8f; padding-top: 20px;">
-                        <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">II. VERACIDAD</h2>
+                        <h2 style="color: #004a8f; margin-bottom: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 5px; border: 1px solid #ddd;" onclick="toggleSection('contentVeracidad', this)">
+                            <span style="font-size: 0.8em; color: transparent;">▶</span>
+                            <span style="text-align: center;">II. VERACIDAD</span>
+                            <span style="font-size: 0.8em; color: #555;">▶</span>
+                        </h2>
+                        <div id="contentVeracidad" style="display: none;">
                         <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">DESARROLLO DE LOS PARÁMETROS</h3>
                         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
                             <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
@@ -457,11 +528,17 @@
 
                         <p style="font-size: 0.95em; color: #555; margin-bottom: 5px;"><strong>Conclusión de Veracidad:</strong></p>
                         <textarea id="verConclusion" style="width: 100%; padding: 8px; margin-top: 0; margin-bottom: 20px; height: 70px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;"></textarea>
+                        </div>
                     </div>
                     
                     <!-- NUEVA SECCION: PRECISIÓN -->
                     <div id="seccionPrecision" style="margin-top: 40px; border-top: 2px solid #004a8f; padding-top: 20px;">
-                        <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">III. PRECISIÓN</h2>
+                        <h2 style="color: #004a8f; margin-bottom: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 5px; border: 1px solid #ddd;" onclick="toggleSection('contentPrecision', this)">
+                            <span style="font-size: 0.8em; color: transparent;">▶</span>
+                            <span style="text-align: center;">III. PRECISIÓN</span>
+                            <span style="font-size: 0.8em; color: #555;">▶</span>
+                        </h2>
+                        <div id="contentPrecision" style="display: none;">
                         <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">
                             <h3 style="color: #333; margin: 0;">DETERMINACION DE LA PRECISION</h3>
                             <span style="font-size: 0.8em; color: #666;">Pagina 8 de 8</span>
@@ -614,14 +691,20 @@
                                     <tr><td style="width: 20%;">S²r <strong id="concS2r">-</strong></td><td style="width: 5%;">+</td><td style="width: 20%;">S²R <strong id="concS2R">-</strong></td><td style="width: 10%;"><strong id="concSigno">≤</strong></td><td style="width: 45%;">S²(Prueba de aptitud) <strong id="concS2Teo">-</strong></td></tr>
                                     <tr style="font-size: 0.85em; color: #555;"><td>(Experimental)</td><td></td><td>(Experimental)</td><td></td><td>(Teórico)</td></tr>
                                 </table>
-                                <div id="concResultado" style="font-weight: bold; color: #217346; margin-top: 10px; font-size: 1.05em;">, por lo tanto el método es preciso.</div>
+                                <div id="concResultado" style="font-weight: bold; color: #217346; margin-top: 10px; font-size: 1.05em;">La sumatoria de las varianzas experimentales (-) es menor o igual a la varianza de la prueba de aptitud, por lo tanto el método es preciso.</div>
                             </div>
+                        </div>
                         </div>
                     </div>
 
                     <!-- NUEVA SECCION: FUENTE DE INCERTIDUMBRE -->
                     <div id="seccionIncertidumbre" style="margin-top: 40px; border-top: 2px solid #004a8f; padding-top: 20px;">
-                        <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">IV. FUENTE DE INCERTIDUMBRE</h2>
+                        <h2 style="color: #004a8f; margin-bottom: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 5px; border: 1px solid #ddd;" onclick="toggleSection('contentIncertidumbre', this)">
+                            <span style="font-size: 0.8em; color: transparent;">▶</span>
+                            <span style="text-align: center;">IV. FUENTE DE INCERTIDUMBRE</span>
+                            <span style="font-size: 0.8em; color: #555;">▶</span>
+                        </h2>
+                        <div id="contentIncertidumbre" style="display: none;">
                         <h3 style="color: #333; margin-bottom: 15px;">INCERTIDUMBRE</h3>
                         <p style="font-size: 0.95em; color: #555; margin-bottom: 20px;">La estimación de la Incertidumbre de <strong>ASTM D3776/D3776M-20</strong>, se realiza acuerdo a la Directriz de estimación de incertidumbre de la medición.</p>
                         
@@ -786,12 +869,18 @@
                         <div style="text-align: center; margin-bottom: 30px; font-size: 1.2em; color: #004a8f; overflow-x: auto;">
                             $$U_{ex} = K \times U_{co}$$
                         </div>
+                        </div>
                     </div>
 
                     <!-- NUEVA SECCION: CALCULO DE INCERTIDUMBRE DE FACTORES EN EL ENSAYO -->
                     <div id="seccionCalculoFactores" style="margin-top: 40px; border-top: 2px solid #004a8f; padding-top: 20px;">
-                        <h2 style="color: #004a8f; text-align: center; margin-bottom: 20px;">V. CALCULO DE INCERTIDUMBRE DE FACTORES EN EL ENSAYO</h2>
+                        <h2 style="color: #004a8f; margin-bottom: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 5px; border: 1px solid #ddd;" onclick="toggleSection('contentFactores', this)">
+                            <span style="font-size: 0.8em; color: transparent;">▶</span>
+                            <span style="text-align: center;">V. CALCULO DE INCERTIDUMBRE DE FACTORES EN EL ENSAYO</span>
+                            <span style="font-size: 0.8em; color: #555;">▶</span>
+                        </h2>
                         
+                        <div id="contentFactores" style="display: none;">
                         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
                             <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
                             <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;">Área Física</td></tr>
@@ -810,7 +899,7 @@
                         </table>
 
                         <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">
-                            <h3 style="color: #333; margin: 0;">8. DATOS DE CERTIFICADO DE BALANZA</h3>
+                            <h3 style="color: #333; margin: 0;">8. DATOS DE CERTIFICADOS (BALANZA Y SACABOCADO)</h3>
                             <span style="font-size: 0.8em; color: #666; font-weight: normal;">FECHA: <span id="factoresFecha"></span></span>
                         </div>
 
@@ -819,40 +908,40 @@
                                 <tbody>
                                     <tr style="background: #eef;">
                                         <td colspan="2" style="padding: 8px; font-weight: bold;">DATOS DE CERTIFICADO DE BALANZA</td>
-                                        <td colspan="2" style="padding: 8px;"><input type="text" id="certBalanzaCodigo" value="1AMC-0484-2024" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px;"></td>
+                                        <td colspan="2" style="padding: 8px; text-align: center;"><span id="viewCertBalanzaCodigo" style="font-weight: bold; color: #004a8f;">1AMC-0484-2024</span></td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px; width: 40%;">Incertidumbre Expandida de Medición:</td>
                                         <td style="padding: 8px; font-weight: bold; width: 20%;">UR:</td>
-                                        <td style="padding: 8px; width: 20%;"><input type="number" step="any" id="certBalanzaUR1" value="7.78e-9" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
-                                        <td style="padding: 8px; width: 20%;"><input type="number" step="any" id="certBalanzaUR2" value="1.36e-10" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                        <td style="padding: 8px; width: 20%; text-align: center;"><span id="viewCertBalanzaUR1">7.78e-9</span></td>
+                                        <td style="padding: 8px; width: 20%; text-align: center;"><span id="viewCertBalanzaUR2">1.36e-10</span></td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px;">Lectura Corregida de la Balanza:</td>
                                         <td style="padding: 8px; font-weight: bold;">R corregida :</td>
-                                        <td style="padding: 8px;"><input type="number" step="any" id="certBalanzaR" value="0.00000334" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                        <td style="padding: 8px; text-align: center;"><span id="viewCertBalanzaR">0.00000334</span></td>
                                         <td style="padding: 8px; text-align: center; color: #888;">......</td>
                                     </tr>
                                     <tr style="background: #eef;">
                                         <td colspan="2" style="padding: 8px; font-weight: bold;">DATOS DE CERTIFICADO DE SACA BOCADO</td>
-                                        <td colspan="2" style="padding: 8px;"><input type="text" id="certSacabocadoCodigo" value="IT-227-2024" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px;"></td>
+                                        <td colspan="2" style="padding: 8px; text-align: center;"><span id="viewCertSacabocadoCodigo" style="font-weight: bold; color: #004a8f;">IT-227-2024</span></td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px;">Incertidumbre Expandida de Medición:</td>
                                         <td style="padding: 8px; font-weight: bold;">U exp (m²)</td>
-                                        <td style="padding: 8px;"><input type="number" step="any" id="certSacaUexp" value="0.000015" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                        <td style="padding: 8px; text-align: center;"><span id="viewCertSacaUexp">0.000015</span></td>
                                         <td style="padding: 8px;"></td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px;">Valor Promedio Encontrado:</td>
                                         <td style="padding: 8px; font-weight: bold;">(m²)</td>
-                                        <td style="padding: 8px;"><input type="number" step="any" id="certSacaProm1" value="0.010021" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
-                                        <td style="padding: 8px;"><input type="number" step="any" id="certSacaProm2" value="0.000021" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                        <td style="padding: 8px; text-align: center;"><span id="viewCertSacaProm1">0.010021</span></td>
+                                        <td style="padding: 8px; text-align: center;"><span id="viewCertSacaProm2">0.000021</span></td>
                                     </tr>
                                     <tr>
                                         <td style="padding: 8px;">Area Nominal:</td>
                                         <td style="padding: 8px; font-weight: bold;">(m²)</td>
-                                        <td style="padding: 8px;"><input type="number" step="any" id="certSacaNominal" value="0.01" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                                        <td style="padding: 8px; text-align: center;"><span id="viewCertSacaNominal">0.01</span></td>
                                         <td style="padding: 8px;"></td>
                                     </tr>
                                 </tbody>
@@ -1105,6 +1194,7 @@
                             <div style="background: #eef; padding: 15px; border-radius: 5px; border-left: 4px solid #004a8f; display: inline-block; font-size: 1.1em;">
                                 <strong>Gramaje</strong> <span id="valGramajeExpandida">-</span> ± <span id="valUExpandidaFinal">-</span> g/m²
                             </div>
+                        </div>
                         </div>
                     </div>
                 </div>

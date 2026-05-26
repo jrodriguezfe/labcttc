@@ -36,6 +36,19 @@ const mockOTs = [
     { id: "OT-2026-003", muestras: ["MUE-C300", "MUE-C301", "MUE-C302"], estado: "Pendiente" }
 ];
 
+// --- Función para Expandir/Contraer Secciones ---
+window.toggleSection = function(contentId, headerElement) {
+    const content = document.getElementById(contentId);
+    const icon = headerElement.querySelector('span:last-child');
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        if (icon) icon.innerText = '▼';
+    } else {
+        content.style.display = 'none';
+        if (icon) icon.innerText = '▶';
+    }
+};
+
 // --- Función de Cálculo de Diferencia Crítica ---
 function calcularDiferenciaCritica() {
     const rows = document.getElementById('resultadoCuerpo').querySelectorAll('tr');
@@ -998,6 +1011,29 @@ window.calcularPesosSesgo = function() {
 
 document.getElementById('certSacaProm1')?.addEventListener('input', window.calcularPesosSesgo);
 
+// --- Lógica para Sincronizar Certificados (Editable -> Sólo Lectura) ---
+window.sincronizarVistaCertificados = function() {
+    const syncField = (srcId, targetId) => {
+        const src = document.getElementById(srcId);
+        const target = document.getElementById(targetId);
+        if (src && target) target.innerText = src.value || '-';
+    };
+    syncField('certBalanzaCodigo', 'viewCertBalanzaCodigo');
+    syncField('certBalanzaUR1', 'viewCertBalanzaUR1');
+    syncField('certBalanzaUR2', 'viewCertBalanzaUR2');
+    syncField('certBalanzaR', 'viewCertBalanzaR');
+    syncField('certSacabocadoCodigo', 'viewCertSacabocadoCodigo');
+    syncField('certSacaUexp', 'viewCertSacaUexp');
+    syncField('certSacaProm1', 'viewCertSacaProm1');
+    syncField('certSacaProm2', 'viewCertSacaProm2');
+    syncField('certSacaNominal', 'viewCertSacaNominal');
+};
+
+['certBalanzaCodigo', 'certBalanzaUR1', 'certBalanzaUR2', 'certBalanzaR', 'certSacabocadoCodigo', 'certSacaUexp', 'certSacaProm1', 'certSacaProm2', 'certSacaNominal'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', window.sincronizarVistaCertificados);
+});
+window.sincronizarVistaCertificados();
+
 window.actualizarFormulasBalanza = function() {
     const ur1 = parseFloat(document.getElementById('certBalanzaUR1')?.value) || 0;
     const ur2 = parseFloat(document.getElementById('certBalanzaUR2')?.value) || 0;
@@ -1321,15 +1357,16 @@ window.calcularConclusionPrecision = function() {
         document.getElementById('concS2R').innerText = s2R_val.toFixed(3);
         document.getElementById('concS2Teo').innerText = s2teo.toFixed(3);
         
-        let preciso = (s2r_val + s2R_val) <= s2teo;
+        let sumatoria = s2r_val + s2R_val;
+        let preciso = sumatoria <= s2teo;
         
         if (preciso) {
             document.getElementById('concSigno').innerText = '≤';
-            document.getElementById('concResultado').innerText = ', por lo tanto el método es preciso.';
+            document.getElementById('concResultado').innerText = `La sumatoria de las varianzas experimentales (${sumatoria.toFixed(3)}) es menor o igual a la varianza de la prueba de aptitud, por lo tanto el método es preciso.`;
             document.getElementById('concResultado').style.color = '#217346';
         } else {
             document.getElementById('concSigno').innerText = '>';
-            document.getElementById('concResultado').innerText = ', por lo tanto el método es no preciso.';
+            document.getElementById('concResultado').innerText = `La sumatoria de las varianzas experimentales (${sumatoria.toFixed(3)}) es mayor a la varianza de la prueba de aptitud, por lo tanto el método no es preciso.`;
             document.getElementById('concResultado').style.color = '#c0392b';
         }
     }
@@ -1556,6 +1593,7 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
 
     let zScoreHtml = '';
     let counter = 1;
+    let atipicosCumple = true;
     ['A1', 'A2', 'A3', 'A4'].forEach(analista => {
         promedios[analista].forEach(val => {
             if (val > 0) {
@@ -1563,6 +1601,7 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
                 const absZ = Math.abs(z);
                 let calificacion = absZ >= 3 ? 'NO SATISFACTORIO' : (absZ > 2 ? 'CUESTIONABLE' : 'SATISFACTORIO');
                 let color = absZ >= 3 ? '#c0392b' : (absZ > 2 ? '#d97706' : '#217346');
+                if (absZ >= 3) atipicosCumple = false;
                 zScoreHtml += `<tr><td style="padding: 5px;">${counter++}</td><td style="padding: 5px;">${val.toFixed(3)}</td><td style="padding: 5px;">${z.toFixed(3)}</td><td style="padding: 5px;">${absZ.toFixed(3)}</td><td style="padding: 5px; color: ${color}; font-weight: bold;">${calificacion}</td><td style="padding: 5px;">${analista}</td></tr>`;
             }
         });
@@ -1608,6 +1647,7 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     });
     document.getElementById('estBartlettBody').innerHTML = bartlettHtml;
 
+    let homogeneidadCumple = false;
     if (validGroups > 1) {
         let dfTotal = totalN - validGroups, pooledVar = sumNiMinus1_Si2 / dfTotal;
         let bartlettT = (dfTotal * Math.log(pooledVar) - sumNiMinus1_lnSi2) / (1 + (1 / (3 * (validGroups - 1))) * (sum1_NiMinus1 - 1 / dfTotal));
@@ -1620,6 +1660,8 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
         const bPSide = document.getElementById('estBartlettPSide');
         if (bTSide) bTSide.innerText = bartlettT.toFixed(2);
         if (bPSide) bPSide.innerText = bartlettP.toFixed(3);
+        
+        homogeneidadCumple = bartlettP > alpha;
         
         // Autocompletar la conclusión de Bartlett evaluando P-Valor
         const txtConclusionVar = document.getElementById('estConclusionVarianzas');
@@ -1719,6 +1761,8 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
         let p = jStat.ibeta(x_beta, anovaDFE / 2, anovaDFTrt / 2);
         anovaPVal = isNaN(p) ? 1 : Math.max(0, Math.min(1, p)); // Blindaje matemático
     }
+    
+    let igualdadMediasCumple = anovaPVal > alpha;
 
     if (document.getElementById('anovaFactorGL')) {
         const formatNumber = (num, decimals) => num.toFixed(decimals).replace('.', ',');
@@ -1825,9 +1869,37 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     const txtConclusionNorm = document.getElementById('estConclusionNormalidad');
     if (txtConclusionNorm) {
         if (pValueAD > alpha) {
-            txtConclusionNorm.value = `Dado que el valor p (${pValueAD.toFixed(3)}) es mayor que el nivel de significancia común (${alpha}), no hay evidencia suficiente para rechazar la hipótesis de que los datos siguen una distribución normal. Los puntos en la gráfica se ajustan razonablemente bien a la línea roja central.`;
+            txtConclusionNorm.value = `${pValueAD.toFixed(3)} (P valor) es mayor que el nivel de significancia (${alpha}) por lo que podemos afirmar, al 95% de confianza, que los datos SE DISTRIBUYEN NORMALMENTE.`;
         } else {
-            txtConclusionNorm.value = `Dado que el valor p (${pValueAD.toFixed(3)}) es menor o igual al nivel de significancia común (${alpha}), hay evidencia para rechazar la hipótesis de que los datos siguen una distribución normal. Los puntos en la gráfica muestran desviaciones importantes respecto a la línea roja central.`;
+            txtConclusionNorm.value = `${pValueAD.toFixed(3)} (P valor) es menor o igual que el nivel de significancia (${alpha}) por lo que podemos afirmar, al 95% de confianza, que los datos NO SE DISTRIBUYEN NORMALMENTE.`;
+        }
+    }
+
+    const normalidadCumple = pValueAD > alpha;
+
+    const setStatus = (id, passes) => {
+        const el = document.getElementById(id);
+        if (el) {
+            if (passes) {
+                el.innerHTML = '<span style="font-size: 0.85em; color: #217346; background: #e6f4ea; padding: 2px 8px; border-radius: 12px; border: 1px solid #217346; margin-left: 10px;">✅ CUMPLE</span>';
+            } else {
+                el.innerHTML = '<span style="font-size: 0.85em; color: #c0392b; background: #fce8e6; padding: 2px 8px; border-radius: 12px; border: 1px solid #c0392b; margin-left: 10px;">❌ NO CUMPLE</span>';
+            }
+        }
+    };
+
+    setStatus('statusNormalidad', normalidadCumple);
+    setStatus('statusAtipicos', atipicosCumple);
+    setStatus('statusHomogeneidad', homogeneidadCumple);
+    setStatus('statusIgualdadMedias', igualdadMediasCumple);
+
+    const generalCumple = normalidadCumple && atipicosCumple && homogeneidadCumple && igualdadMediasCumple;
+    const elGeneral = document.getElementById('statusEstadistica');
+    if (elGeneral) {
+        if (generalCumple) {
+            elGeneral.innerHTML = '<span style="font-size: 0.85em; color: #217346; background: #e6f4ea; padding: 2px 10px; border-radius: 12px; border: 1px solid #217346; margin-left: 10px;">✅ APTO</span>';
+        } else {
+            elGeneral.innerHTML = '<span style="font-size: 0.85em; color: #c0392b; background: #fce8e6; padding: 2px 10px; border-radius: 12px; border: 1px solid #c0392b; margin-left: 10px;">❌ NO APTO</span>';
         }
     }
 
@@ -1882,59 +1954,6 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
         }
     });
 
-    // --- Gráfico de Campana de Gauss (Histograma + Curva Normal) ---
-    // Regla de Sturges para calcular el número de clases (barras) del histograma
-    let kBins = Math.ceil(1 + 3.322 * Math.log10(nNorm));
-    if (kBins < 5) kBins = 5; // Mínimo 5 barras para visualización decente
-    
-    let binWidth = span / kBins;
-    if (binWidth === 0) binWidth = 1;
-    
-    let labelsGauss = [];
-    let freqGauss = new Array(kBins).fill(0);
-    let centersGauss = [];
-    
-    for (let i = 0; i < kBins; i++) {
-        let bMin = minVal + i * binWidth;
-        let bMax = minVal + (i + 1) * binWidth;
-        centersGauss.push(bMin + binWidth / 2);
-        labelsGauss.push(`${bMin.toFixed(2)} - ${bMax.toFixed(2)}`);
-    }
-    
-    valoresOrdenados.forEach(v => {
-        let idx = Math.floor((v - minVal) / binWidth);
-        if (idx >= kBins) idx = kBins - 1; // Evitar desbordamiento en el valor máximo exacto
-        freqGauss[idx]++;
-    });
-    
-    // Calcular la distribución teórica Normal escalada a la frecuencia
-    let normalCurveGauss = centersGauss.map(x => {
-        let pdf = (1 / (estNormDesv * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - estNormMedia) / estNormDesv, 2));
-        return pdf * nNorm * binWidth;
-    });
-    
-    const ctxGauss = document.getElementById('graficoCampanaGauss').getContext('2d');
-    if (window.graficoGaussChart) window.graficoGaussChart.destroy();
-    
-    window.graficoGaussChart = new Chart(ctxGauss, {
-        type: 'bar',
-        data: {
-            labels: labelsGauss,
-            datasets: [
-                { label: 'Curva Normal Teórica', data: normalCurveGauss, type: 'line', borderColor: '#c0392b', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 0, tension: 0.4 },
-                { label: 'Curva de Datos Reales', data: freqGauss, type: 'line', borderColor: '#d97706', backgroundColor: 'transparent', borderWidth: 2, pointRadius: 4, tension: 0.4, borderDash: [5, 5] },
-                { label: 'Frecuencia Real (Barras)', data: freqGauss, backgroundColor: 'rgba(0, 74, 143, 0.6)', borderColor: '#004a8f', borderWidth: 1 }
-            ]
-        },
-        options: {
-            responsive: true,
-            scales: {
-                x: { title: { display: true, text: 'Intervalos de g/m²' } },
-                y: { title: { display: true, text: 'Frecuencia (Cantidad)' }, beginAtZero: true }
-            }
-        }
-    });
-    
     // Ejecutar prueba de Veracidad
     calcularVeracidad();
 });
@@ -1954,7 +1973,6 @@ document.getElementById('btnGuardarEficacia').addEventListener('click', async ()
     const estConclusionNormalidad = document.getElementById('estConclusionNormalidad')?.value || '';
     const estConclusionVarianzas = document.getElementById('estConclusionVarianzas')?.value || '';
     const estConclusionMedias = document.getElementById('estConclusionMedias')?.value || '';
-    const estConclusionGauss = document.getElementById('estConclusionGauss')?.value || '';
     const verConclusion = document.getElementById('verConclusion')?.value || '';
     const labExt = [
         document.getElementById('labExt1')?.value || '',
@@ -1989,7 +2007,6 @@ document.getElementById('btnGuardarEficacia').addEventListener('click', async ()
         estConclusionNormalidad: estConclusionNormalidad,
         estConclusionVarianzas: estConclusionVarianzas,
         estConclusionMedias: estConclusionMedias,
-        estConclusionGauss: estConclusionGauss,
         verConclusion: verConclusion,
         labExt: labExt,
         fechaRegistro: new Date().toISOString()
