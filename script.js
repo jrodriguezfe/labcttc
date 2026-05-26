@@ -978,6 +978,7 @@ window.calcularPesosSesgo = function() {
     const selects = document.querySelectorAll('.sesgo-ensayo-select');
     let sumaPesos = 0;
     let usesgoVal = 0;
+    let countSI = 0;
 
     selects.forEach(select => {
         const analista = select.getAttribute('data-analista');
@@ -989,6 +990,7 @@ window.calcularPesosSesgo = function() {
         if (select.value === 'SI') {
             peso = media * certSacaProm1;
             usesgoVal += sesgo; 
+            countSI++;
         }
         
         if (tdPeso) {
@@ -997,15 +999,21 @@ window.calcularPesosSesgo = function() {
         sumaPesos += peso;
     });
 
-    if (document.getElementById('sumaPesosSesgo')) document.getElementById('sumaPesosSesgo').innerText = sumaPesos.toFixed(4);
-    if (document.getElementById('valUsesgo')) document.getElementById('valUsesgo').innerText = usesgoVal.toFixed(3);
-    if (document.getElementById('gramosBalanzaVal')) document.getElementById('gramosBalanzaVal').innerText = sumaPesos.toFixed(6);
+    let promedioPesos = countSI > 0 ? sumaPesos / countSI : 0;
+    let promedioUsesgo = countSI > 0 ? usesgoVal / countSI : 0;
+
+    if (document.getElementById('sumaPesosSesgo')) document.getElementById('sumaPesosSesgo').innerText = promedioPesos.toFixed(4);
+    if (document.getElementById('valUsesgo')) document.getElementById('valUsesgo').innerText = promedioUsesgo.toFixed(3);
+    if (document.getElementById('gramosBalanzaVal')) document.getElementById('gramosBalanzaVal').innerText = promedioPesos.toFixed(6);
 
     if (typeof window.actualizarFormulasBalanza === 'function') {
         window.actualizarFormulasBalanza();
     }
     if (typeof window.actualizarFormulasSacabocado === 'function') {
         window.actualizarFormulasSacabocado();
+    }
+    if (typeof window.calcularUAnalista === 'function') {
+        window.calcularUAnalista();
     }
 };
 
@@ -1027,9 +1035,14 @@ window.sincronizarVistaCertificados = function() {
     syncField('certSacaProm1', 'viewCertSacaProm1');
     syncField('certSacaProm2', 'viewCertSacaProm2');
     syncField('certSacaNominal', 'viewCertSacaNominal');
+
+    syncField('precRefText1', 'viewPrecRefText1');
+    syncField('precRefVar', 'viewPrecRefVar');
+    syncField('precRefText2', 'viewPrecRefText2');
+    syncField('precRefStd', 'viewPrecRefStd');
 };
 
-['certBalanzaCodigo', 'certBalanzaUR1', 'certBalanzaUR2', 'certBalanzaR', 'certSacabocadoCodigo', 'certSacaUexp', 'certSacaProm1', 'certSacaProm2', 'certSacaNominal'].forEach(id => {
+['certBalanzaCodigo', 'certBalanzaUR1', 'certBalanzaUR2', 'certBalanzaR', 'certSacabocadoCodigo', 'certSacaUexp', 'certSacaProm1', 'certSacaProm2', 'certSacaNominal', 'precRefText1', 'precRefVar', 'precRefText2', 'precRefStd'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', window.sincronizarVistaCertificados);
 });
 window.sincronizarVistaCertificados();
@@ -1274,26 +1287,36 @@ window.calcularResumenMetodo = function() {
 };
 
 window.calcularUAnalista = function() {
-    const selects = document.querySelectorAll('.analista-ensayo-select');
-    let sumaS2r = 0;
+    const rows = document.querySelectorAll('.analista-ensayo-row');
+    let sumU = 0;
+    let countSI = 0;
 
-    selects.forEach(select => {
-        const analista = select.getAttribute('data-analista');
-        const std = parseFloat(select.getAttribute('data-std')) || 0;
-        const varA = parseFloat(select.getAttribute('data-var')) || 0;
+    rows.forEach(row => {
+        const analista = row.getAttribute('data-analista');
+        const std = parseFloat(row.getAttribute('data-std')) || 0;
+        
+        const sesgoSelect = document.querySelector(`.sesgo-ensayo-select[data-analista="${analista}"]`);
+        const selectVal = sesgoSelect ? sesgoSelect.value : 'NO';
+        
+        const tdSiNo = document.getElementById(`analista-sino-${analista}`);
+        if (tdSiNo) tdSiNo.innerText = selectVal;
+        
         const tdU = document.getElementById(`uanalista-val-${analista}`);
         
         let uVal = 0;
-        if (select.value === 'SI') {
+        if (selectVal === 'SI') {
             uVal = std;
-            sumaS2r += varA; // Sumando los cuadrados (Varianza)
+            sumU += uVal;
+            countSI++;
         }
         
         if (tdU) tdU.innerText = uVal > 0 ? uVal.toFixed(3) : "0.000";
     });
 
+    let promedioU = countSI > 0 ? sumU / countSI : 0;
+
     if (document.getElementById('valUanalistaTotal')) {
-        document.getElementById('valUanalistaTotal').innerText = Math.sqrt(sumaS2r).toFixed(3);
+        document.getElementById('valUanalistaTotal').innerText = promedioU.toFixed(3);
     }
     if (typeof window.calcularIncertidumbreCombinada === 'function') {
         window.calcularIncertidumbreCombinada();
@@ -1506,14 +1529,9 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
                 document.getElementById(`precVar${analista}`).innerText = varA.toFixed(4);
             }
             
-            analistaEnsayoHtml += `<tr>
+            analistaEnsayoHtml += `<tr class="analista-ensayo-row" data-analista="${analista}" data-std="${stdDevA.toFixed(3)}" data-var="${varA.toFixed(3)}">
                 <td style="padding: 8px; font-weight: bold;">${analista}</td>
-                <td style="padding: 8px;">
-                    <select class="analista-ensayo-select" data-analista="${analista}" data-std="${stdDevA.toFixed(3)}" data-var="${varA.toFixed(3)}" onchange="window.calcularUAnalista()">
-                        <option value="SI" ${selectVal === 'SI' ? 'selected' : ''}>SI</option>
-                        <option value="NO" ${selectVal === 'NO' ? 'selected' : ''}>NO</option>
-                    </select>
-                </td>
+                <td style="padding: 8px;" id="analista-sino-${analista}">${selectVal}</td>
                 <td style="padding: 8px;" id="uanalista-val-${analista}">0.000</td>
                 <td style="padding: 8px;">${varA.toFixed(3)}</td>
             </tr>`;
@@ -1527,14 +1545,9 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
                 document.getElementById(`precVar${analista}`).innerText = '-';
             }
             
-            analistaEnsayoHtml += `<tr>
+            analistaEnsayoHtml += `<tr class="analista-ensayo-row" data-analista="${analista}" data-std="0" data-var="0">
                 <td style="padding: 8px; font-weight: bold;">${analista}</td>
-                <td style="padding: 8px;">
-                    <select class="analista-ensayo-select" data-analista="${analista}" data-std="0" data-var="0" onchange="window.calcularUAnalista()">
-                        <option value="SI" ${selectVal === 'SI' ? 'selected' : ''}>SI</option>
-                        <option value="NO" ${selectVal === 'NO' ? 'selected' : ''}>NO</option>
-                    </select>
-                </td>
+                <td style="padding: 8px;" id="analista-sino-${analista}">${selectVal}</td>
                 <td style="padding: 8px;" id="uanalista-val-${analista}">0.000</td>
                 <td style="padding: 8px;">0.000</td>
             </tr>`;
@@ -2083,25 +2096,24 @@ window.exportarAWord = function() {
 window.exportarAPdf = function() {
     window.prepareForExport();
     const element = document.getElementById('areaEficacia');
-    const originalDisplays = [];
-    const botones = element.querySelectorAll('button');
-    botones.forEach(btn => { originalDisplays.push(btn.style.display); btn.style.display = 'none'; });
     
     const opt = {
-        margin: 0.3, filename: 'Registro_Eficacia_' + new Date().toISOString().split('T')[0] + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true },
+        margin: 0.3, 
+        filename: 'Registro_Eficacia_' + new Date().toISOString().split('T')[0] + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 }, 
+        html2canvas: { 
+            scale: 2, 
+            useCORS: true,
+            ignoreElements: (el) => el.tagName && el.tagName.toUpperCase() === 'BUTTON'
+        },
         jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
     };
     
-    html2pdf().set(opt).from(element).save().then(() => {
-        botones.forEach((btn, index) => { btn.style.display = originalDisplays[index]; });
-    });
+    html2pdf().set(opt).from(element).save().catch(err => console.error("Error al exportar PDF:", err));
 };
 
 document.getElementById('btnExportarWordTop')?.addEventListener('click', window.exportarAWord);
 document.getElementById('btnExportarPdfTop')?.addEventListener('click', window.exportarAPdf);
-document.getElementById('btnExportarWordBottom')?.addEventListener('click', window.exportarAWord);
-document.getElementById('btnExportarPdfBottom')?.addEventListener('click', window.exportarAPdf);
 
 document.addEventListener('mouseover', (e) => {
     if (isSelecting && e.target.classList.contains('efi-input')) {
