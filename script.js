@@ -584,7 +584,7 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
     const pass = document.getElementById('regPass').value;
     const nombre = document.getElementById('regNombre').value;
     const cargo = document.getElementById('regCargo').value; // Dato extra de ejemplo
-    const rol = document.getElementById('regRol').value;
+    const rol = document.getElementById('regRol')?.value || 'analista';
     
     try {
         // Crear usuario en Firebase Auth
@@ -2123,6 +2123,12 @@ window.exportarAExcel = function() {
     const element = document.getElementById('contenedorTablasEficacia').cloneNode(true);
     element.querySelectorAll('button').forEach(btn => btn.remove());
     
+    // Convertir los inputs a texto plano para que Excel los reconozca como celdas de datos
+    element.querySelectorAll('input, select, textarea').forEach(el => {
+        const textNode = document.createTextNode(el.value || '');
+        el.parentNode.replaceChild(textNode, el);
+    });
+
     let preHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="utf-8"><!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>Eficacia</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]--></head><body>`;
     let postHtml = "</body></html>";
     let html = preHtml + element.innerHTML + postHtml;

@@ -125,6 +125,12 @@
                     <input type="text" id="regCargo" placeholder="Cargo o Especialidad" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
                     <input type="email" id="regEmail" placeholder="Correo Electrónico" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
                     <input type="password" id="regPass" placeholder="Contraseña (Mín. 6 caracteres)" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+                    <select id="regRol" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; background: white;">
+                        <option value="" disabled selected>Seleccione un Rol</option>
+                        <option value="analista">Analista (Puede editar y guardar)</option>
+                        <option value="visor">Visor (Solo lectura)</option>
+                        <option value="admin">Administrador (Control total)</option>
+                    </select>
                     <button type="submit" class="btn-primary" style="padding: 12px; font-size: 16px; cursor: pointer;">Registrar</button>
                 </form>
                 <p style="margin-top: 20px; font-size: 0.9em;">¿Ya tienes cuenta? <br><button id="btnShowLogin" class="btn-secondary" style="margin-top: 10px; padding: 8px 12px; cursor: pointer;">Volver a Iniciar Sesión</button></p>
@@ -599,8 +605,6 @@
                             </div>
                         </div>
 
-                        <p style="font-size: 0.95em; color: #555; margin-bottom: 5px;"><strong>Conclusión de Veracidad:</strong></p>
-                        <textarea id="verConclusion" style="width: 100%; padding: 8px; margin-top: 0; margin-bottom: 20px; height: 70px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;"></textarea>
                         <div style="background-color: #f4f9ff; padding: 15px; border-radius: 5px; border: 2px solid #004a8f; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,74,143,0.1);">
                             <p style="font-size: 1.1em; color: #004a8f; margin-top: 0; margin-bottom: 10px;"><strong>Conclusión:</strong></p>
                             <textarea id="verConclusion" style="width: 100%; padding: 12px; margin-top: 0; margin-bottom: 0; height: 80px; font-family: inherit; border: 1px solid #004a8f; border-radius: 4px; font-size: 1.05em; color: #217346; font-weight: bold; background: #fff; line-height: 1.4;"></textarea>
