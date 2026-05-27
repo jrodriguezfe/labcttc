@@ -22,6 +22,7 @@ let currentOT = null;
 let currentMuestra = null;
 let currentEnsayo = null;
 let esRepeticionActiva = false;
+window.currentUserRole = 'visor'; // Por defecto solo lectura
 
 const mockEnsayos = [
     "GRAMAJE ASTM D3776",
@@ -175,6 +176,13 @@ function generarTablasEficacia() {
     inputs.forEach(input => {
         input.addEventListener('input', calcularPromedioEficacia);
         input.addEventListener('paste', handlePasteEficacia);
+        input.addEventListener('change', function(e) {
+            const val = parseFloat(this.value);
+            if (!isNaN(val)) {
+                this.value = val.toFixed(2);
+                calcularPromedioEficacia(e);
+            }
+        });
     });
 }
 
@@ -184,14 +192,14 @@ function generarBloqueAnalistasEficacia(id1, id2) {
         rows += `
         <tr>
             <td style="text-align: center; font-weight: bold; padding: 5px;">${i}</td>
-            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
-            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
-            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
             <td style="background: #eef; font-weight: bold; text-align: center; padding: 5px;" id="efi-prom-${id1}-${i}">-</td>
             <td style="text-align: center; font-weight: bold; border-left: 2px solid #004a8f; padding: 5px;">${i}</td>
-            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
-            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
-            <td style="padding: 2px;"><input type="number" step="0.0001" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
             <td style="background: #eef; font-weight: bold; text-align: center; padding: 5px;" id="efi-prom-${id2}-${i}">-</td>
         </tr>`;
     }
@@ -226,7 +234,7 @@ function calcularPromedioEficacia(e) {
     });
     
     const cellProm = document.getElementById(`efi-prom-${analista}-${row}`);
-    cellProm.innerText = count > 0 ? parseFloat((sum / count).toFixed(4)) : '-';
+    cellProm.innerText = count > 0 ? (sum / count).toFixed(2) : '-';
 }
 
 // --- Función para pegar desde Excel en la Matriz de Eficacia ---
@@ -262,7 +270,7 @@ function handlePasteEficacia(e) {
                 // Reemplazar comas por puntos en caso de Excel en español
                 const num = parseFloat(val.replace(',', '.'));
                 if (!isNaN(num)) {
-                    inputs[j + startColIdx].value = num;
+                    inputs[j + startColIdx].value = num.toFixed(2);
                     // Disparar manualmente el evento para que se calcule el Promedio (g/m²)
                     inputs[j + startColIdx].dispatchEvent(new Event('input', { bubbles: true }));
                 }
@@ -392,8 +400,10 @@ document.getElementById('gramajeForm').addEventListener('submit', async (e) => {
                 <td>${gramajesIndDisplay}</td>
                 <td>${grDisplay}</td>
                 <td class="no-export">
+                    ${window.currentUserRole === 'visor' ? '<span style="color:#888;">Lectura</span>' : `
                     <button class="edit-btn" onclick="editarRegistro('${editandoId}')">Editar</button>
                     <button class="delete-btn" onclick="eliminarRegistro('${editandoId}')">Eliminar</button>
+                    `}
                 </td>
             `;
         }
@@ -432,8 +442,10 @@ function renderFila(id, data) {
         <td>${gramajesIndDisplay}</td>
         <td>${grDisplay}</td>
         <td class="no-export">
+            ${window.currentUserRole === 'visor' ? '<span style="color:#888;">Lectura</span>' : `
             <button class="edit-btn" onclick="editarRegistro('${id}')">Editar</button>
             <button class="delete-btn" onclick="eliminarRegistro('${id}')">Eliminar</button>
+            `}
         </td>
     `;
     document.getElementById('resultadoCuerpo').prepend(row);
@@ -505,8 +517,22 @@ window.editarRegistro = async (id) => {
 
 // --- Lógica de Autenticación (Login / Registro) ---
 
+// Aplicar interfaz según el rol
+window.aplicarPermisosVisuales = function(rol) {
+    const puedeEditar = (rol === 'admin' || rol === 'analista');
+    
+    // Ocultar botones de guardado principales y formularios de ingreso
+    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion').forEach(btn => {
+        btn.style.display = puedeEditar ? '' : 'none';
+    });
+
+    // Deshabilitar la barra de entrada para no permitir insertar
+    const entryBar = document.querySelector('.entry-bar');
+    if (entryBar) entryBar.style.display = puedeEditar ? 'block' : 'none';
+};
+
 // Monitor del estado de sesión
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
     const authSection = document.getElementById('authSection');
     const appSection = document.getElementById('appSection');
     
@@ -514,12 +540,28 @@ onAuthStateChanged(auth, (user) => {
         // Usuario logueado: mostrar app, ocultar login
         if (authSection) authSection.style.display = 'none';
         if (appSection) appSection.style.display = 'block';
+        
+        try {
+            const docSnap = await getDoc(doc(db, "analistas", user.uid));
+            if (docSnap.exists() && docSnap.data().rol) {
+                window.currentUserRole = docSnap.data().rol;
+            } else {
+                window.currentUserRole = 'visor';
+            }
+        } catch (e) {
+            window.currentUserRole = 'visor';
+        }
+        
         const userDisplay = document.getElementById('userDisplay');
         if (userDisplay) userDisplay.textContent = user.email;
+        if (userDisplay) userDisplay.innerHTML = `${user.email} <span style="font-size:0.8em; background:#004a8f; color:#fff; padding:3px 8px; border-radius:12px; margin-left:8px; display:inline-block;">Rol: ${window.currentUserRole.toUpperCase()}</span>`;
+        
+        window.aplicarPermisosVisuales(window.currentUserRole);
     } else {
         // Sin sesión: mostrar login, ocultar app
         if (authSection) authSection.style.display = 'block';
         if (appSection) appSection.style.display = 'none';
+        window.currentUserRole = 'visor';
     }
 });
 
@@ -542,6 +584,7 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
     const pass = document.getElementById('regPass').value;
     const nombre = document.getElementById('regNombre').value;
     const cargo = document.getElementById('regCargo').value; // Dato extra de ejemplo
+    const rol = document.getElementById('regRol').value;
     
     try {
         // Crear usuario en Firebase Auth
@@ -553,6 +596,7 @@ document.getElementById('registerForm')?.addEventListener('submit', async (e) =>
             email: email,
             nombre: nombre,
             cargo: cargo,
+            rol: rol,
             fechaCreacion: new Date().toISOString()
         });
         
@@ -717,11 +761,12 @@ async function cargarDatosIncertidumbre() {
                                 const inputs = document.querySelectorAll(`.efi-row-${id}-${r}`);
                                 if (med.valores) {
                                     inputs.forEach((inp, idx) => {
-                                        inp.value = med.valores[idx] || '';
+                                        const v = med.valores[idx];
+                                        inp.value = (v !== null && v !== '' && !isNaN(v)) ? parseFloat(v).toFixed(2) : '';
                                     });
                                 }
                                 const promCell = document.getElementById(`efi-prom-${id}-${r}`);
-                                if (promCell) promCell.innerText = med.promedio ? med.promedio : '-';
+                                if (promCell) promCell.innerText = med.promedio ? parseFloat(med.promedio).toFixed(2) : '-';
                             });
                         }
                     }
@@ -2125,6 +2170,33 @@ document.addEventListener('mouseover', (e) => {
 
 document.addEventListener('mouseup', () => {
     isSelecting = false;
+});
+
+document.addEventListener('copy', (e) => {
+    const selectedCells = document.querySelectorAll('.selected-cell');
+    
+    // Si el usuario sombreó texto en otra parte de la página, respetamos la copia predeterminada
+    if (window.getSelection().toString().trim().length > 0 && selectedCells.length <= 1) {
+        return;
+    }
+
+    if (selectedCells.length > 0) {
+        const rows = document.querySelectorAll('#contenedorTablasEficacia tr');
+        let copiedRows = [];
+        
+        rows.forEach(row => {
+            const cellsInRow = row.querySelectorAll('.selected-cell');
+            if (cellsInRow.length > 0) {
+                const rowValues = Array.from(cellsInRow).map(cell => cell.value);
+                copiedRows.push(rowValues.join('\t'));
+            }
+        });
+        
+        if (copiedRows.length > 0) {
+            e.clipboardData.setData('text/plain', copiedRows.join('\n'));
+            e.preventDefault();
+        }
+    }
 });
 
 document.addEventListener('keydown', (e) => {

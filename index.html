@@ -354,8 +354,10 @@
                         </ul>
                     </div>
 
-                    <p style="font-size: 0.95em; color: #555; margin-bottom: 5px;"><strong>Interpretación:</strong></p>
-                    <textarea id="estConclusionNormalidad" style="width: 100%; padding: 8px; margin-top: 0; margin-bottom: 20px; height: 80px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;"></textarea>
+                    <div style="background-color: #f4f9ff; padding: 15px; border-radius: 5px; border: 2px solid #004a8f; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,74,143,0.1);">
+                        <p style="font-size: 1.1em; color: #004a8f; margin-top: 0; margin-bottom: 10px;"><strong>Conclusión:</strong></p>
+                        <textarea id="estConclusionNormalidad" style="width: 100%; padding: 12px; margin-top: 0; margin-bottom: 0; height: 80px; font-family: inherit; border: 1px solid #004a8f; border-radius: 4px; font-size: 1.05em; color: #217346; font-weight: bold; background: #fff; line-height: 1.4;"></textarea>
+                    </div>
                     </div>
 
                     <h4 style="color: #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f0f0f0; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('contentAtipicos', this)">
@@ -446,6 +448,10 @@
                     </div>
 
                     <textarea id="estConclusionVarianzas" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">0.985(P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los analistas tienen similar precisión.</textarea>
+                    <div style="background-color: #f4f9ff; padding: 15px; border-radius: 5px; border: 2px solid #004a8f; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,74,143,0.1);">
+                        <p style="font-size: 1.1em; color: #004a8f; margin-top: 0; margin-bottom: 10px;"><strong>Conclusión:</strong></p>
+                        <textarea id="estConclusionVarianzas" style="width: 100%; padding: 12px; margin-top: 0; margin-bottom: 0; height: 80px; font-family: inherit; border: 1px solid #004a8f; border-radius: 4px; font-size: 1.05em; color: #217346; font-weight: bold; background: #fff; line-height: 1.4;">0.985(P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los analistas tienen similar precisión.</textarea>
+                    </div>
                     </div>
 
                     <h4 style="color: #333; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #f0f0f0; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('contentIgualdadMedias', this)">
@@ -500,7 +506,10 @@
                             <p style="text-align: center; font-size: 0.85em; color: #666; margin-top: 10px;">La desviación estándar agrupada se utilizó para calcular los intervalos.</p>
                         </div>
                     </div>
-                    <textarea id="estConclusionMedias" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">0.848 (P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los resultados de los analistas son similares respecto a sus medias.</textarea>
+                    <div style="background-color: #f4f9ff; padding: 15px; border-radius: 5px; border: 2px solid #004a8f; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,74,143,0.1);">
+                        <p style="font-size: 1.1em; color: #004a8f; margin-top: 0; margin-bottom: 10px;"><strong>Conclusión:</strong></p>
+                        <textarea id="estConclusionMedias" style="width: 100%; padding: 12px; margin-top: 0; margin-bottom: 0; height: 80px; font-family: inherit; border: 1px solid #004a8f; border-radius: 4px; font-size: 1.05em; color: #217346; font-weight: bold; background: #fff; line-height: 1.4;">0.848 (P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los resultados de los analistas son similares respecto a sus medias.</textarea>
+                    </div>
                     </div>
                     </div>
 
@@ -592,6 +601,10 @@
 
                         <p style="font-size: 0.95em; color: #555; margin-bottom: 5px;"><strong>Conclusión de Veracidad:</strong></p>
                         <textarea id="verConclusion" style="width: 100%; padding: 8px; margin-top: 0; margin-bottom: 20px; height: 70px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;"></textarea>
+                        <div style="background-color: #f4f9ff; padding: 15px; border-radius: 5px; border: 2px solid #004a8f; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,74,143,0.1);">
+                            <p style="font-size: 1.1em; color: #004a8f; margin-top: 0; margin-bottom: 10px;"><strong>Conclusión:</strong></p>
+                            <textarea id="verConclusion" style="width: 100%; padding: 12px; margin-top: 0; margin-bottom: 0; height: 80px; font-family: inherit; border: 1px solid #004a8f; border-radius: 4px; font-size: 1.05em; color: #217346; font-weight: bold; background: #fff; line-height: 1.4;"></textarea>
+                        </div>
                         </div>
                     </div>
                     
@@ -750,12 +763,15 @@
 
                             <!-- CONCLUSION -->
                             <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px;">CONCLUSIÓN</h4>
-                            <div style="background: #eef; padding: 15px; border-radius: 5px; border-left: 4px solid #004a8f; margin-bottom: 20px;">
-                                <table style="width: 100%; border: none; text-align: center; margin-bottom: 10px; font-size: 1.05em;">
-                                    <tr><td style="width: 20%;">S²r <strong id="concS2r">-</strong></td><td style="width: 5%;">+</td><td style="width: 20%;">S²R <strong id="concS2R">-</strong></td><td style="width: 10%;"><strong id="concSigno">≤</strong></td><td style="width: 45%;">S²(Prueba de aptitud) <strong id="concS2Teo">-</strong></td></tr>
-                                    <tr style="font-size: 0.85em; color: #555;"><td>(Experimental)</td><td></td><td>(Experimental)</td><td></td><td>(Teórico)</td></tr>
-                                </table>
-                                <div id="concResultado" style="font-weight: bold; color: #217346; margin-top: 10px; font-size: 1.05em;">La sumatoria de las varianzas experimentales (-) es menor o igual a la varianza de la prueba de aptitud, por lo tanto el método es preciso.</div>
+                            <div style="background-color: #f4f9ff; padding: 15px; border-radius: 5px; border: 2px solid #004a8f; margin-bottom: 20px; margin-top: 30px; box-shadow: 0 2px 4px rgba(0,74,143,0.1);">
+                                <p style="font-size: 1.1em; color: #004a8f; margin-top: 0; margin-bottom: 10px;"><strong>Conclusión:</strong></p>
+                                <div style="background: #fff; border: 1px solid #004a8f; border-radius: 4px; padding: 12px;">
+                                    <table style="width: 100%; border: none; text-align: center; margin-bottom: 15px; font-size: 1.05em;">
+                                        <tr><td style="width: 20%;">S²r <strong id="concS2r">-</strong></td><td style="width: 5%;">+</td><td style="width: 20%;">S²R <strong id="concS2R">-</strong></td><td style="width: 10%;"><strong id="concSigno">≤</strong></td><td style="width: 45%;">S²(Prueba de aptitud) <strong id="concS2Teo">-</strong></td></tr>
+                                        <tr style="font-size: 0.85em; color: #555;"><td>(Experimental)</td><td></td><td>(Experimental)</td><td></td><td>(Teórico)</td></tr>
+                                    </table>
+                                    <div id="concResultado" style="font-weight: bold; color: #217346; margin-top: 10px; font-size: 1.05em; text-align: center;">La sumatoria de las varianzas experimentales (-) es menor o igual a la varianza de la prueba de aptitud, por lo tanto el método es preciso.</div>
+                                </div>
                             </div>
                         </div>
                         </div>
@@ -1255,8 +1271,11 @@
                                     </tr>
                                 </tbody>
                             </table>
-                            <div style="background: #eef; padding: 15px; border-radius: 5px; border-left: 4px solid #004a8f; display: inline-block; font-size: 1.1em;">
-                                <strong>Gramaje</strong> <span id="valGramajeExpandida">-</span> ± <span id="valUExpandidaFinal">-</span> g/m²
+                            <div style="background-color: #f4f9ff; padding: 20px; border-radius: 5px; border: 2px solid #004a8f; box-shadow: 0 4px 6px rgba(0,74,143,0.15); text-align: center; margin-top: 20px; display: block;">
+                                <div style="color: #004a8f; font-weight: bold; margin-bottom: 10px; font-size: 1.1em; text-transform: uppercase;">Resultado Final del Ensayo</div>
+                                <div style="font-weight: bold; color: #217346; background: #fff; padding: 15px 25px; border: 1px solid #004a8f; border-radius: 5px; display: inline-block; font-size: 1.4em;">
+                                    Gramaje: <span id="valGramajeExpandida">-</span> ± <span id="valUExpandidaFinal">-</span> g/m²
+                                </div>
                             </div>
                         </div>
                         </div>
@@ -1290,7 +1309,6 @@
                         </div>
                     </div>
                 </div>
-            </div>
         </div>
 
         <div id="muestraTray" style="padding: 20px; display: none;">
