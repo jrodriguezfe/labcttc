@@ -2148,6 +2148,36 @@ window.exportarAExcel = function() {
 
 window.exportarAPdf = function() {
     window.prepareForExport();
+    
+    // 1. Expandir todas las sub-secciones de reportes, evaluaciones y conclusiones para el PDF
+    const seccionesColapsables = [
+        'contentEstadistica',
+        'contentNormalidad',
+        'contentAtipicos',
+        'contentHomogeneidad',
+        'contentIgualdadMedias',
+        'contentVeracidad',
+        'contentPrecision',
+        'contentIncertidumbre',
+        'contentFactores'
+    ];
+    
+    seccionesColapsables.forEach(id => {
+        const seccion = document.getElementById(id);
+        if (seccion) seccion.style.display = 'block';
+    });
+
+    // 2. Cambiar los iconos de las flechas para que coincidan con el estado expandido
+    document.querySelectorAll('#areaEficacia h2 span:last-child, #areaEficacia h4 span:last-child').forEach(icon => {
+        if (icon.innerText === '▶') icon.innerText = '▼';
+    });
+
+    // 3. Redimensionar los gráficos para evitar que se aplasten si estaban ocultos
+    if (window.graficoVarianzasChart) window.graficoVarianzasChart.resize();
+    if (window.graficoIntervalosChart) window.graficoIntervalosChart.resize();
+    if (window.graficoNormalidadChart) window.graficoNormalidadChart.resize();
+    if (window.graficoVeracidadChart) window.graficoVeracidadChart.resize();
+
     const element = document.getElementById('areaEficacia');
     
     const opt = {
