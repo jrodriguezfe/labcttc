@@ -2151,6 +2151,7 @@ window.exportarAPdf = function() {
     
     // 1. Expandir todas las sub-secciones de reportes, evaluaciones y conclusiones para el PDF
     const seccionesColapsables = [
+        'evaluacionEstadistica',
         'contentEstadistica',
         'contentNormalidad',
         'contentAtipicos',
@@ -2172,27 +2173,47 @@ window.exportarAPdf = function() {
         if (icon.innerText === '▶') icon.innerText = '▼';
     });
 
-    // 3. Redimensionar los gráficos para evitar que se aplasten si estaban ocultos
-    if (window.graficoVarianzasChart) window.graficoVarianzasChart.resize();
-    if (window.graficoIntervalosChart) window.graficoIntervalosChart.resize();
-    if (window.graficoNormalidadChart) window.graficoNormalidadChart.resize();
-    if (window.graficoVeracidadChart) window.graficoVeracidadChart.resize();
+    // 3. Esperar a que el navegador renderice los elementos (DOM layout) antes de generar el PDF
+    setTimeout(() => {
+        // Redimensionar los gráficos para evitar que se aplasten si estaban ocultos
+        if (window.graficoVarianzasChart) window.graficoVarianzasChart.resize();
+        if (window.graficoIntervalosChart) window.graficoIntervalosChart.resize();
+        if (window.graficoNormalidadChart) window.graficoNormalidadChart.resize();
+        if (window.graficoVeracidadChart) window.graficoVeracidadChart.resize();
 
-    const element = document.getElementById('areaEficacia');
-    
-    const opt = {
-        margin: 0.3, 
-        filename: 'Registro_Eficacia_' + new Date().toISOString().split('T')[0] + '.pdf',
-        image: { type: 'jpeg', quality: 0.98 }, 
-        html2canvas: { 
-            scale: 2, 
-            useCORS: true,
-            ignoreElements: (el) => el.tagName && el.tagName.toUpperCase() === 'BUTTON'
-        },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
-    };
-    
-    html2pdf().set(opt).from(element).save().catch(err => console.error("Error al exportar PDF:", err));
+        const element = document.getElementById('areaEficacia');
+        
+        // Guardamos el estilo original para restaurarlo después de la exportación
+        const originalWidth = element.style.width;
+        const originalMaxWidth = element.style.maxWidth;
+        
+        // Forzamos temporalmente un ancho optimizado para emular la proporción de una hoja A4 Vertical
+        element.style.width = '1050px';
+        element.style.maxWidth = '1050px';
+        
+        const opt = {
+            margin: [0.4, 0.3, 0.4, 0.3], // Márgenes en pulgadas: [Arriba, Derecha, Abajo, Izquierda]
+            filename: 'Registro_Eficacia_' + new Date().toISOString().split('T')[0] + '.pdf',
+            image: { type: 'jpeg', quality: 0.98 }, 
+            html2canvas: { 
+                scale: 2, 
+                useCORS: true,
+                windowWidth: 1050, // Obliga al motor a calcular los saltos en este ancho de ventana
+                ignoreElements: (el) => el.tagName && el.tagName.toUpperCase() === 'BUTTON'
+            },
+            jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+            pagebreak: { 
+                mode: ['css', 'legacy'], 
+                avoid: ['tr', 'td', 'th', 'canvas', 'svg', 'img', 'h2', 'h3', 'h4', 'h5', 'p', 'textarea', 'ul', 'li']
+            }
+        };
+        
+        html2pdf().set(opt).from(element).save().then(() => {
+            // Restauramos el diseño elástico nativo para la vista web
+            element.style.width = originalWidth;
+            element.style.maxWidth = originalMaxWidth;
+        }).catch(err => console.error("Error al exportar PDF:", err));
+    }, 800); // 800ms de tiempo de espera para un renderizado seguro
 };
 
 document.getElementById('btnExportarExcelTop')?.addEventListener('click', window.exportarAExcel);

@@ -21,6 +21,8 @@
     <style>
         /* Estilos Responsivos */
         @media (max-width: 768px) {
+            body { padding: 5px; }
+            #authSection { margin: 20px auto !important; padding: 20px !important; width: 90%; box-sizing: border-box; }
             .excel-header {
                 flex-direction: column;
                 align-items: flex-start !important;
@@ -39,6 +41,21 @@
             .toolbar, #gramajeForm > div:last-child {
                 flex-wrap: wrap;
             }
+            
+            /* Nuevas reglas para adaptabilidad móvil de los paneles y botones */
+            .top-info-bar { flex-direction: column !important; align-items: stretch !important; text-align: center !important; }
+            .top-info-bar button { margin-left: 0 !important; margin-top: 10px; width: 100%; }
+            .header-eficacia { flex-direction: column !important; text-align: center; }
+            .header-eficacia > div { flex-direction: column; width: 100%; gap: 10px !important; margin-top: 15px; }
+            .header-eficacia button { width: 100%; justify-content: center; }
+            .acciones-eficacia { flex-direction: column; align-items: stretch !important; text-align: center !important; }
+            .acciones-eficacia button { width: 100%; margin: 5px 0 !important; }
+            .firmas-container { flex-direction: column !important; gap: 15px !important; }
+            .acciones-finales > div { flex-direction: column; width: 100%; }
+            .acciones-finales button { width: 100%; justify-content: center; }
+            
+            /* Hace que cualquier tabla sea deslizable horizontalmente en lugar de desbordar la pantalla */
+            table { display: block; overflow-x: auto; width: 100%; font-size: 0.85em !important; border-collapse: collapse; }
         }
         /* Resaltado para la selección de casillas múltiple */
         .selected-cell {
@@ -140,7 +157,7 @@
         <!-- SECCIÓN DE LA APLICACIÓN (Oculta hasta iniciar sesión) -->
         <div class="app-container" id="appSection" style="display: none;">
             <!-- Barra superior con datos del usuario -->
-            <div style="text-align: right; padding: 10px 15px; background: #eef; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #004a8f;">
+            <div class="top-info-bar" style="text-align: right; padding: 10px 15px; background: #eef; margin-bottom: 20px; border-radius: 5px; border-left: 4px solid #004a8f;">
                 Analista logueado: <strong id="userDisplay"></strong> 
                 <button id="btnLogout" class="btn-secondary" style="margin-left: 15px; cursor: pointer; padding: 5px 10px;">Cerrar Sesión</button>
             </div>
@@ -169,7 +186,7 @@
 
             <!-- NUEVA ÁREA: REGISTRO DE EFICACIA -->
             <div id="areaEficacia" style="display: none; padding: 20px; background: white; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 20px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #004a8f; padding-bottom: 10px; margin-bottom: 20px;">
+                <div class="header-eficacia" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #004a8f; padding-bottom: 10px; margin-bottom: 20px;">
                     <h2 style="color: #004a8f; margin: 0; font-size: 1.4em;">REGISTRO DE EFICACIA DE MASA POR UNIDAD DE AREA ASTM D3776</h2>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn-exportar" id="btnExportarExcelTop">📊 Exportar Excel</button>
@@ -266,7 +283,7 @@
                     </table>
                 </div>
 
-                <div style="text-align: right; display: flex; justify-content: flex-end; gap: 15px; align-items: center; margin-top: 15px;">
+                <div class="acciones-eficacia" style="text-align: right; display: flex; justify-content: flex-end; gap: 15px; align-items: center; margin-top: 15px;">
                     <button type="button" class="btn-guardar-principal btnGuardarEficacia" style="animation: none; padding: 8px 15px; font-size: 1em;">💾 Guardar Registro</button>
                     <button type="button" class="btn-secondary" id="btnCalcularEstadistica" style="margin-top: 15px; cursor: pointer;">📊 Generar Evaluación Estadística</button>
                 </div>
@@ -1296,7 +1313,7 @@
                         <strong style="font-size: 1.1em; color: #004a8f;">Conclusión:</strong><br>
                     <textarea id="efiConclusion" style="width: 100%; padding: 12px; margin-top: 8px; height: 80px; font-family: inherit; border: 1px solid #004a8f; border-radius: 5px; font-size: 1.1em; font-weight: bold; color: #217346; background: #fff; line-height: 1.4;">Se comprobó que los analistas al 95% de confianza, cumplen con la veracidad y precisión, son aptos para realizar el ensayo ASTM D3776</textarea>
                     </div>
-                    <div style="display: flex; justify-content: space-between; margin-top: 20px; gap: 20px;">
+                    <div class="firmas-container" style="display: flex; justify-content: space-between; margin-top: 20px; gap: 20px;">
                         <div style="flex: 1;">
                             <strong style="color: #333;">ELABORADO POR:</strong><br>
                         <input type="text" id="efiElaborado" value="Jefatura (e) del Laboratorio" style="width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; font-size: 1.05em; font-weight: bold; text-align: center;">
@@ -1307,7 +1324,7 @@
                         </div>
                     </div>
                     
-                    <div style="margin-top: 30px; border-top: 2px solid #ccc; padding-top: 20px; text-align: right;">
+                    <div class="acciones-finales" style="margin-top: 30px; border-top: 2px solid #ccc; padding-top: 20px; text-align: right;">
                         <div style="display: flex; justify-content: flex-end; gap: 10px;">
                             <button class="btn-guardar-principal btnGuardarEficacia">💾 Guardar Registro Final</button>
                         </div>
