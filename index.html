@@ -1330,6 +1330,191 @@
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <h2 style="color: #333; margin-bottom: 10px; border-top: 1px solid #ccc; padding-top: 20px;">Máquinas y equipos</h2>
+            
+            <div id="equiposList" style="margin-bottom: 20px;">
+                <!-- Balanza OHAUS -->
+                <div style="border: 1px solid #ccc; padding: 15px; cursor: pointer; border-radius: 5px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.2s; font-weight: bold; color: #333;" onclick="toggleSection('equipoOhaus', this)">
+                    ⚖️ Balanza analítica OHAUS LABT-157-23 <span style="float: right;">▶</span>
+                </div>
+                
+                <div id="equipoOhaus" style="display: none; padding: 15px; border: 1px solid #ccc; border-top: none; background: #f9f9f9; border-radius: 0 0 5px 5px;">
+                    <!-- Ficha de Equipo -->
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('fichaOhaus', this)">
+                        <span>1. Ficha de equipo</span>
+                        <span style="font-size: 0.8em;">▶</span>
+                    </h4>
+                    <div id="fichaOhaus" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <form id="formFichaOhaus" style="display: flex; flex-direction: column; gap: 15px;">
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-weight: bold; color: #555;">Marca:</label>
+                                    <input type="text" id="ohausMarca" value="OHAUS" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;" disabled>
+                                </div>
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-weight: bold; color: #555;">Modelo:</label>
+                                    <input type="text" id="ohausModelo" placeholder="Ingrese modelo..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-weight: bold; color: #555;">Número de Serie:</label>
+                                    <input type="text" id="ohausSerie" placeholder="Ingrese número de serie..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-weight: bold; color: #555;">Ubicación:</label>
+                                    <input type="text" id="ohausUbicacion" placeholder="Ingrese ubicación..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-weight: bold; color: #555;">Rango de Medida:</label>
+                                    <input type="text" id="ohausRango" placeholder="Ej. 0 - 200 g" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-weight: bold; color: #555;">Resolución:</label>
+                                    <input type="text" id="ohausResolucion" placeholder="Ej. 0.0001 g" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                            </div>
+                            <button type="button" id="btnGuardarFichaOhaus" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Guardar Ficha</button>
+                        </form>
+                    </div>
+
+                    <!-- Registro de Verificación -->
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('verificacionOhaus', this)">
+                        <span>2. Registro de verificación</span>
+                        <span style="font-size: 0.8em;">▶</span>
+                    </h4>
+                    <div id="verificacionOhaus" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <form id="formVerificacionOhaus" style="display: flex; flex-direction: column; gap: 15px;">
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label style="font-weight: bold; color: #555;">Fecha de Verificación:</label>
+                                    <input type="date" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label style="font-weight: bold; color: #555;">Responsable:</label>
+                                    <input type="text" placeholder="Nombre del responsable..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label style="font-weight: bold; color: #555;">Masa de Prueba (g):</label>
+                                    <input type="number" step="0.0001" placeholder="Ej. 200" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label style="font-weight: bold; color: #555;">Valor Medido (g):</label>
+                                    <input type="number" step="0.0001" placeholder="Ej. 200.0001" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                                <div style="flex: 1; min-width: 150px;">
+                                    <label style="font-weight: bold; color: #555;">Estado:</label>
+                                    <select style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                        <option>Conforme</option>
+                                        <option>No Conforme</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <button type="button" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Añadir Registro</button>
+                        </form>
+                        
+                        <h5 style="margin-top: 25px; color: #333;">Historial de Verificaciones</h5>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em; text-align: center;" border="1">
+                                <thead style="background: #f3f3f3;">
+                                    <tr><th style="padding: 8px;">Fecha</th><th style="padding: 8px;">Responsable</th><th style="padding: 8px;">Masa Prueba</th><th style="padding: 8px;">Valor Medido</th><th style="padding: 8px;">Estado</th><th style="padding: 8px;">Acciones</th></tr>
+                                </thead>
+                                <tbody id="historialVerificacionesOhaus">
+                                    <tr><td colspan="6" style="padding: 8px; color: #888;">Sin registros previos</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Manual, Certificado y Procedimiento (Visualización de Documentos) -->
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('manualOhaus', this)"><span>3. Manual de balanza</span><span style="font-size: 0.8em;">▶</span></h4>
+                    <div id="manualOhaus" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <p style="margin-bottom: 10px; color: #555;">Visualice o descargue el manual de la balanza en formato PDF.</p>
+                        <a href="documentos/manual_ohaus.pdf" target="_blank" class="btn-secondary" style="display: inline-block; text-decoration: none; padding: 10px 20px; background: #6c757d; color: white; border-radius: 4px;">📄 Ver Manual (PDF)</a>
+                    </div>
+
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('certificadoOhaus', this)"><span>4. Certificado de calibración</span><span style="font-size: 0.8em;">▶</span></h4>
+                    <div id="certificadoOhaus" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <p style="margin-bottom: 10px; color: #555;">Visualice o descargue el último certificado de calibración emitido para este equipo.</p>
+                        <a href="documentos/certificado_calibracion_ohaus.pdf" target="_blank" class="btn-secondary" style="display: inline-block; text-decoration: none; padding: 10px 20px; background: #6c757d; color: white; border-radius: 4px;">📄 Ver Certificado (PDF)</a>
+                    </div>
+
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('procedimientoOhaus', this)"><span>5. Procedimiento para el equipo</span><span style="font-size: 0.8em;">▶</span></h4>
+                    <div id="procedimientoOhaus" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <p style="margin-bottom: 10px; color: #555;">Visualice o descargue el procedimiento normalizado de operación (SOP) para el uso de esta balanza.</p>
+                        <a href="documentos/procedimiento_ohaus.pdf" target="_blank" class="btn-secondary" style="display: inline-block; text-decoration: none; padding: 10px 20px; background: #6c757d; color: white; border-radius: 4px;">📄 Ver Procedimiento (PDF)</a>
+                    </div>
+                </div>
+
+                <!-- Sacabocado -->
+                <div style="border: 1px solid #ccc; padding: 15px; cursor: pointer; border-radius: 5px; background: #fff; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.2s; font-weight: bold; color: #333;" onclick="toggleSection('equipoSaca', this)">
+                    🛠️ Sacabocado <span style="float: right;">▶</span>
+                </div>
+                
+                <div id="equipoSaca" style="display: none; padding: 15px; border: 1px solid #ccc; border-top: none; background: #f9f9f9; border-radius: 0 0 5px 5px;">
+                    <!-- Ficha de Equipo -->
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('fichaSaca', this)">
+                        <span>1. Ficha de equipo</span>
+                        <span style="font-size: 0.8em;">▶</span>
+                    </h4>
+                    <div id="fichaSaca" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <form id="formFichaSaca" style="display: flex; flex-direction: column; gap: 15px;">
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-weight: bold; color: #555;">Marca:</label>
+                                    <input type="text" id="sacaMarca" placeholder="Ingrese marca..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-weight: bold; color: #555;">Modelo:</label>
+                                    <input type="text" id="sacaModelo" placeholder="Ingrese modelo..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                            </div>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-weight: bold; color: #555;">Número de Serie:</label>
+                                    <input type="text" id="sacaSerie" placeholder="Ingrese número de serie..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                                <div style="flex: 1; min-width: 200px;">
+                                    <label style="font-weight: bold; color: #555;">Ubicación:</label>
+                                    <input type="text" id="sacaUbicacion" placeholder="Ingrese ubicación..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                            </div>
+                            <button type="button" id="btnGuardarFichaSaca" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Guardar Ficha</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Registro de Verificación -->
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('verificacionSaca', this)"><span>2. Registro de verificación</span><span style="font-size: 0.8em;">▶</span></h4>
+                    <div id="verificacionSaca" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <p style="color: #888; font-style: italic;">(Módulo de registro en construcción...)</p>
+                    </div>
+                    
+                    <!-- Documentos -->
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('manualSaca', this)"><span>3. Manual de equipo</span><span style="font-size: 0.8em;">▶</span></h4>
+                    <div id="manualSaca" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <p style="margin-bottom: 10px; color: #555;">Visualice o descargue el manual del sacabocado en formato PDF.</p>
+                        <a href="documentos/manual_sacabocado.pdf" target="_blank" class="btn-secondary" style="display: inline-block; text-decoration: none; padding: 10px 20px; background: #6c757d; color: white; border-radius: 4px;">📄 Ver Manual (PDF)</a>
+                    </div>
+
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('certificadoSaca', this)"><span>4. Certificado de calibración</span><span style="font-size: 0.8em;">▶</span></h4>
+                    <div id="certificadoSaca" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <p style="margin-bottom: 10px; color: #555;">Visualice o descargue el último certificado emitido para este equipo.</p>
+                        <a href="documentos/certificado_calibracion_saca.pdf" target="_blank" class="btn-secondary" style="display: inline-block; text-decoration: none; padding: 10px 20px; background: #6c757d; color: white; border-radius: 4px;">📄 Ver Certificado (PDF)</a>
+                    </div>
+
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('procedimientoSaca', this)"><span>5. Procedimiento para el equipo</span><span style="font-size: 0.8em;">▶</span></h4>
+                    <div id="procedimientoSaca" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <p style="margin-bottom: 10px; color: #555;">Visualice o descargue el procedimiento normalizado de operación (SOP) para el uso de este sacabocado.</p>
+                        <a href="documentos/procedimiento_sacabocado.pdf" target="_blank" class="btn-secondary" style="display: inline-block; text-decoration: none; padding: 10px 20px; background: #6c757d; color: white; border-radius: 4px;">📄 Ver Procedimiento (PDF)</a>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div id="muestraTray" style="padding: 20px; display: none;">

@@ -522,7 +522,7 @@ window.aplicarPermisosVisuales = function(rol) {
     const puedeEditar = (rol === 'admin' || rol === 'analista');
     
     // Ocultar botones de guardado principales y formularios de ingreso
-    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion').forEach(btn => {
+    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion, #btnGuardarFichaOhaus, #btnGuardarFichaSaca').forEach(btn => {
         btn.style.display = puedeEditar ? '' : 'none';
     });
 
@@ -557,6 +557,7 @@ onAuthStateChanged(auth, async (user) => {
         if (userDisplay) userDisplay.innerHTML = `${user.email} <span style="font-size:0.8em; background:#004a8f; color:#fff; padding:3px 8px; border-radius:12px; margin-left:8px; display:inline-block;">Rol: ${window.currentUserRole.toUpperCase()}</span>`;
         
         window.aplicarPermisosVisuales(window.currentUserRole);
+        if (typeof window.inicializarEquipos === 'function') window.inicializarEquipos();
     } else {
         // Sin sesión: mostrar login, ocultar app
         if (authSection) authSection.style.display = 'block';
@@ -2255,6 +2256,52 @@ document.addEventListener('copy', (e) => {
         }
     }
 });
+
+// --- Lógica de Gestión de Máquinas y Equipos ---
+async function guardarFichaEquipo(equipoId, data) {
+    try {
+        await setDoc(doc(db, "equipos", equipoId), data, { merge: true });
+        alert("Ficha de equipo guardada exitosamente en la base de datos.");
+    } catch (error) {
+        console.error("Error al guardar ficha: ", error);
+        alert("Error al guardar la ficha: " + error.message);
+    }
+}
+
+async function cargarFichaEquipo(equipoId) {
+    try {
+        const docSnap = await getDoc(doc(db, "equipos", equipoId));
+        if (docSnap.exists()) return docSnap.data();
+    } catch (error) {
+        console.error("Error al cargar ficha: ", error);
+    }
+    return null;
+}
+
+document.getElementById('btnGuardarFichaOhaus')?.addEventListener('click', async () => {
+    const data = {
+        marca: document.getElementById('ohausMarca')?.value || '', modelo: document.getElementById('ohausModelo')?.value || '',
+        serie: document.getElementById('ohausSerie')?.value || '', ubicacion: document.getElementById('ohausUbicacion')?.value || '',
+        rango: document.getElementById('ohausRango')?.value || '', resolucion: document.getElementById('ohausResolucion')?.value || '',
+        fechaActualizacion: new Date().toISOString()
+    };
+    await guardarFichaEquipo('ohaus_labt_157_23', data);
+});
+
+document.getElementById('btnGuardarFichaSaca')?.addEventListener('click', async () => {
+    const data = {
+        marca: document.getElementById('sacaMarca')?.value || '', modelo: document.getElementById('sacaModelo')?.value || '',
+        serie: document.getElementById('sacaSerie')?.value || '', ubicacion: document.getElementById('sacaUbicacion')?.value || '',
+        fechaActualizacion: new Date().toISOString()
+    };
+    await guardarFichaEquipo('sacabocado', data);
+});
+
+window.inicializarEquipos = async function() {
+    const bindData = (idSuffix, data) => ['Marca', 'Modelo', 'Serie', 'Ubicacion', 'Rango', 'Resolucion'].forEach(k => { if (data[k.toLowerCase()] && document.getElementById(idSuffix + k)) document.getElementById(idSuffix + k).value = data[k.toLowerCase()]; });
+    const d1 = await cargarFichaEquipo('ohaus_labt_157_23'); if (d1) bindData('ohaus', d1);
+    const d2 = await cargarFichaEquipo('sacabocado'); if (d2) bindData('saca', d2);
+};
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Delete' || e.key === 'Backspace') {
