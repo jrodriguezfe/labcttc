@@ -44,6 +44,9 @@ window.toggleSection = function(contentId, headerElement) {
     if (content.style.display === 'none') {
         content.style.display = 'block';
         if (icon) icon.innerText = '▼';
+            if (contentId === 'verificacionOhaus' && typeof window.setFechaHoraActual === 'function') {
+                window.setFechaHoraActual();
+            }
     } else {
         content.style.display = 'none';
         if (icon) icon.innerText = '▶';
@@ -522,7 +525,7 @@ window.aplicarPermisosVisuales = function(rol) {
     const puedeEditar = (rol === 'admin' || rol === 'analista');
     
     // Ocultar botones de guardado principales y formularios de ingreso
-    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion, #btnGuardarFichaOhaus, #btnGuardarFichaSaca').forEach(btn => {
+    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion, #btnGuardarFichaOhaus, #btnGuardarFichaSaca, #btnGuardarVerifOhaus').forEach(btn => {
         btn.style.display = puedeEditar ? '' : 'none';
     });
 
@@ -2278,6 +2281,46 @@ async function cargarFichaEquipo(equipoId) {
     return null;
 }
 
+window.setFechaHoraActual = function() {
+    const now = new Date();
+    const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+    const localTime = now.toTimeString().substring(0, 5);
+    if(document.getElementById('verifFecha')) document.getElementById('verifFecha').value = localDate;
+    if(document.getElementById('verifHora')) document.getElementById('verifHora').value = localTime;
+};
+
+async function cargarAnalistasDropdown() {
+    try {
+        const analistasRef = collection(db, "analistas");
+        const snapshot = await getDocs(analistasRef);
+        const selectResp = document.getElementById('verifResp');
+        if (!selectResp) return;
+        selectResp.innerHTML = '<option value="" disabled selected>Seleccione responsable...</option>';
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            if (data.rol === 'analista' || data.rol === 'admin') {
+                const option = document.createElement('option');
+                option.value = data.nombre;
+                option.textContent = data.nombre;
+                selectResp.appendChild(option);
+            }
+        });
+    } catch (error) {
+        console.error("Error al cargar analistas: ", error);
+    }
+}
+
+function llenarDesplegablesVerificacion() {
+    const selTemp = document.getElementById('verifTemp');
+    const selHr = document.getElementById('verifHr');
+    
+    if (selTemp) selTemp.innerHTML = '<option value="" disabled selected>Seleccione...</option>';
+    for(let i = 180; i <= 230; i++) { if (selTemp) selTemp.innerHTML += `<option value="${(i / 10).toFixed(2)}">${(i / 10).toFixed(2)}</option>`; }
+    
+    if (selHr) selHr.innerHTML = '<option value="" disabled selected>Seleccione...</option>';
+    for(let i = 600; i <= 700; i++) { if (selHr) selHr.innerHTML += `<option value="${(i / 10).toFixed(2)}">${(i / 10).toFixed(2)}</option>`; }
+}
+
 document.getElementById('btnGuardarFichaOhaus')?.addEventListener('click', async () => {
     const data = {
         marca: document.getElementById('ohausMarca')?.value || '', modelo: document.getElementById('ohausModelo')?.value || '',
@@ -2301,7 +2344,197 @@ window.inicializarEquipos = async function() {
     const bindData = (idSuffix, data) => ['Marca', 'Modelo', 'Serie', 'Ubicacion', 'Rango', 'Resolucion'].forEach(k => { if (data[k.toLowerCase()] && document.getElementById(idSuffix + k)) document.getElementById(idSuffix + k).value = data[k.toLowerCase()]; });
     const d1 = await cargarFichaEquipo('ohaus_labt_157_23'); if (d1) bindData('ohaus', d1);
     const d2 = await cargarFichaEquipo('sacabocado'); if (d2) bindData('saca', d2);
+    
+    // Cargar historial de verificaciones de balanza
+    cargarVerificacionesOhaus();
+    llenarDesplegablesVerificacion();
+    cargarAnalistasDropdown();
 };
+
+// --- Lógica de Gestión de Verificación de Equipos ---
+
+function calcularRangoVerificacion(claseInputs, idOutput, nominal, emp, idObs) {
+    const inputs = document.querySelectorAll('.' + claseInputs);
+    let max = -Infinity, min = Infinity;
+    let tieneValor = false;
+    let errorExcedido = false;
+    inputs.forEach(inp => {
+        if (inp.value !== '') {
+            const val = parseFloat(inp.value);
+            if (!isNaN(val)) {
+                if (val > max) max = val;
+                if (val < min) min = val;
+                if (Math.abs(val - nominal) > emp) errorExcedido = true;
+                tieneValor = true;
+            }
+        }
+    });
+    const output = document.getElementById(idOutput);
+    const obs = document.getElementById(idObs);
+    if (tieneValor && max !== -Infinity && min !== Infinity) {
+        const rango = (max - min);
+        output.value = rango.toFixed(4);
+        if (rango > emp || errorExcedido) {
+            output.style.color = '#c0392b';
+            output.style.fontWeight = 'bold';
+            if (obs) { obs.value = 'No Conforme'; obs.style.color = '#c0392b'; obs.style.fontWeight = 'bold'; }
+        } else {
+            output.style.color = '#217346';
+            output.style.fontWeight = 'bold';
+            if (obs) { obs.value = 'Conforme'; obs.style.color = '#217346'; obs.style.fontWeight = 'bold'; }
+        }
+    } else {
+        output.value = '';
+        output.style.color = '';
+        if (obs) { obs.value = '----'; obs.style.color = ''; obs.style.fontWeight = ''; }
+    }
+}
+
+document.querySelectorAll('.verif-1g').forEach(inp => {
+    inp.addEventListener('input', () => calcularRangoVerificacion('verif-1g', 'verif1gRango', 1.0000, 0.001, 'verif1gObs'));
+});
+document.querySelectorAll('.verif-10g').forEach(inp => {
+    inp.addEventListener('input', () => calcularRangoVerificacion('verif-10g', 'verif10gRango', 10.0000, 0.001, 'verif10gObs'));
+});
+document.querySelectorAll('.verif-100g').forEach(inp => {
+    inp.addEventListener('input', () => calcularRangoVerificacion('verif-100g', 'verif100gRango', 100.0000, 0.002, 'verif100gObs'));
+});
+
+document.getElementById('formVerificacionOhaus')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const data = {
+        fecha: document.getElementById('verifFecha').value,
+        hora: document.getElementById('verifHora').value,
+        temp: document.getElementById('verifTemp').value,
+        hr: document.getElementById('verifHr').value,
+        responsable: document.getElementById('verifResp').value,
+        v1g_p1: document.getElementById('verif1gP1').value, v1g_p2: document.getElementById('verif1gP2').value, v1g_p3: document.getElementById('verif1gP3').value,
+        v1g_rango: document.getElementById('verif1gRango').value, v1g_obs: document.getElementById('verif1gObs').value,
+        v10g_p1: document.getElementById('verif10gP1').value, v10g_p2: document.getElementById('verif10gP2').value, v10g_p3: document.getElementById('verif10gP3').value,
+        v10g_rango: document.getElementById('verif10gRango').value, v10g_obs: document.getElementById('verif10gObs').value,
+        v100g_p1: document.getElementById('verif100gP1').value, v100g_p2: document.getElementById('verif100gP2').value, v100g_p3: document.getElementById('verif100gP3').value,
+        v100g_rango: document.getElementById('verif100gRango').value, v100g_obs: document.getElementById('verif100gObs').value,
+        createdAt: new Date().toISOString()
+    };
+
+    try {
+        const colRefVerif = collection(db, "equipos/ohaus_labt_157_23/verificaciones");
+        await addDoc(colRefVerif, data);
+        e.target.reset();
+        window.setFechaHoraActual();
+        document.getElementById('verif1gRango').value = '';
+        document.getElementById('verif10gRango').value = '';
+        document.getElementById('verif100gRango').value = '';
+        ['verif1gRango', 'verif10gRango', 'verif100gRango', 'verif1gObs', 'verif10gObs', 'verif100gObs'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.style.color = ''; el.style.fontWeight = ''; if(id.includes('Obs')) el.value = '----'; }
+        });
+        cargarVerificacionesOhaus();
+        alert("Registro de verificación añadido correctamente.");
+    } catch (error) {
+        console.error("Error al guardar verificación: ", error);
+        alert("Error al guardar: " + error.message);
+    }
+});
+
+async function cargarVerificacionesOhaus() {
+    const tbody = document.getElementById('historialVerificacionesOhaus');
+    if (!tbody) return;
+    try {
+        const colRefVerif = collection(db, "equipos/ohaus_labt_157_23/verificaciones");
+        const qVerif = query(colRefVerif, orderBy("fecha", "desc"), orderBy("hora", "desc"));
+        const snapshot = await getDocs(qVerif);
+        if (snapshot.empty) {
+            await seedVerificacionesEjemplo();
+            return;
+        }
+        renderVerificacionesTable(snapshot);
+    } catch (error) {
+        console.error("Error al cargar verificaciones: ", error);
+        tbody.innerHTML = `<tr><td colspan="21" style="padding: 8px; color: #c0392b;">Error al cargar registros</td></tr>`;
+    }
+}
+
+function renderVerificacionesTable(snapshot) {
+    const tbody = document.getElementById('historialVerificacionesOhaus');
+    tbody.innerHTML = '';
+    const formatear = (val) => val != null && val !== '' ? parseFloat(val).toFixed(4) : '-';
+    const docs = [];
+    snapshot.forEach(docSnap => {
+        const data = docSnap.data();
+        docs.push(data);
+        const colorObs = (obs) => obs === 'No Conforme' ? 'color: #c0392b; font-weight: bold;' : (obs === 'Conforme' ? 'color: #217346; font-weight: bold;' : '');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td style="padding: 5px;">${data.fecha || '-'}</td><td style="padding: 5px;">${data.hora || '-'}</td><td style="padding: 5px;">${data.temp ? data.temp + ' ºC' : '-'}</td><td style="padding: 5px;">${data.hr ? data.hr + '%' : '-'}</td><td style="padding: 5px;">${formatear(data.v1g_p1)}</td><td style="padding: 5px;">${formatear(data.v1g_p2)}</td><td style="padding: 5px;">${formatear(data.v1g_p3)}</td><td style="padding: 5px;">${formatear(data.v1g_rango)}</td><td style="padding: 5px; ${colorObs(data.v1g_obs)}">${data.v1g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v10g_p1)}</td><td style="padding: 5px;">${formatear(data.v10g_p2)}</td><td style="padding: 5px;">${formatear(data.v10g_p3)}</td><td style="padding: 5px;">${formatear(data.v10g_rango)}</td><td style="padding: 5px; ${colorObs(data.v10g_obs)}">${data.v10g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v100g_p1)}</td><td style="padding: 5px;">${formatear(data.v100g_p2)}</td><td style="padding: 5px;">${formatear(data.v100g_p3)}</td><td style="padding: 5px;">${formatear(data.v100g_rango)}</td><td style="padding: 5px; ${colorObs(data.v100g_obs)}">${data.v100g_obs || '-'}</td><td style="padding: 5px;">${data.responsable || '-'}</td><td style="padding: 5px;" class="no-export">${window.currentUserRole === 'visor' ? '<span style="color:#888;">Lectura</span>' : `<button class="delete-btn" style="padding: 2px 5px; font-size: 0.8em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px;" onclick="eliminarVerificacionOhaus('${docSnap.id}')">Eliminar</button>`}</td>`;
+        tbody.appendChild(tr);
+    });
+    renderGraficoTendencia(docs);
+}
+
+function renderGraficoTendencia(docs) {
+    const ctx = document.getElementById('graficoTendenciaOhaus')?.getContext('2d');
+    if (!ctx) return;
+    if (window.graficoOhausChart) window.graficoOhausChart.destroy();
+    
+    const labels = [];
+    const err1g = [], err10g = [], err100g = [];
+    
+    // Invertir el array para que el gráfico vaya del registro más antiguo al más reciente (Cronológico)
+    const chronological = [...docs].reverse();
+    
+    chronological.forEach(data => {
+        labels.push(`${data.fecha} ${data.hora}`);
+        const calcError = (p1, p2, p3, nominal) => {
+            if(!p1 || !p2 || !p3) return null;
+            return ((parseFloat(p1) + parseFloat(p2) + parseFloat(p3)) / 3) - nominal;
+        };
+        err1g.push(calcError(data.v1g_p1, data.v1g_p2, data.v1g_p3, 1.0));
+        err10g.push(calcError(data.v10g_p1, data.v10g_p2, data.v10g_p3, 10.0));
+        err100g.push(calcError(data.v100g_p1, data.v100g_p2, data.v100g_p3, 100.0));
+    });
+
+    window.graficoOhausChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                { label: 'Error 1g (EMP ±0.001)', data: err1g, borderColor: '#3498db', backgroundColor: '#3498db', tension: 0.3 },
+                { label: 'Error 10g (EMP ±0.001)', data: err10g, borderColor: '#f1c40f', backgroundColor: '#f1c40f', tension: 0.3 },
+                { label: 'Error 100g (EMP ±0.002)', data: err100g, borderColor: '#c0392b', backgroundColor: '#c0392b', tension: 0.3 }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: { title: { display: true, text: 'Error (g)' }, suggestedMin: -0.002, suggestedMax: 0.002 },
+                x: { ticks: { maxRotation: 45, minRotation: 45 } }
+            }
+        }
+    });
+}
+
+window.eliminarVerificacionOhaus = async function(id) {
+    if(confirm("¿Desea borrar este registro de verificación?")) {
+        try {
+            await deleteDoc(doc(db, "equipos/ohaus_labt_157_23/verificaciones", id));
+            cargarVerificacionesOhaus();
+        } catch (e) {
+            alert("Error al eliminar: " + e.message);
+        }
+    }
+};
+
+async function seedVerificacionesEjemplo() {
+    const colRefVerif = collection(db, "equipos/ohaus_labt_157_23/verificaciones");
+    const ejemplos = [
+        { fecha: "2026-01-02", hora: "10:00", temp: "20.25", hr: "63.64", responsable: "EMILIO C.", v1g_p1: "0.9999", v1g_p2: "0.9999", v1g_p3: "0.9999", v1g_rango: "0.0000", v1g_obs: "Conforme", v10g_p1: "9.9999", v10g_p2: "9.9999", v10g_p3: "9.9999", v10g_rango: "0.0000", v10g_obs: "Conforme", v100g_p1: "100.0003", v100g_p2: "100.0004", v100g_p3: "100.0004", v100g_rango: "0.0001", v100g_obs: "Conforme", createdAt: new Date().toISOString() },
+        { fecha: "2026-01-05", hora: "09:00", temp: "19.31", hr: "70.00", responsable: "EMILIO C.", v1g_p1: "1.0000", v1g_p2: "1.0000", v1g_p3: "1.0000", v1g_rango: "0.0000", v1g_obs: "Conforme", v10g_p1: "9.9999", v10g_p2: "9.9999", v10g_p3: "9.9999", v10g_rango: "0.0000", v10g_obs: "Conforme", v100g_p1: "100.0003", v100g_p2: "100.0004", v100g_p3: "100.0004", v100g_rango: "0.0001", v100g_obs: "Conforme", createdAt: new Date().toISOString() },
+        { fecha: "2026-01-06", hora: "08:00", temp: "19.52", hr: "68.18", responsable: "EMILIO C.", v1g_p1: "1.0000", v1g_p2: "0.9999", v1g_p3: "0.9999", v1g_rango: "0.0001", v1g_obs: "Conforme", v10g_p1: "9.9999", v10g_p2: "9.9999", v10g_p3: "9.9999", v10g_rango: "0.0000", v10g_obs: "Conforme", v100g_p1: "100.0001", v100g_p2: "100.0001", v100g_p3: "100.0001", v100g_rango: "0.0000", v100g_obs: "Conforme", createdAt: new Date().toISOString() }
+    ];
+    for (let ej of ejemplos) await addDoc(colRefVerif, ej);
+    const qVerif = query(colRefVerif, orderBy("fecha", "desc"), orderBy("hora", "desc"));
+    renderVerificacionesTable(await getDocs(qVerif));
+}
 
 document.addEventListener('keydown', (e) => {
     if (e.key === 'Delete' || e.key === 'Backspace') {

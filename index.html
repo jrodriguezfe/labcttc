@@ -1389,46 +1389,98 @@
                     </h4>
                     <div id="verificacionOhaus" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
                         <form id="formVerificacionOhaus" style="display: flex; flex-direction: column; gap: 15px;">
+                            <!-- Fila 1: Datos Generales -->
                             <div style="display: flex; gap: 15px; flex-wrap: wrap;">
                                 <div style="flex: 1; min-width: 150px;">
-                                    <label style="font-weight: bold; color: #555;">Fecha de Verificación:</label>
-                                    <input type="date" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                    <label style="font-weight: bold; color: #555;">Fecha:</label>
+                                    <input type="date" id="verifFecha" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                                <div style="flex: 1; min-width: 100px;">
+                                    <label style="font-weight: bold; color: #555;">Hora:</label>
+                                    <input type="time" id="verifHora" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                </div>
+                                <div style="flex: 1; min-width: 100px;">
+                                    <label style="font-weight: bold; color: #555;">T (°C):</label>
+                                    <select id="verifTemp" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: white;"></select>
+                                </div>
+                                <div style="flex: 1; min-width: 100px;">
+                                    <label style="font-weight: bold; color: #555;">H.R (%):</label>
+                                    <select id="verifHr" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: white;"></select>
                                 </div>
                                 <div style="flex: 1; min-width: 150px;">
                                     <label style="font-weight: bold; color: #555;">Responsable:</label>
-                                    <input type="text" placeholder="Nombre del responsable..." style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                                    <select id="verifResp" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: white;"></select>
                                 </div>
                             </div>
-                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
-                                <div style="flex: 1; min-width: 150px;">
-                                    <label style="font-weight: bold; color: #555;">Masa de Prueba (g):</label>
-                                    <input type="number" step="0.0001" placeholder="Ej. 200" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                            
+                            <!-- Fila 2: Verificación 1g -->
+                            <fieldset style="border: 1px solid #ccc; border-radius: 5px; padding: 10px;">
+                                <legend style="font-weight: bold; color: #004a8f;">VERIFICACIÓN INTERMEDIA (1.0000 g) - EMP ± 0.001 g</legend>
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Peso 1 (g):</label><input type="number" step="0.0001" id="verif1gP1" class="verif-1g" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Peso 2 (g):</label><input type="number" step="0.0001" id="verif1gP2" class="verif-1g" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Peso 3 (g):</label><input type="number" step="0.0001" id="verif1gP3" class="verif-1g" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Rango (g):</label><input type="text" id="verif1gRango" readonly style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;"></div>
+                                    <div style="flex: 2; min-width: 150px;"><label style="color: #555;">Obs.:</label><input type="text" id="verif1gObs" value="----" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
                                 </div>
-                                <div style="flex: 1; min-width: 150px;">
-                                    <label style="font-weight: bold; color: #555;">Valor Medido (g):</label>
-                                    <input type="number" step="0.0001" placeholder="Ej. 200.0001" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
+                            </fieldset>
+
+                            <!-- Fila 3: Verificación 10g -->
+                            <fieldset style="border: 1px solid #ccc; border-radius: 5px; padding: 10px;">
+                                <legend style="font-weight: bold; color: #004a8f;">VERIFICACIÓN INTERMEDIA (10.0000 g) - EMP ± 0.001 g</legend>
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Peso 1 (g):</label><input type="number" step="0.0001" id="verif10gP1" class="verif-10g" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Peso 2 (g):</label><input type="number" step="0.0001" id="verif10gP2" class="verif-10g" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Peso 3 (g):</label><input type="number" step="0.0001" id="verif10gP3" class="verif-10g" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Rango (g):</label><input type="text" id="verif10gRango" readonly style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;"></div>
+                                    <div style="flex: 2; min-width: 150px;"><label style="color: #555;">Obs.:</label><input type="text" id="verif10gObs" value="----" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
                                 </div>
-                                <div style="flex: 1; min-width: 150px;">
-                                    <label style="font-weight: bold; color: #555;">Estado:</label>
-                                    <select style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;">
-                                        <option>Conforme</option>
-                                        <option>No Conforme</option>
-                                    </select>
+                            </fieldset>
+
+                            <!-- Fila 4: Verificación 100g -->
+                            <fieldset style="border: 1px solid #ccc; border-radius: 5px; padding: 10px;">
+                                <legend style="font-weight: bold; color: #004a8f;">VERIFICACIÓN INTERMEDIA (100.0000 g) - EMP ± 0.002 g</legend>
+                                <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Peso 1 (g):</label><input type="number" step="0.0001" id="verif100gP1" class="verif-100g" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Peso 2 (g):</label><input type="number" step="0.0001" id="verif100gP2" class="verif-100g" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Peso 3 (g):</label><input type="number" step="0.0001" id="verif100gP3" class="verif-100g" required style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                    <div style="flex: 1; min-width: 100px;"><label style="color: #555;">Rango (g):</label><input type="text" id="verif100gRango" readonly style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;"></div>
+                                    <div style="flex: 2; min-width: 150px;"><label style="color: #555;">Obs.:</label><input type="text" id="verif100gObs" value="----" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
                                 </div>
-                            </div>
-                            <button type="button" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Añadir Registro</button>
+                            </fieldset>
+
+                            <button type="submit" id="btnGuardarVerifOhaus" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Añadir Registro</button>
                         </form>
                         
                         <h5 style="margin-top: 25px; color: #333;">Historial de Verificaciones</h5>
                         <div style="overflow-x: auto;">
-                            <table style="width: 100%; border-collapse: collapse; font-size: 0.9em; text-align: center;" border="1">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.8em; text-align: center; white-space: nowrap;" border="1">
                                 <thead style="background: #f3f3f3;">
-                                    <tr><th style="padding: 8px;">Fecha</th><th style="padding: 8px;">Responsable</th><th style="padding: 8px;">Masa Prueba</th><th style="padding: 8px;">Valor Medido</th><th style="padding: 8px;">Estado</th><th style="padding: 8px;">Acciones</th></tr>
+                                    <tr>
+                                        <th rowspan="2" style="padding: 5px;">FECHA</th>
+                                        <th colspan="3" style="padding: 5px;">AUTOCALIBRACIÓN</th>
+                                        <th colspan="5" style="padding: 5px;">VERIFICACIÓN (1g)</th>
+                                        <th colspan="5" style="padding: 5px;">VERIFICACIÓN (10g)</th>
+                                        <th colspan="5" style="padding: 5px;">VERIFICACIÓN (100g)</th>
+                                        <th rowspan="2" style="padding: 5px;">RESPONSABLE</th>
+                                        <th rowspan="2" style="padding: 5px;" class="no-export">ACCIONES</th>
+                                    </tr>
+                                    <tr>
+                                        <th style="padding: 5px;">HORA</th><th style="padding: 5px;">T(°C)</th><th style="padding: 5px;">H.R(%)</th>
+                                        <th style="padding: 5px;">P1</th><th style="padding: 5px;">P2</th><th style="padding: 5px;">P3</th><th style="padding: 5px;">Rango</th><th style="padding: 5px;">Obs</th>
+                                        <th style="padding: 5px;">P1</th><th style="padding: 5px;">P2</th><th style="padding: 5px;">P3</th><th style="padding: 5px;">Rango</th><th style="padding: 5px;">Obs</th>
+                                        <th style="padding: 5px;">P1</th><th style="padding: 5px;">P2</th><th style="padding: 5px;">P3</th><th style="padding: 5px;">Rango</th><th style="padding: 5px;">Obs</th>
+                                    </tr>
                                 </thead>
                                 <tbody id="historialVerificacionesOhaus">
-                                    <tr><td colspan="6" style="padding: 8px; color: #888;">Sin registros previos</td></tr>
+                                    <tr><td colspan="21" style="padding: 8px; color: #888;">Cargando registros...</td></tr>
                                 </tbody>
                             </table>
+                        </div>
+
+                        <h5 style="margin-top: 25px; color: #333;">Tendencias de Verificaciones (Error Promedio)</h5>
+                        <div style="width: 100%; margin: 0 auto 20px auto; border: 1px solid #ddd; padding: 15px; background: #fff; border-radius: 5px;">
+                            <canvas id="graficoTendenciaOhaus" height="80"></canvas>
                         </div>
                     </div>
 
