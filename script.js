@@ -2317,18 +2317,62 @@ window.handleDeepLink = function() {
         setTimeout(() => {
             const equipoContainer = document.getElementById(`equipo-container-${equipoId}`);
             if (equipoContainer) {
-                const header = equipoContainer.querySelector('[onclick^="toggleSection"]');
-                const contentId = header.getAttribute('onclick').match(/'([^']+)'/)[1];
-                const content = document.getElementById(contentId);
-                if (content && content.style.display === 'none') header.click();
-                equipoContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                equipoContainer.style.transition = 'background-color 0.5s ease';
-                equipoContainer.style.backgroundColor = '#fff8e1';
-                setTimeout(() => { equipoContainer.style.backgroundColor = ''; }, 2500);
+                const header = equipoContainer.querySelector('[onclick^="window.openEquipoModal"]');
+                if (header) {
+                    header.click(); // Dispara la apertura del modal
+                }
             }
         }, 500);
     }
 };
+
+// --- Lógica del Modal de Equipos ---
+let currentModalContent = null;
+let originalParent = null;
+
+window.openEquipoModal = function(equipoId, equipoNombre) {
+    const modal = document.getElementById('equipoModal');
+    const modalTitle = document.getElementById('equipoModalTitle');
+    const modalBody = document.getElementById('equipoModalBody');
+
+    const contentId = (equipoId === 'ohaus_labt_157_23') ? 'equipoOhaus' : (equipoId === 'sacabocado' ? 'equipoSaca' : `equipo-${equipoId}`);
+    currentModalContent = document.getElementById(contentId);
+
+    if (!modal || !currentModalContent) {
+        console.error("No se encontraron los elementos del modal o el contenido para el equipo:", equipoId);
+        return;
+    }
+
+    originalParent = currentModalContent.parentNode; // Guardar de dónde vino
+    modalBody.appendChild(currentModalContent);      // Moverlo al modal
+    currentModalContent.style.display = 'block';     // Asegurarse de que sea visible
+
+    modalTitle.innerText = equipoNombre;
+    modal.style.display = 'block';
+    
+    // Si el equipo tiene un gráfico, es necesario redimensionarlo después de que el modal sea visible
+    if (window.graficosEquipos[equipoId]) {
+        setTimeout(() => window.graficosEquipos[equipoId].resize(), 200);
+    }
+};
+
+function closeEquipoModal() {
+    const modal = document.getElementById('equipoModal');
+    if (currentModalContent && originalParent) {
+        currentModalContent.style.display = 'none'; // Ocultarlo de nuevo
+        originalParent.appendChild(currentModalContent); // Devolverlo a su lugar original
+    }
+    modal.style.display = 'none';
+    currentModalContent = null;
+    originalParent = null;
+}
+
+document.getElementById('closeEquipoModal')?.addEventListener('click', closeEquipoModal);
+window.addEventListener('click', (event) => {
+    if (event.target == document.getElementById('equipoModal')) {
+        closeEquipoModal();
+    }
+});
 
 // --- Lógica de Gestión de Máquinas y Equipos ---
 async function guardarFichaEquipo(equipoId, data) {
@@ -2699,11 +2743,6 @@ function agregarNuevoEquipo() {
     document.getElementById('equiposList').insertAdjacentHTML('beforeend', newEquipoHTML);
 
     adjuntarListenersParaEquipo(equipoId);
-    
-    const newHeader = document.querySelector(`[onclick="toggleSection('equipo-${equipoId}', this)"]`);
-    const newContent = document.getElementById(`equipo-${equipoId}`);
-    newContent.style.display = 'block';
-    if (newHeader) newHeader.querySelector('span:last-child').innerText = '▼';
 
     llenarDesplegablesVerificacion(equipoId);
     cargarAnalistasDropdown(equipoId);
@@ -2714,8 +2753,8 @@ function crearTemplateEquipoHTML(equipoId, equipoNombre) {
     return `
     <div id="equipo-container-${equipoId}">
         <div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ccc; padding: 0; border-radius: 5px; background: #fff; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-weight: bold; color: #333;">
-            <div style="padding: 15px; cursor: pointer; flex-grow: 1;" onclick="toggleSection('equipo-${equipoId}', this)">
-                ⚙️ ${equipoNombre} <span style="float: right;">▶</span>
+            <div style="padding: 15px; cursor: pointer; flex-grow: 1;" onclick="window.openEquipoModal('${equipoId}', '${equipoNombre}')">
+                ⚙️ ${equipoNombre}
             </div>
             <button class="btn-secondary" id="btn-generar-qr-${equipoId}" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 10px;">Generar QR</button>
             <button class="delete-btn" id="btn-eliminar-equipo-${equipoId}" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px; margin-right: 15px;">Eliminar</button>
