@@ -9,6 +9,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/@sgratzl/chartjs-chart-boxplot@4"></script>
     <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/qrcode-generator/qrcode.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script>
       MathJax = {
@@ -1333,14 +1334,19 @@
             </div>
 
             <h2 style="color: #333; margin-bottom: 10px; border-top: 1px solid #ccc; padding-top: 20px;">Máquinas y equipos</h2>
+            <button id="btnAgregarEquipo" class="btn-primary" style="margin-bottom: 20px; cursor: pointer;">+ Agregar Nuevo Equipo</button>
             
             <div id="equiposList" style="margin-bottom: 20px;">
                 <!-- Balanza OHAUS -->
-                <div style="border: 1px solid #ccc; padding: 15px; cursor: pointer; border-radius: 5px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.2s; font-weight: bold; color: #333;" onclick="toggleSection('equipoOhaus', this)">
-                    ⚖️ Balanza analítica OHAUS LABT-157-23 <span style="float: right;">▶</span>
-                </div>
-                
-                <div id="equipoOhaus" style="display: none; padding: 15px; border: 1px solid #ccc; border-top: none; background: #f9f9f9; border-radius: 0 0 5px 5px;">
+                <div id="equipo-container-ohaus_labt_157_23">
+                    <div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ccc; padding: 0; border-radius: 5px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-weight: bold; color: #333;">
+                        <div style="padding: 15px; cursor: pointer; flex-grow: 1;" onclick="toggleSection('equipoOhaus', this)">
+                            ⚖️ Balanza analítica OHAUS LABT-157-23 <span style="float: right;">▶</span>
+                        </div>
+                        <button class="btn-secondary" id="btn-generar-qr-ohaus_labt_157_23" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 10px;">Generar QR</button>
+                        <button class="delete-btn" id="btn-eliminar-equipo-ohaus_labt_157_23" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px; margin-right: 15px;">Eliminar</button>
+                    </div>
+                    <div id="equipoOhaus" style="display: none; padding: 15px; border: 1px solid #ccc; border-top: none; background: #f9f9f9; border-radius: 0 0 5px 5px;">
                     <!-- Ficha de Equipo -->
                     <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('fichaOhaus', this)">
                         <span>1. Ficha de equipo</span>
@@ -1503,13 +1509,18 @@
                         <a href="documentos/procedimiento_ohaus.pdf" target="_blank" class="btn-secondary" style="display: inline-block; text-decoration: none; padding: 10px 20px; background: #6c757d; color: white; border-radius: 4px;">📄 Ver Procedimiento (PDF)</a>
                     </div>
                 </div>
+                </div>
 
                 <!-- Sacabocado -->
-                <div style="border: 1px solid #ccc; padding: 15px; cursor: pointer; border-radius: 5px; background: #fff; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.2s; font-weight: bold; color: #333;" onclick="toggleSection('equipoSaca', this)">
-                    🛠️ Sacabocado <span style="float: right;">▶</span>
-                </div>
-                
-                <div id="equipoSaca" style="display: none; padding: 15px; border: 1px solid #ccc; border-top: none; background: #f9f9f9; border-radius: 0 0 5px 5px;">
+                <div id="equipo-container-sacabocado">
+                    <div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ccc; padding: 0; border-radius: 5px; background: #fff; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-weight: bold; color: #333;">
+                        <div style="padding: 15px; cursor: pointer; flex-grow: 1;" onclick="toggleSection('equipoSaca', this)">
+                            🛠️ Sacabocado <span style="float: right;">▶</span>
+                        </div>
+                        <button class="btn-secondary" id="btn-generar-qr-sacabocado" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 10px;">Generar QR</button>
+                        <button class="delete-btn" id="btn-eliminar-equipo-sacabocado" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px; margin-right: 15px;">Eliminar</button>
+                    </div>
+                    <div id="equipoSaca" style="display: none; padding: 15px; border: 1px solid #ccc; border-top: none; background: #f9f9f9; border-radius: 0 0 5px 5px;">
                     <!-- Ficha de Equipo -->
                     <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('fichaSaca', this)">
                         <span>1. Ficha de equipo</span>
@@ -1565,6 +1576,7 @@
                         <p style="margin-bottom: 10px; color: #555;">Visualice o descargue el procedimiento normalizado de operación (SOP) para el uso de este sacabocado.</p>
                         <a href="documentos/procedimiento_sacabocado.pdf" target="_blank" class="btn-secondary" style="display: inline-block; text-decoration: none; padding: 10px 20px; background: #6c757d; color: white; border-radius: 4px;">📄 Ver Procedimiento (PDF)</a>
                     </div>
+                </div>
                 </div>
             </div>
         </div>
@@ -1660,6 +1672,19 @@
             </div>
             </div>
         </main>
+    </div>
+
+    <!-- Modal para QR -->
+    <div id="qrModal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6);">
+        <div style="background-color: #fefefe; margin: 10% auto; padding: 25px; border: 1px solid #888; width: 90%; max-width: 400px; border-radius: 8px; text-align: center; position: relative; box-shadow: 0 5px 15px rgba(0,0,0,0.3);">
+            <span id="closeQrModal" style="color: #aaa; float: right; font-size: 28px; font-weight: bold; position: absolute; top: 5px; right: 15px; cursor: pointer;">&times;</span>
+            <h3 id="qrModalTitle" style="color: #004a8f; margin-top: 0;">QR para Equipo</h3>
+            <div id="qrCodeContainer" style="margin: 20px auto; padding: 10px; border: 1px solid #ccc; display: inline-block;">
+                <!-- El QR se insertará aquí -->
+            </div>
+            <p style="font-size: 0.9em; color: #555;">Escanee este código para acceder directamente a la sección del equipo.</p>
+            <input type="text" id="qrLinkInput" readonly style="width: 100%; padding: 8px; margin-top: 10px; font-size: 0.8em; text-align: center; background: #f0f0f0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box;">
+        </div>
     </div>
 
     <script type="module" src="script.js"></script>

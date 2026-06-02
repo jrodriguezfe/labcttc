@@ -560,7 +560,12 @@ onAuthStateChanged(auth, async (user) => {
         if (userDisplay) userDisplay.innerHTML = `${user.email} <span style="font-size:0.8em; background:#004a8f; color:#fff; padding:3px 8px; border-radius:12px; margin-left:8px; display:inline-block;">Rol: ${window.currentUserRole.toUpperCase()}</span>`;
         
         window.aplicarPermisosVisuales(window.currentUserRole);
-        if (typeof window.inicializarEquipos === 'function') window.inicializarEquipos();
+        if (typeof window.inicializarEquipos === 'function') {
+            await window.inicializarEquipos();
+            if (typeof window.handleDeepLink === 'function') {
+                window.handleDeepLink();
+            }
+        }
     } else {
         // Sin sesión: mostrar login, ocultar app
         if (authSection) authSection.style.display = 'block';
@@ -2260,6 +2265,71 @@ document.addEventListener('copy', (e) => {
     }
 });
 
+// --- Lógica de QR y Deep Linking ---
+
+window.generarQR = function(equipoId, equipoNombre) {
+    const modal = document.getElementById('qrModal');
+    const title = document.getElementById('qrModalTitle');
+    const qrContainer = document.getElementById('qrCodeContainer');
+    const linkInput = document.getElementById('qrLinkInput');
+    
+    if (!modal || !title || !qrContainer || !linkInput) return;
+
+    // Apuntar siempre a la URL de producción en GitHub Pages para que el QR sea universal
+    const GITHUB_PAGES_URL = 'https://jrodriguezfe.github.io/labcttc/index.html';
+    const url = `${GITHUB_PAGES_URL}#equipo=${equipoId}`;
+    
+    title.innerText = `QR para: ${equipoNombre}`;
+    linkInput.value = url;
+    
+    qrContainer.innerHTML = ''; // Limpiar QR anterior
+    try {
+        // Usar typeNumber 0 para que la librería elija el tamaño automáticamente
+        // y window.qrcode para acceder a la función desde un script de tipo módulo.
+        const qr = window.qrcode(0, 'M');
+        qr.addData(url);
+        qr.make();
+        qrContainer.innerHTML = qr.createImgTag(5, 10); // (cellSize, margin)
+    } catch (e) {
+        qrContainer.innerHTML = "Error al generar el código QR.";
+        console.error("Error en QR:", e);
+    }
+    
+    modal.style.display = 'block';
+};
+
+document.getElementById('closeQrModal')?.addEventListener('click', () => {
+    document.getElementById('qrModal').style.display = 'none';
+});
+
+window.addEventListener('click', (event) => {
+    const modal = document.getElementById('qrModal');
+    if (event.target == modal) {
+        modal.style.display = 'none';
+    }
+});
+
+window.handleDeepLink = function() {
+    const hash = window.location.hash;
+    if (hash && hash.startsWith('#equipo=')) {
+        const equipoId = hash.substring(8);
+        
+        setTimeout(() => {
+            const equipoContainer = document.getElementById(`equipo-container-${equipoId}`);
+            if (equipoContainer) {
+                const header = equipoContainer.querySelector('[onclick^="toggleSection"]');
+                const contentId = header.getAttribute('onclick').match(/'([^']+)'/)[1];
+                const content = document.getElementById(contentId);
+                if (content && content.style.display === 'none') header.click();
+                equipoContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                equipoContainer.style.transition = 'background-color 0.5s ease';
+                equipoContainer.style.backgroundColor = '#fff8e1';
+                setTimeout(() => { equipoContainer.style.backgroundColor = ''; }, 2500);
+            }
+        }, 500);
+    }
+};
+
 // --- Lógica de Gestión de Máquinas y Equipos ---
 async function guardarFichaEquipo(equipoId, data) {
     try {
@@ -2281,20 +2351,42 @@ async function cargarFichaEquipo(equipoId) {
     return null;
 }
 
-window.setFechaHoraActual = function() {
+window.setFechaHoraActual = function(equipoId = null) {
+    const prefix = equipoId ? `verif-` : 'verif';
+    const suffix = equipoId ? `-${equipoId}` : '';
     const now = new Date();
     const localDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
     const localTime = now.toTimeString().substring(0, 5);
-    if(document.getElementById('verifFecha')) document.getElementById('verifFecha').value = localDate;
-    if(document.getElementById('verifHora')) document.getElementById('verifHora').value = localTime;
+    if(document.getElementById(`${prefix}fecha${suffix}`)) document.getElementById(`${prefix}fecha${suffix}`).value = localDate;
+    if(document.getElementById(`${prefix}hora${suffix}`)) document.getElementById(`${prefix}hora${suffix}`).value = localTime;
 };
 
-async function cargarAnalistasDropdown() {
+async function popularAnalistasDropdown(selectResp) {
+    const snapshot = await getDocs(collection(db, "analistas"));
+    if (selectResp) {
+        const selectResp = document.getElementById('verifResp');
+        if (!selectResp) return;
+        selectResp.innerHTML = '<option value="" disabled selected>Seleccione responsable...</option>';
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            if (data.rol === 'analista' || data.rol === 'admin') {
+                const option = document.createElement('option');
+                option.value = data.nombre;
+                option.textContent = data.nombre;
+                selectResp.appendChild(option);
+            }
+        });
+    }
+}
+
+async function cargarAnalistasDropdown(equipoId = null) {
+    const prefix = equipoId ? `verif-resp-${equipoId}` : 'verifResp';
+    const selectResp = document.getElementById(prefix);
+    if (!selectResp) return;
+
     try {
         const analistasRef = collection(db, "analistas");
         const snapshot = await getDocs(analistasRef);
-        const selectResp = document.getElementById('verifResp');
-        if (!selectResp) return;
         selectResp.innerHTML = '<option value="" disabled selected>Seleccione responsable...</option>';
         snapshot.forEach(docSnap => {
             const data = docSnap.data();
@@ -2310,13 +2402,11 @@ async function cargarAnalistasDropdown() {
     }
 }
 
-function llenarDesplegablesVerificacion() {
-    const selTemp = document.getElementById('verifTemp');
-    const selHr = document.getElementById('verifHr');
-    
+function llenarDesplegablesVerificacion(equipoId = null) {
+    const selTemp = document.getElementById(equipoId ? `verif-temp-${equipoId}` : 'verifTemp');
+    const selHr = document.getElementById(equipoId ? `verif-hr-${equipoId}` : 'verifHr');
     if (selTemp) selTemp.innerHTML = '<option value="" disabled selected>Seleccione...</option>';
     for(let i = 180; i <= 230; i++) { if (selTemp) selTemp.innerHTML += `<option value="${(i / 10).toFixed(2)}">${(i / 10).toFixed(2)}</option>`; }
-    
     if (selHr) selHr.innerHTML = '<option value="" disabled selected>Seleccione...</option>';
     for(let i = 600; i <= 700; i++) { if (selHr) selHr.innerHTML += `<option value="${(i / 10).toFixed(2)}">${(i / 10).toFixed(2)}</option>`; }
 }
@@ -2346,9 +2436,23 @@ window.inicializarEquipos = async function() {
     const d2 = await cargarFichaEquipo('sacabocado'); if (d2) bindData('saca', d2);
     
     // Cargar historial de verificaciones de balanza
-    cargarVerificacionesOhaus();
+    cargarVerificaciones('ohaus_labt_157_23');
     llenarDesplegablesVerificacion();
     cargarAnalistasDropdown();
+
+    // Listeners para equipos estáticos
+    document.getElementById('btn-eliminar-equipo-ohaus_labt_157_23')?.addEventListener('click', () => {
+        window.eliminarEquipoCompleto('ohaus_labt_157_23');
+    });
+    document.getElementById('btn-generar-qr-ohaus_labt_157_23')?.addEventListener('click', () => {
+        window.generarQR('ohaus_labt_157_23', 'Balanza analítica OHAUS LABT-157-23');
+    });
+    document.getElementById('btn-eliminar-equipo-sacabocado')?.addEventListener('click', () => {
+        window.eliminarEquipoCompleto('sacabocado');
+    });
+    document.getElementById('btn-generar-qr-sacabocado')?.addEventListener('click', () => {
+        window.generarQR('sacabocado', 'Sacabocado');
+    });
 };
 
 // --- Lógica de Gestión de Verificación de Equipos ---
@@ -2416,7 +2520,7 @@ document.getElementById('formVerificacionOhaus')?.addEventListener('submit', asy
         v100g_rango: document.getElementById('verif100gRango').value, v100g_obs: document.getElementById('verif100gObs').value,
         createdAt: new Date().toISOString()
     };
-
+    
     try {
         const colRefVerif = collection(db, "equipos/ohaus_labt_157_23/verificaciones");
         await addDoc(colRefVerif, data);
@@ -2429,7 +2533,7 @@ document.getElementById('formVerificacionOhaus')?.addEventListener('submit', asy
             const el = document.getElementById(id);
             if (el) { el.style.color = ''; el.style.fontWeight = ''; if(id.includes('Obs')) el.value = '----'; }
         });
-        cargarVerificacionesOhaus();
+        cargarVerificaciones('ohaus_labt_157_23');
         alert("Registro de verificación añadido correctamente.");
     } catch (error) {
         console.error("Error al guardar verificación: ", error);
@@ -2437,26 +2541,30 @@ document.getElementById('formVerificacionOhaus')?.addEventListener('submit', asy
     }
 });
 
-async function cargarVerificacionesOhaus() {
-    const tbody = document.getElementById('historialVerificacionesOhaus');
+window.graficosEquipos = {};
+
+async function cargarVerificaciones(equipoId) {
+    const tbody = document.getElementById(`historial-verificaciones-${equipoId}`);
     if (!tbody) return;
     try {
-        const colRefVerif = collection(db, "equipos/ohaus_labt_157_23/verificaciones");
+        const colRefVerif = collection(db, `equipos/${equipoId}/verificaciones`);
         const qVerif = query(colRefVerif, orderBy("fecha", "desc"), orderBy("hora", "desc"));
         const snapshot = await getDocs(qVerif);
-        if (snapshot.empty) {
-            await seedVerificacionesEjemplo();
+        if (snapshot.empty && equipoId === 'ohaus_labt_157_23') {
+            await seedVerificacionesEjemplo(equipoId);
             return;
         }
-        renderVerificacionesTable(snapshot);
+        renderVerificacionesTable(equipoId, snapshot);
     } catch (error) {
-        console.error("Error al cargar verificaciones: ", error);
+        console.error(`Error al cargar verificaciones para ${equipoId}: `, error);
         tbody.innerHTML = `<tr><td colspan="21" style="padding: 8px; color: #c0392b;">Error al cargar registros</td></tr>`;
     }
 }
+async function cargarVerificacionesOhaus() { await cargarVerificaciones('ohaus_labt_157_23'); }
 
-function renderVerificacionesTable(snapshot) {
-    const tbody = document.getElementById('historialVerificacionesOhaus');
+function renderVerificacionesTable(equipoId, snapshot) {
+    const tbody = document.getElementById(equipoId === 'ohaus_labt_157_23' ? 'historialVerificacionesOhaus' : `historial-verificaciones-${equipoId}`);
+    if (!tbody) return;
     tbody.innerHTML = '';
     const formatear = (val) => val != null && val !== '' ? parseFloat(val).toFixed(4) : '-';
     const docs = [];
@@ -2465,16 +2573,17 @@ function renderVerificacionesTable(snapshot) {
         docs.push(data);
         const colorObs = (obs) => obs === 'No Conforme' ? 'color: #c0392b; font-weight: bold;' : (obs === 'Conforme' ? 'color: #217346; font-weight: bold;' : '');
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td style="padding: 5px;">${data.fecha || '-'}</td><td style="padding: 5px;">${data.hora || '-'}</td><td style="padding: 5px;">${data.temp ? data.temp + ' ºC' : '-'}</td><td style="padding: 5px;">${data.hr ? data.hr + '%' : '-'}</td><td style="padding: 5px;">${formatear(data.v1g_p1)}</td><td style="padding: 5px;">${formatear(data.v1g_p2)}</td><td style="padding: 5px;">${formatear(data.v1g_p3)}</td><td style="padding: 5px;">${formatear(data.v1g_rango)}</td><td style="padding: 5px; ${colorObs(data.v1g_obs)}">${data.v1g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v10g_p1)}</td><td style="padding: 5px;">${formatear(data.v10g_p2)}</td><td style="padding: 5px;">${formatear(data.v10g_p3)}</td><td style="padding: 5px;">${formatear(data.v10g_rango)}</td><td style="padding: 5px; ${colorObs(data.v10g_obs)}">${data.v10g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v100g_p1)}</td><td style="padding: 5px;">${formatear(data.v100g_p2)}</td><td style="padding: 5px;">${formatear(data.v100g_p3)}</td><td style="padding: 5px;">${formatear(data.v100g_rango)}</td><td style="padding: 5px; ${colorObs(data.v100g_obs)}">${data.v100g_obs || '-'}</td><td style="padding: 5px;">${data.responsable || '-'}</td><td style="padding: 5px;" class="no-export">${window.currentUserRole === 'visor' ? '<span style="color:#888;">Lectura</span>' : `<button class="delete-btn" style="padding: 2px 5px; font-size: 0.8em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px;" onclick="eliminarVerificacionOhaus('${docSnap.id}')">Eliminar</button>`}</td>`;
+        tr.innerHTML = `<td style="padding: 5px;">${data.fecha || '-'}</td><td style="padding: 5px;">${data.hora || '-'}</td><td style="padding: 5px;">${data.temp ? data.temp + ' ºC' : '-'}</td><td style="padding: 5px;">${data.hr ? data.hr + '%' : '-'}</td><td style="padding: 5px;">${formatear(data.v1g_p1)}</td><td style="padding: 5px;">${formatear(data.v1g_p2)}</td><td style="padding: 5px;">${formatear(data.v1g_p3)}</td><td style="padding: 5px;">${formatear(data.v1g_rango)}</td><td style="padding: 5px; ${colorObs(data.v1g_obs)}">${data.v1g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v10g_p1)}</td><td style="padding: 5px;">${formatear(data.v10g_p2)}</td><td style="padding: 5px;">${formatear(data.v10g_p3)}</td><td style="padding: 5px;">${formatear(data.v10g_rango)}</td><td style="padding: 5px; ${colorObs(data.v10g_obs)}">${data.v10g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v100g_p1)}</td><td style="padding: 5px;">${formatear(data.v100g_p2)}</td><td style="padding: 5px;">${formatear(data.v100g_p3)}</td><td style="padding: 5px;">${formatear(data.v100g_rango)}</td><td style="padding: 5px; ${colorObs(data.v100g_obs)}">${data.v100g_obs || '-'}</td><td style="padding: 5px;">${data.responsable || '-'}</td><td style="padding: 5px;" class="no-export">${window.currentUserRole === 'visor' ? '<span style="color:#888;">Lectura</span>' : `<button class="delete-btn" style="padding: 2px 5px; font-size: 0.8em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px;" onclick="window.eliminarVerificacion('${equipoId}', '${docSnap.id}')">Eliminar</button>`}</td>`;
         tbody.appendChild(tr);
     });
-    renderGraficoTendencia(docs);
+    renderGraficoTendencia(equipoId, docs);
 }
 
-function renderGraficoTendencia(docs) {
-    const ctx = document.getElementById('graficoTendenciaOhaus')?.getContext('2d');
+function renderGraficoTendencia(equipoId, docs) {
+    const canvasId = equipoId === 'ohaus_labt_157_23' ? 'graficoTendenciaOhaus' : `grafico-tendencia-${equipoId}`;
+    const ctx = document.getElementById(canvasId)?.getContext('2d');
     if (!ctx) return;
-    if (window.graficoOhausChart) window.graficoOhausChart.destroy();
+    if (window.graficosEquipos[equipoId]) window.graficosEquipos[equipoId].destroy();
     
     const labels = [];
     const err1g = [], err10g = [], err100g = [];
@@ -2493,7 +2602,7 @@ function renderGraficoTendencia(docs) {
         err100g.push(calcError(data.v100g_p1, data.v100g_p2, data.v100g_p3, 100.0));
     });
 
-    window.graficoOhausChart = new Chart(ctx, {
+    window.graficosEquipos[equipoId] = new Chart(ctx, {
         type: 'line',
         data: {
             labels: labels,
@@ -2513,19 +2622,52 @@ function renderGraficoTendencia(docs) {
     });
 }
 
-window.eliminarVerificacionOhaus = async function(id) {
+window.eliminarVerificacion = async function(equipoId, docId) {
     if(confirm("¿Desea borrar este registro de verificación?")) {
         try {
-            await deleteDoc(doc(db, "equipos/ohaus_labt_157_23/verificaciones", id));
-            cargarVerificacionesOhaus();
+            await deleteDoc(doc(db, `equipos/${equipoId}/verificaciones`, docId));
+            cargarVerificaciones(equipoId);
         } catch (e) {
             alert("Error al eliminar: " + e.message);
         }
     }
 };
+window.eliminarVerificacionOhaus = async function(docId) { await window.eliminarVerificacion('ohaus_labt_157_23', docId); };
 
-async function seedVerificacionesEjemplo() {
-    const colRefVerif = collection(db, "equipos/ohaus_labt_157_23/verificaciones");
+window.eliminarEquipoCompleto = async function(equipoId) {
+    const container = document.getElementById(`equipo-container-${equipoId}`);
+    if (!container) return;
+
+    const equipoNombreElement = container.querySelector(`div[onclick^="toggleSection"]`);
+    // Usar una expresión regular más amplia para los iconos
+    const equipoNombre = equipoNombreElement ? equipoNombreElement.innerText.replace(/⚖️|🛠️|⚙️/, '').replace('▶', '').trim() : equipoId;
+
+    if (confirm(`¿Está seguro de que desea eliminar el equipo "${equipoNombre}" y todos sus datos asociados? Esta acción no se puede deshacer.`)) {
+        try {
+            // 1. Eliminar subcolección de verificaciones
+            const verificacionesRef = collection(db, `equipos/${equipoId}/verificaciones`);
+            const verificacionesSnapshot = await getDocs(verificacionesRef);
+            const deletePromises = [];
+            verificacionesSnapshot.forEach((docSnap) => {
+                deletePromises.push(deleteDoc(docSnap.ref));
+            });
+            await Promise.all(deletePromises);
+
+            // 2. Eliminar documento principal del equipo (ficha)
+            await deleteDoc(doc(db, "equipos", equipoId));
+
+            // 3. Eliminar del DOM
+            container.remove();
+            alert(`Equipo "${equipoNombre}" eliminado correctamente.`);
+        } catch (error) {
+            console.error(`Error al eliminar el equipo ${equipoId}: `, error);
+            alert("Error al eliminar el equipo de la base de datos: " + error.message);
+        }
+    }
+};
+
+async function seedVerificacionesEjemplo(equipoId) {
+    const colRefVerif = collection(db, `equipos/${equipoId}/verificaciones`);
     const ejemplos = [
         { fecha: "2026-01-02", hora: "10:00", temp: "20.25", hr: "63.64", responsable: "EMILIO C.", v1g_p1: "0.9999", v1g_p2: "0.9999", v1g_p3: "0.9999", v1g_rango: "0.0000", v1g_obs: "Conforme", v10g_p1: "9.9999", v10g_p2: "9.9999", v10g_p3: "9.9999", v10g_rango: "0.0000", v10g_obs: "Conforme", v100g_p1: "100.0003", v100g_p2: "100.0004", v100g_p3: "100.0004", v100g_rango: "0.0001", v100g_obs: "Conforme", createdAt: new Date().toISOString() },
         { fecha: "2026-01-05", hora: "09:00", temp: "19.31", hr: "70.00", responsable: "EMILIO C.", v1g_p1: "1.0000", v1g_p2: "1.0000", v1g_p3: "1.0000", v1g_rango: "0.0000", v1g_obs: "Conforme", v10g_p1: "9.9999", v10g_p2: "9.9999", v10g_p3: "9.9999", v10g_rango: "0.0000", v10g_obs: "Conforme", v100g_p1: "100.0003", v100g_p2: "100.0004", v100g_p3: "100.0004", v100g_rango: "0.0001", v100g_obs: "Conforme", createdAt: new Date().toISOString() },
@@ -2533,7 +2675,161 @@ async function seedVerificacionesEjemplo() {
     ];
     for (let ej of ejemplos) await addDoc(colRefVerif, ej);
     const qVerif = query(colRefVerif, orderBy("fecha", "desc"), orderBy("hora", "desc"));
-    renderVerificacionesTable(await getDocs(qVerif));
+    renderVerificacionesTable(equipoId, await getDocs(qVerif));
+}
+
+document.getElementById('btnAgregarEquipo')?.addEventListener('click', () => {
+    agregarNuevoEquipo();
+});
+
+function agregarNuevoEquipo() {
+    const equipoNombre = prompt("Ingrese el nombre del nuevo equipo:");
+    if (!equipoNombre || equipoNombre.trim() === '') {
+        return;
+    }
+
+    const equipoId = equipoNombre.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    
+    if (document.getElementById(`equipo-container-${equipoId}`)) {
+        alert("Ya existe un equipo con un nombre similar. Por favor, elija otro nombre.");
+        return;
+    }
+
+    const newEquipoHTML = crearTemplateEquipoHTML(equipoId, equipoNombre);
+    document.getElementById('equiposList').insertAdjacentHTML('beforeend', newEquipoHTML);
+
+    adjuntarListenersParaEquipo(equipoId);
+    
+    const newHeader = document.querySelector(`[onclick="toggleSection('equipo-${equipoId}', this)"]`);
+    const newContent = document.getElementById(`equipo-${equipoId}`);
+    newContent.style.display = 'block';
+    if (newHeader) newHeader.querySelector('span:last-child').innerText = '▼';
+
+    llenarDesplegablesVerificacion(equipoId);
+    cargarAnalistasDropdown(equipoId);
+    window.setFechaHoraActual(equipoId);
+}
+
+function crearTemplateEquipoHTML(equipoId, equipoNombre) {
+    return `
+    <div id="equipo-container-${equipoId}">
+        <div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ccc; padding: 0; border-radius: 5px; background: #fff; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-weight: bold; color: #333;">
+            <div style="padding: 15px; cursor: pointer; flex-grow: 1;" onclick="toggleSection('equipo-${equipoId}', this)">
+                ⚙️ ${equipoNombre} <span style="float: right;">▶</span>
+            </div>
+            <button class="btn-secondary" id="btn-generar-qr-${equipoId}" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 10px;">Generar QR</button>
+            <button class="delete-btn" id="btn-eliminar-equipo-${equipoId}" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px; margin-right: 15px;">Eliminar</button>
+        </div>
+        
+        <div id="equipo-${equipoId}" style="display: none; padding: 15px; border: 1px solid #ccc; border-top: none; background: #f9f9f9; border-radius: 0 0 5px 5px;">
+            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('ficha-${equipoId}', this)">
+                <span>1. Ficha de equipo</span><span style="font-size: 0.8em;">▶</span>
+            </h4>
+            <div id="ficha-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                <form id="form-ficha-${equipoId}" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1; min-width: 200px;"><label>Marca:</label><input type="text" id="${equipoId}-marca" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div><div style="flex: 1; min-width: 200px;"><label>Modelo:</label><input type="text" id="${equipoId}-modelo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div></div>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1; min-width: 200px;"><label>N° Serie:</label><input type="text" id="${equipoId}-serie" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div><div style="flex: 1; min-width: 200px;"><label>Ubicación:</label><input type="text" id="${equipoId}-ubicacion" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div></div>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1; min-width: 200px;"><label>Rango:</label><input type="text" id="${equipoId}-rango" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div><div style="flex: 1; min-width: 200px;"><label>Resolución:</label><input type="text" id="${equipoId}-resolucion" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div></div>
+                    <button type="button" id="btn-guardar-ficha-${equipoId}" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Guardar Ficha</button>
+                </form>
+            </div>
+            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('verificacion-${equipoId}', this)">
+                <span>2. Registro de verificación</span><span style="font-size: 0.8em;">▶</span>
+            </h4>
+            <div id="verificacion-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                <form id="form-verificacion-${equipoId}" style="display: flex; flex-direction: column; gap: 15px;">
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1; min-width: 150px;"><label>Fecha:</label><input type="date" id="verif-fecha-${equipoId}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-top: 5px;"></div><div style="flex: 1; min-width: 100px;"><label>Hora:</label><input type="time" id="verif-hora-${equipoId}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-top: 5px;"></div><div style="flex: 1; min-width: 100px;"><label>T (°C):</label><select id="verif-temp-${equipoId}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-top: 5px; background: white;"></select></div><div style="flex: 1; min-width: 100px;"><label>H.R (%):</label><select id="verif-hr-${equipoId}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-top: 5px; background: white;"></select></div><div style="flex: 1; min-width: 150px;"><label>Responsable:</label><select id="verif-resp-${equipoId}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-top: 5px; background: white;"></select></div></div>
+                    <fieldset style="border: 1px solid #ccc; padding: 10px;"><legend>VERIFICACIÓN (1.0000 g) - EMP ± 0.001 g</legend><div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1;"><label>P1:</label><input type="number" step="0.0001" class="verif-1g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>P2:</label><input type="number" step="0.0001" class="verif-1g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>P3:</label><input type="number" step="0.0001" class="verif-1g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>Rango:</label><input type="text" id="verif-1g-rango-${equipoId}" readonly style="width: 100%; padding: 8px; background: #eef;"></div><div style="flex: 2;"><label>Obs.:</label><input type="text" id="verif-1g-obs-${equipoId}" value="----" style="width: 100%; padding: 8px;"></div></div></fieldset>
+                    <fieldset style="border: 1px solid #ccc; padding: 10px;"><legend>VERIFICACIÓN (10.0000 g) - EMP ± 0.001 g</legend><div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1;"><label>P1:</label><input type="number" step="0.0001" class="verif-10g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>P2:</label><input type="number" step="0.0001" class="verif-10g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>P3:</label><input type="number" step="0.0001" class="verif-10g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>Rango:</label><input type="text" id="verif-10g-rango-${equipoId}" readonly style="width: 100%; padding: 8px; background: #eef;"></div><div style="flex: 2;"><label>Obs.:</label><input type="text" id="verif-10g-obs-${equipoId}" value="----" style="width: 100%; padding: 8px;"></div></div></fieldset>
+                    <fieldset style="border: 1px solid #ccc; padding: 10px;"><legend>VERIFICACIÓN (100.0000 g) - EMP ± 0.002 g</legend><div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1;"><label>P1:</label><input type="number" step="0.0001" class="verif-100g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>P2:</label><input type="number" step="0.0001" class="verif-100g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>P3:</label><input type="number" step="0.0001" class="verif-100g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>Rango:</label><input type="text" id="verif-100g-rango-${equipoId}" readonly style="width: 100%; padding: 8px; background: #eef;"></div><div style="flex: 2;"><label>Obs.:</label><input type="text" id="verif-100g-obs-${equipoId}" value="----" style="width: 100%; padding: 8px;"></div></div></fieldset>
+                    <button type="submit" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Añadir Registro</button>
+                </form>
+                <h5 style="margin-top: 25px;">Historial de Verificaciones</h5>
+                <div style="overflow-x: auto;"><table style="width: 100%; font-size: 0.8em; text-align: center;" border="1"><thead style="background: #f3f3f3;"><tr><th rowspan="2">FECHA</th><th colspan="3">AUTOCALIBRACIÓN</th><th colspan="5">VERIFICACIÓN (1g)</th><th colspan="5">VERIFICACIÓN (10g)</th><th colspan="5">VERIFICACIÓN (100g)</th><th rowspan="2">RESPONSABLE</th><th rowspan="2" class="no-export">ACCIONES</th></tr><tr><th>HORA</th><th>T(°C)</th><th>H.R(%)</th><th>P1</th><th>P2</th><th>P3</th><th>Rango</th><th>Obs</th><th>P1</th><th>P2</th><th>P3</th><th>Rango</th><th>Obs</th><th>P1</th><th>P2</th><th>P3</th><th>Rango</th><th>Obs</th></tr></thead><tbody id="historial-verificaciones-${equipoId}"><tr><td colspan="21">Aún no hay registros.</td></tr></tbody></table></div>
+                <h5 style="margin-top: 25px;">Tendencias de Verificaciones</h5>
+                <div><canvas id="grafico-tendencia-${equipoId}" height="80"></canvas></div>
+            </div>
+            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('manual-${equipoId}', this)"><span>3. Manual de equipo</span><span style="font-size: 0.8em;">▶</span></h4><div id="manual-${equipoId}" style="display: none; padding: 15px;"><p>(Subir y visualizar manual en PDF)</p></div>
+            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('certificado-${equipoId}', this)"><span>4. Certificado de calibración</span><span style="font-size: 0.8em;">▶</span></h4><div id="certificado-${equipoId}" style="display: none; padding: 15px;"><p>(Subir y visualizar certificado en PDF)</p></div>
+            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('procedimiento-${equipoId}', this)"><span>5. Procedimiento para el equipo</span><span style="font-size: 0.8em;">▶</span></h4><div id="procedimiento-${equipoId}" style="display: none; padding: 15px;"><p>(Subir y visualizar procedimiento en PDF)</p></div>
+        </div>
+    </div>
+    `;
+}
+
+function adjuntarListenersParaEquipo(equipoId) {
+    // Listener para eliminar equipo
+    document.getElementById(`btn-eliminar-equipo-${equipoId}`)?.addEventListener('click', () => {
+        // Reutilizamos la función global de eliminación
+        window.eliminarEquipoCompleto(equipoId);
+    });
+
+    // Listener para generar QR
+    document.getElementById(`btn-generar-qr-${equipoId}`)?.addEventListener('click', () => {
+        const equipoNombreElement = document.querySelector(`#equipo-container-${equipoId} div[onclick^="toggleSection"]`);
+        const equipoNombre = equipoNombreElement ? equipoNombreElement.innerText.replace(/⚖️|🛠️|⚙️/, '').replace('▶', '').trim() : equipoId;
+        window.generarQR(equipoId, equipoNombre);
+    });
+
+    // Guardar Ficha
+    document.getElementById(`btn-guardar-ficha-${equipoId}`)?.addEventListener('click', async () => {
+        const data = {
+            marca: document.getElementById(`${equipoId}-marca`)?.value || '',
+            modelo: document.getElementById(`${equipoId}-modelo`)?.value || '',
+            serie: document.getElementById(`${equipoId}-serie`)?.value || '',
+            ubicacion: document.getElementById(`${equipoId}-ubicacion`)?.value || '',
+            rango: document.getElementById(`${equipoId}-rango`)?.value || '',
+            resolucion: document.getElementById(`${equipoId}-resolucion`)?.value || '',
+            fechaActualizacion: new Date().toISOString()
+        };
+        await guardarFichaEquipo(equipoId, data);
+    });
+
+    // Guardar Verificación
+    document.getElementById(`form-verificacion-${equipoId}`)?.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = {
+            fecha: document.getElementById(`verif-fecha-${equipoId}`).value,
+            hora: document.getElementById(`verif-hora-${equipoId}`).value,
+            temp: document.getElementById(`verif-temp-${equipoId}`).value,
+            hr: document.getElementById(`verif-hr-${equipoId}`).value,
+            responsable: document.getElementById(`verif-resp-${equipoId}`).value,
+            v1g_p1: document.querySelector(`.verif-1g-${equipoId}:nth-child(1) input`)?.value, v1g_p2: document.querySelector(`.verif-1g-${equipoId}:nth-child(2) input`)?.value, v1g_p3: document.querySelector(`.verif-1g-${equipoId}:nth-child(3) input`)?.value,
+            v1g_rango: document.getElementById(`verif-1g-rango-${equipoId}`).value, v1g_obs: document.getElementById(`verif-1g-obs-${equipoId}`).value,
+            v10g_p1: document.querySelector(`.verif-10g-${equipoId}:nth-child(1) input`)?.value, v10g_p2: document.querySelector(`.verif-10g-${equipoId}:nth-child(2) input`)?.value, v10g_p3: document.querySelector(`.verif-10g-${equipoId}:nth-child(3) input`)?.value,
+            v10g_rango: document.getElementById(`verif-10g-rango-${equipoId}`).value, v10g_obs: document.getElementById(`verif-10g-obs-${equipoId}`).value,
+            v100g_p1: document.querySelector(`.verif-100g-${equipoId}:nth-child(1) input`)?.value, v100g_p2: document.querySelector(`.verif-100g-${equipoId}:nth-child(2) input`)?.value, v100g_p3: document.querySelector(`.verif-100g-${equipoId}:nth-child(3) input`)?.value,
+            v100g_rango: document.getElementById(`verif-100g-rango-${equipoId}`).value, v100g_obs: document.getElementById(`verif-100g-obs-${equipoId}`).value,
+            createdAt: new Date().toISOString()
+        };
+
+        try {
+            const colRefVerif = collection(db, `equipos/${equipoId}/verificaciones`);
+            await addDoc(colRefVerif, data);
+            e.target.reset();
+            window.setFechaHoraActual(equipoId);
+            [`verif-1g-rango-${equipoId}`, `verif-10g-rango-${equipoId}`, `verif-100g-rango-${equipoId}`, `verif-1g-obs-${equipoId}`, `verif-10g-obs-${equipoId}`, `verif-100g-obs-${equipoId}`].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) { el.value = id.includes('obs') ? '----' : ''; el.style.color = ''; el.style.fontWeight = ''; }
+            });
+            cargarVerificaciones(equipoId);
+            alert("Registro de verificación añadido correctamente.");
+        } catch (error) {
+            console.error("Error al guardar verificación: ", error);
+            alert("Error al guardar: " + error.message);
+        }
+    });
+
+    // Listeners para cálculo de rango
+    document.querySelectorAll(`.verif-1g-${equipoId}`).forEach(inp => {
+        inp.addEventListener('input', () => calcularRangoVerificacion(`verif-1g-${equipoId}`, `verif-1g-rango-${equipoId}`, 1.0000, 0.001, `verif-1g-obs-${equipoId}`));
+    });
+    document.querySelectorAll(`.verif-10g-${equipoId}`).forEach(inp => {
+        inp.addEventListener('input', () => calcularRangoVerificacion(`verif-10g-${equipoId}`, `verif-10g-rango-${equipoId}`, 10.0000, 0.001, `verif-10g-obs-${equipoId}`));
+    });
+    document.querySelectorAll(`.verif-100g-${equipoId}`).forEach(inp => {
+        inp.addEventListener('input', () => calcularRangoVerificacion(`verif-100g-${equipoId}`, `verif-100g-rango-${equipoId}`, 100.0000, 0.002, `verif-100g-obs-${equipoId}`));
+    });
 }
 
 document.addEventListener('keydown', (e) => {
