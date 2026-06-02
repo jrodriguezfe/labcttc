@@ -2348,7 +2348,7 @@ window.openEquipoModal = function(equipoId, equipoNombre) {
     currentModalContent.style.display = 'block';     // Asegurarse de que sea visible
 
     modalTitle.innerText = equipoNombre;
-    modal.style.display = 'block';
+    modal.style.display = 'flex';
     
     // Si el equipo tiene un gráfico, es necesario redimensionarlo después de que el modal sea visible
     if (window.graficosEquipos[equipoId]) {
