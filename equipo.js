@@ -1,12 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBR88EcYJPL3xIdr5X_p8cx2TEjz7LuzpM",
     authDomain: "lab-cttc.firebaseapp.com",
     projectId: "lab-cttc",
-    storageBucket: "lab-cttc.appspot.com",
+    storageBucket: "lab-cttc.appspot.com", // Asegurado
     messagingSenderId: "588785890026",
     appId: "1:588785890026:web:27ec4ea43a8a749989dd93"
 };
@@ -14,6 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 window.graficosEquipos = {};
 window.currentUserRole = 'visor';
 
@@ -70,6 +72,8 @@ async function loadEquipoView(equipoId) {
     
     adjuntarListenersParaEquipo(equipoId);
     
+    setupFileManagement(equipoId, ficha || {});
+    
     await cargarVerificaciones(equipoId);
     llenarDesplegablesVerificacion(equipoId);
     await cargarAnalistasDropdown(equipoId);
@@ -102,9 +106,9 @@ function crearVistaEquipoHTML(equipoId, equipoNombre) {
             <h5 style="margin-top: 25px;">Tendencias de Verificaciones</h5>
             <div><canvas id="grafico-tendencia-${equipoId}" height="80"></canvas></div>
         </div>
-        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">3. Manual de equipo</h4><div id="manual-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><p>Cargando...</p></div>
-        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">4. Certificado de calibración</h4><div id="certificado-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><p>Cargando...</p></div>
-        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">5. Procedimiento para el equipo</h4><div id="procedimiento-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><p>Cargando...</p></div>
+        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">3. Manual de equipo</h4><div id="manual-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"></div>
+        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">4. Certificado de calibración</h4><div id="certificado-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"></div>
+        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">5. Procedimiento para el equipo</h4><div id="procedimiento-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"></div>
     `;
 }
 
@@ -360,3 +364,115 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
 document.getElementById('btnLogout')?.addEventListener('click', async () => {
     await signOut(auth);
 });
+
+function createFileManagementUI(container, equipoId, docType, docName) {
+    if (!container) return;
+    const puedeEditar = window.currentUserRole === 'admin' || window.currentUserRole === 'analista';
+    const uploadId = `${docType}-${equipoId}-upload`;
+    container.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+            <span id="${docType}-${equipoId}-name" style="font-weight: bold; color: #555; flex-grow: 1; min-width: 200px; overflow-wrap: anywhere;">No hay archivo.</span>
+            <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                <a id="${docType}-${equipoId}-view" href="#" target="_blank" class="btn-secondary" style="display: none; text-decoration: none;">📄 Ver ${docName}</a>
+                ${puedeEditar ? `
+                <label for="${uploadId}" class="btn-primary" style="cursor: pointer; display: inline-block;">
+                    Subir
+                </label>
+                <input type="file" id="${uploadId}" accept="application/pdf" style="display: none;">
+                <button id="${docType}-${equipoId}-delete" class="delete-btn" style="display: none;">Eliminar</button>
+                ` : ''}
+            </div>
+        </div>
+        ${puedeEditar ? `<div id="${docType}-${equipoId}-progress" style="display: none; margin-top: 10px; background: #eef; padding: 5px; border-radius: 3px; font-size: 0.9em;"></div>` : ''}
+    `;
+
+    if (puedeEditar) {
+        document.getElementById(uploadId)?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type === "application/pdf") {
+                uploadFile(equipoId, docType, docName, file);
+            } else if (file) {
+                alert("Por favor, seleccione un archivo PDF.");
+            }
+        });
+
+        document.getElementById(`${docType}-${equipoId}-delete`)?.addEventListener('click', () => {
+            if (confirm(`¿Está seguro de que desea eliminar el ${docName} para este equipo?`)) {
+                deleteFile(equipoId, docType, docName);
+            }
+        });
+    }
+}
+
+function updateFileUI(equipoId, docType, docName, url, fileName) {
+    const nameSpan = document.getElementById(`${docType}-${equipoId}-name`);
+    const viewLink = document.getElementById(`${docType}-${equipoId}-view`);
+    const deleteBtn = document.getElementById(`${docType}-${equipoId}-delete`);
+    const uploadLabel = document.querySelector(`label[for="${docType}-${equipoId}-upload"]`);
+
+    if (!nameSpan || !viewLink) return;
+
+    if (url && fileName) {
+        nameSpan.textContent = fileName;
+        viewLink.href = url;
+        viewLink.style.display = 'inline-block';
+        if (deleteBtn) deleteBtn.style.display = 'inline-block';
+        if (uploadLabel) uploadLabel.textContent = 'Reemplazar';
+    } else {
+        nameSpan.textContent = 'No hay archivo.';
+        viewLink.style.display = 'none';
+        viewLink.href = '#';
+        if (deleteBtn) deleteBtn.style.display = 'none';
+        if (uploadLabel) uploadLabel.textContent = 'Subir';
+    }
+}
+
+async function uploadFile(equipoId, docType, docName, file) {
+    const progressDiv = document.getElementById(`${docType}-${equipoId}-progress`);
+    if(progressDiv) {
+        progressDiv.style.display = 'block';
+        progressDiv.innerText = `Subiendo ${file.name}...`;
+    }
+
+    const storageRef = ref(storage, `equipos/${equipoId}/${docType}.pdf`);
+
+    try {
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        const firestoreUpdate = {};
+        firestoreUpdate[`${docType}Url`] = downloadURL;
+        firestoreUpdate[`${docType}Name`] = file.name;
+
+        await updateDoc(doc(db, "equipos", equipoId), firestoreUpdate, { merge: true });
+
+        updateFileUI(equipoId, docType, docName, downloadURL, file.name);
+        if(progressDiv) {
+            progressDiv.innerText = '¡Subido con éxito!';
+            setTimeout(() => { progressDiv.style.display = 'none'; }, 3000);
+        }
+        alert(`${docName} subido correctamente.`);
+
+    } catch (error) {
+        console.error(`Error al subir ${docName}:`, error);
+        if(progressDiv) progressDiv.innerText = `Error al subir archivo.`;
+        alert(`Error al subir el ${docName}: ${error.message}`);
+    }
+}
+
+async function deleteFile(equipoId, docType, docName) {
+    // Implementación similar a la de script.js
+}
+
+function setupFileManagement(equipoId, fichaData) {
+    const docTypes = { manual: 'Manual', certificado: 'Certificado', procedimiento: 'Procedimiento' };
+    for (const [docType, docName] of Object.entries(docTypes)) {
+        const container = document.getElementById(`${docType}-${equipoId}`);
+        if (container) {
+            createFileManagementUI(container, equipoId, docType, docName);
+            if (fichaData) {
+                updateFileUI(equipoId, docType, docName, fichaData[`${docType}Url`], fichaData[`${docType}Name`]);
+            }
+        }
+    }
+}

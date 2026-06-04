@@ -1,12 +1,13 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBR88EcYJPL3xIdr5X_p8cx2TEjz7LuzpM",
     authDomain: "lab-cttc.firebaseapp.com",
     projectId: "lab-cttc",
-    storageBucket: "lab-cttc.firebasestorage.app",
+    storageBucket: "lab-cttc.appspot.com",
     messagingSenderId: "588785890026",
     appId: "1:588785890026:web:27ec4ea43a8a749989dd93"
 };
@@ -14,6 +15,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 const colRef = collection(db, "gramajes");
 const colIncertidumbre = collection(db, "incertidumbre");
 
@@ -2692,10 +2694,166 @@ async function cargarProgramaInspeccion(equipoId) {
     }
 }
 
+function createFileManagementUI(container, equipoId, docType, docName) {
+    if (!container) return;
+    const puedeEditar = window.currentUserRole === 'admin' || window.currentUserRole === 'analista';
+    const uploadId = `${docType}-${equipoId}-upload`;
+    container.innerHTML = `
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 15px; flex-wrap: wrap;">
+            <span id="${docType}-${equipoId}-name" style="font-weight: bold; color: #555; flex-grow: 1; min-width: 200px; overflow-wrap: anywhere;">No hay archivo.</span>
+            <div style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                <a id="${docType}-${equipoId}-view" href="#" target="_blank" class="btn-secondary" style="display: none; text-decoration: none;">📄 Ver ${docName}</a>
+                ${puedeEditar ? `
+                <label for="${uploadId}" class="btn-primary" style="cursor: pointer; display: inline-block;">
+                    Subir
+                </label>
+                <input type="file" id="${uploadId}" accept="application/pdf" style="display: none;">
+                <button id="${docType}-${equipoId}-delete" class="delete-btn" style="display: none;">Eliminar</button>
+                ` : ''}
+            </div>
+        </div>
+        ${puedeEditar ? `<div id="${docType}-${equipoId}-progress" style="display: none; margin-top: 10px; background: #eef; padding: 5px; border-radius: 3px; font-size: 0.9em;"></div>` : ''}
+    `;
+
+    if (puedeEditar) {
+        document.getElementById(uploadId)?.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file && file.type === "application/pdf") {
+                uploadFile(equipoId, docType, docName, file);
+            } else if (file) {
+                alert("Por favor, seleccione un archivo PDF.");
+            }
+        });
+
+        document.getElementById(`${docType}-${equipoId}-delete`)?.addEventListener('click', () => {
+            if (confirm(`¿Está seguro de que desea eliminar el ${docName} para este equipo?`)) {
+                deleteFile(equipoId, docType, docName);
+            }
+        });
+    }
+}
+
+function updateFileUI(equipoId, docType, docName, url, fileName) {
+    const nameSpan = document.getElementById(`${docType}-${equipoId}-name`);
+    const viewLink = document.getElementById(`${docType}-${equipoId}-view`);
+    const deleteBtn = document.getElementById(`${docType}-${equipoId}-delete`);
+    const uploadLabel = document.querySelector(`label[for="${docType}-${equipoId}-upload"]`);
+
+    if (!nameSpan || !viewLink) return;
+
+    if (url && fileName) {
+        nameSpan.textContent = fileName;
+        viewLink.href = url;
+        viewLink.style.display = 'inline-block';
+        if (deleteBtn) deleteBtn.style.display = 'inline-block';
+        if (uploadLabel) uploadLabel.textContent = 'Reemplazar';
+    } else {
+        nameSpan.textContent = 'No hay archivo.';
+        viewLink.style.display = 'none';
+        viewLink.href = '#';
+        if (deleteBtn) deleteBtn.style.display = 'none';
+        if (uploadLabel) uploadLabel.textContent = 'Subir';
+    }
+}
+
+async function uploadFile(equipoId, docType, docName, file) {
+    const progressDiv = document.getElementById(`${docType}-${equipoId}-progress`);
+    if(progressDiv) {
+        progressDiv.style.display = 'block';
+        progressDiv.innerText = `Subiendo ${file.name}...`;
+    }
+
+    const storageRef = ref(storage, `equipos/${equipoId}/${docType}.pdf`);
+
+    try {
+        const snapshot = await uploadBytes(storageRef, file);
+        const downloadURL = await getDownloadURL(snapshot.ref);
+
+        const firestoreUpdate = {};
+        firestoreUpdate[`${docType}Url`] = downloadURL;
+        firestoreUpdate[`${docType}Name`] = file.name;
+
+        await updateDoc(doc(db, "equipos", equipoId), firestoreUpdate, { merge: true });
+
+        updateFileUI(equipoId, docType, docName, downloadURL, file.name);
+        if(progressDiv) {
+            progressDiv.innerText = '¡Subido con éxito!';
+            setTimeout(() => { progressDiv.style.display = 'none'; }, 3000);
+        }
+        alert(`${docName} subido correctamente.`);
+
+    } catch (error) {
+        console.error(`Error al subir ${docName}:`, error);
+        if(progressDiv) progressDiv.innerText = `Error al subir archivo.`;
+        alert(`Error al subir el ${docName}: ${error.message}`);
+    }
+}
+
+async function deleteFile(equipoId, docType, docName) {
+    const storageRef = ref(storage, `equipos/${equipoId}/${docType}.pdf`);
+    try {
+        await deleteObject(storageRef);
+    } catch (error) {
+        if (error.code !== 'storage/object-not-found') {
+            console.error(`Error al eliminar de Storage:`, error);
+            alert(`Error al eliminar el archivo de Storage: ${error.message}`);
+            return;
+        }
+    }
+
+    try {
+        const firestoreUpdate = {};
+        firestoreUpdate[`${docType}Url`] = null;
+        firestoreUpdate[`${docType}Name`] = null;
+        await updateDoc(doc(db, "equipos", equipoId), firestoreUpdate, { merge: true });
+
+        updateFileUI(equipoId, docType, docName, null, null);
+        alert(`${docName} eliminado correctamente.`);
+    } catch (error) {
+        console.error(`Error al actualizar Firestore:`, error);
+        alert(`Error al actualizar la base de datos: ${error.message}`);
+    }
+}
+
+function setupFileManagement(equipoId, fichaData) {
+    const docTypes = {
+        manual: 'Manual',
+        certificado: 'Certificado',
+        procedimiento: 'Procedimiento'
+    };
+
+    for (const [docType, docName] of Object.entries(docTypes)) {
+        let containerId;
+        if (equipoId === 'ohaus_labt_157_23') {
+            containerId = `${docType}Ohaus`;
+        } else if (equipoId === 'sacabocado') {
+            containerId = `${docType}Saca`;
+        } else {
+            containerId = `${docType}-${equipoId}`;
+        }
+        
+        const container = document.getElementById(containerId);
+        if (container) {
+            createFileManagementUI(container, equipoId, docType, docName);
+            if (fichaData) {
+                updateFileUI(equipoId, docType, docName, fichaData[`${docType}Url`], fichaData[`${docType}Name`]);
+            }
+        }
+    }
+}
+
 window.inicializarEquipos = async function() {
     const bindData = (idSuffix, data) => ['Marca', 'Modelo', 'Serie', 'Ubicacion', 'Rango', 'Resolucion'].forEach(k => { if (data[k.toLowerCase()] && document.getElementById(idSuffix + k)) document.getElementById(idSuffix + k).value = data[k.toLowerCase()]; });
-    const d1 = await cargarFichaEquipo('ohaus_labt_157_23'); if (d1) bindData('ohaus', d1);
-    const d2 = await cargarFichaEquipo('sacabocado'); if (d2) bindData('saca', d2);
+    const d1 = await cargarFichaEquipo('ohaus_labt_157_23'); 
+    if (d1) {
+        bindData('ohaus', d1);
+        setupFileManagement('ohaus_labt_157_23', d1);
+    }
+    const d2 = await cargarFichaEquipo('sacabocado'); 
+    if (d2) {
+        bindData('saca', d2);
+        setupFileManagement('sacabocado', d2);
+    }
     
     // Cargar historial de verificaciones de balanza
     cargarVerificaciones('ohaus_labt_157_23');
@@ -2719,6 +2877,36 @@ window.inicializarEquipos = async function() {
     document.getElementById('btn-generar-qr-sacabocado')?.addEventListener('click', () => {
         window.generarQR('sacabocado', 'Sacabocado');
     });
+
+    // Cargar equipos dinámicos desde Firestore
+    const equiposRef = collection(db, "equipos");
+    const snapshot = await getDocs(equiposRef);
+    
+    const dynamicEquipments = [];
+    snapshot.forEach(docSnap => {
+        if (docSnap.id !== 'ohaus_labt_157_23' && docSnap.id !== 'sacabocado') {
+            dynamicEquipments.push({ id: docSnap.id, data: docSnap.data() });
+        }
+    });
+
+    for (const equipo of dynamicEquipments) {
+        const { id: equipoId, data: equipoData } = equipo;
+
+        if (document.getElementById(`equipo-container-${equipoId}`)) continue;
+
+        const equipoNombre = equipoData.nombre || equipoId;
+
+        const newEquipoHTML = crearTemplateEquipoHTML(equipoId, equipoNombre);
+        document.getElementById('equiposList').insertAdjacentHTML('beforeend', newEquipoHTML);
+
+        const bindDynamicData = (id, data) => ['marca', 'modelo', 'serie', 'ubicacion', 'rango', 'resolucion'].forEach(k => {
+            const el = document.getElementById(`${id}-${k}`);
+            if (data[k] && el) el.value = data[k];
+        });
+        bindDynamicData(equipoId, equipoData);
+
+        await adjuntarListenersParaEquipo(equipoId, equipoData);
+    }
 };
 
 // --- Lógica de Gestión de Verificación de Equipos ---
@@ -2959,11 +3147,11 @@ async function seedVerificacionesEjemplo(equipoId) {
     renderVerificacionesTable(equipoId, await getDocs(qVerif));
 }
 
-document.getElementById('btnAgregarEquipo')?.addEventListener('click', () => {
-    agregarNuevoEquipo();
+document.getElementById('btnAgregarEquipo')?.addEventListener('click', async () => {
+    await agregarNuevoEquipo();
 });
 
-function agregarNuevoEquipo() {
+async function agregarNuevoEquipo() {
     const equipoNombre = prompt("Ingrese el nombre del nuevo equipo:");
     if (!equipoNombre || equipoNombre.trim() === '') {
         return;
@@ -2976,14 +3164,24 @@ function agregarNuevoEquipo() {
         return;
     }
 
+    // Guardar inmediatamente en la base de datos para persistencia
+    const newEquipoData = {
+        nombre: equipoNombre,
+        fechaCreacion: new Date().toISOString(),
+        marca: '', modelo: '', serie: '', ubicacion: '', rango: '', resolucion: ''
+    };
+    try {
+        await setDoc(doc(db, "equipos", equipoId), newEquipoData);
+    } catch (error) {
+        console.error("Error al crear el equipo en la base de datos:", error);
+        alert("No se pudo crear el equipo en la base de datos: " + error.message);
+        return;
+    }
+
     const newEquipoHTML = crearTemplateEquipoHTML(equipoId, equipoNombre);
     document.getElementById('equiposList').insertAdjacentHTML('beforeend', newEquipoHTML);
 
-    adjuntarListenersParaEquipo(equipoId);
-
-    llenarDesplegablesVerificacion(equipoId);
-    cargarAnalistasDropdown(equipoId);
-    window.setFechaHoraActual(equipoId);
+    await adjuntarListenersParaEquipo(equipoId, newEquipoData);
 }
 
 function crearTemplateEquipoHTML(equipoId, equipoNombre) {
@@ -3025,15 +3223,15 @@ function crearTemplateEquipoHTML(equipoId, equipoNombre) {
                 <h5 style="margin-top: 25px;">Tendencias de Verificaciones</h5>
                 <div><canvas id="grafico-tendencia-${equipoId}" height="80"></canvas></div>
             </div>
-            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('manual-${equipoId}', this)"><span>3. Manual de equipo</span><span style="font-size: 0.8em;">▶</span></h4><div id="manual-${equipoId}" style="display: none; padding: 15px;"><p>(Subir y visualizar manual en PDF)</p></div>
-            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('certificado-${equipoId}', this)"><span>4. Certificado de calibración</span><span style="font-size: 0.8em;">▶</span></h4><div id="certificado-${equipoId}" style="display: none; padding: 15px;"><p>(Subir y visualizar certificado en PDF)</p></div>
-            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('procedimiento-${equipoId}', this)"><span>5. Procedimiento para el equipo</span><span style="font-size: 0.8em;">▶</span></h4><div id="procedimiento-${equipoId}" style="display: none; padding: 15px;"><p>(Subir y visualizar procedimiento en PDF)</p></div>
+            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('manual-${equipoId}', this)"><span>3. Manual de equipo</span><span style="font-size: 0.8em;">▶</span></h4><div id="manual-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"></div>
+            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('certificado-${equipoId}', this)"><span>4. Certificado de calibración</span><span style="font-size: 0.8em;">▶</span></h4><div id="certificado-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"></div>
+            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('procedimiento-${equipoId}', this)"><span>5. Procedimiento para el equipo</span><span style="font-size: 0.8em;">▶</span></h4><div id="procedimiento-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"></div>
         </div>
     </div>
     `;
 }
 
-function adjuntarListenersParaEquipo(equipoId) {
+async function adjuntarListenersParaEquipo(equipoId, fichaData = null) {
     // Listener para eliminar equipo
     document.getElementById(`btn-eliminar-equipo-${equipoId}`)?.addEventListener('click', () => {
         // Reutilizamos la función global de eliminación
@@ -3042,8 +3240,8 @@ function adjuntarListenersParaEquipo(equipoId) {
 
     // Listener para generar QR
     document.getElementById(`btn-generar-qr-${equipoId}`)?.addEventListener('click', () => {
-        const equipoNombreElement = document.querySelector(`#equipo-container-${equipoId} div[onclick^="toggleSection"]`);
-        const equipoNombre = equipoNombreElement ? equipoNombreElement.innerText.replace(/⚖️|🛠️|⚙️/, '').replace('▶', '').trim() : equipoId;
+        const equipoNombreElement = document.querySelector(`#equipo-container-${equipoId} div[onclick^="window.openEquipoModal"]`);
+        const equipoNombre = equipoNombreElement ? equipoNombreElement.innerText.replace(/⚖️|🛠️|⚙️/, '').trim() : equipoId;
         window.generarQR(equipoId, equipoNombre);
     });
 
@@ -3060,6 +3258,11 @@ function adjuntarListenersParaEquipo(equipoId) {
         };
         await guardarFichaEquipo(equipoId, data);
     });
+
+    if (!fichaData) {
+        fichaData = await cargarFichaEquipo(equipoId);
+    }
+    setupFileManagement(equipoId, fichaData || {});
 
     // Guardar Verificación
     document.getElementById(`form-verificacion-${equipoId}`)?.addEventListener('submit', async (e) => {
@@ -3106,6 +3309,11 @@ function adjuntarListenersParaEquipo(equipoId) {
     document.querySelectorAll(`.verif-100g-${equipoId}`).forEach(inp => {
         inp.addEventListener('input', () => calcularRangoVerificacion(`verif-100g-${equipoId}`, `verif-100g-rango-${equipoId}`, 100.0000, 0.002, `verif-100g-obs-${equipoId}`));
     });
+
+    llenarDesplegablesVerificacion(equipoId);
+    cargarAnalistasDropdown(equipoId);
+    window.setFechaHoraActual(equipoId);
+    cargarVerificaciones(equipoId);
 }
 
 document.addEventListener('keydown', (e) => {
