@@ -15,14 +15,21 @@
     </style>
 </head>
 <body>
-    <div id="auth-check" style="padding: 40px; text-align: center;">
-        <h2 style="color: #004a8f;">Verificando sesión...</h2>
+    <div id="auth-check" style="padding: 40px; text-align: center; max-width: 400px; margin: 50px auto; border: 1px solid #ccc; border-radius: 8px; background: #fff; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        <h2 style="color: #004a8f; margin-bottom: 20px;">Iniciar Sesión</h2>
+        <p style="color: #555; margin-bottom: 20px;">Se requiere autenticación para ver los detalles del equipo.</p>
+        <form id="loginForm" style="display: flex; flex-direction: column; gap: 15px;">
+            <input type="email" id="loginEmail" placeholder="Correo Electrónico" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+            <input type="password" id="loginPass" placeholder="Contraseña" required style="padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px;">
+            <button type="submit" class="btn-primary" style="padding: 12px; font-size: 16px; cursor: pointer;">Ingresar</button>
+        </form>
     </div>
 
     <div class="app-container" id="appSection" style="display: none;">
         <div class="top-info-bar" style="display: flex; justify-content: space-between; align-items: center;">
             <h2 id="equipoHeader" style="margin: 0; color: #004a8f;">Cargando equipo...</h2>
-            <a href="index.html" class="btn-secondary" style="text-decoration: none;">⬅ Volver a la App Principal</a>
+            <div><span style="margin-right: 15px;">Usuario: <strong id="userDisplay"></strong></span>
+            <button id="btnLogout" class="btn-secondary" style="cursor: pointer; padding: 5px 10px;">Cerrar Sesión</button></div>
         </div>
         <div id="equipoContent" style="padding: 15px; border: 1px solid #ccc; border-top: none; background: #f9f9f9; border-radius: 5px;">
             <!-- El contenido del equipo se inyectará aquí -->

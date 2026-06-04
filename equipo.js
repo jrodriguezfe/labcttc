@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, getDoc, updateDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyBR88EcYJPL3xIdr5X_p8cx2TEjz7LuzpM",
@@ -26,8 +26,13 @@ onAuthStateChanged(auth, async (user) => {
             const docSnap = await getDoc(doc(db, "analistas", user.uid));
             if (docSnap.exists() && docSnap.data().rol) {
                 window.currentUserRole = docSnap.data().rol;
+                document.getElementById('userDisplay').textContent = docSnap.data().nombre || user.email;
+            } else {
+                document.getElementById('userDisplay').textContent = user.email;
             }
-        } catch (e) { /* default to visor */ }
+        } catch (e) { 
+            document.getElementById('userDisplay').textContent = user.email;
+            /* default to visor */ }
 
         authCheck.style.display = 'none';
         appSection.style.display = 'block';
@@ -42,11 +47,8 @@ onAuthStateChanged(auth, async (user) => {
             document.getElementById('equipoContent').innerHTML = `<p style="color: #c0392b;">No se especificó un ID de equipo.</p>`;
         }
     } else {
-        authCheck.innerHTML = `
-            <h2 style="color: #c0392b;">Acceso Denegado</h2>
-            <p>Debe iniciar sesión para ver los detalles de un equipo.</p>
-            <a href="index.html" class="btn-primary" style="text-decoration: none; margin-top: 20px;">Ir a la página de inicio de sesión</a>
-        `;
+        authCheck.style.display = 'block';
+        appSection.style.display = 'none';
     }
 });
 
@@ -343,3 +345,18 @@ window.eliminarVerificacion = async function(equipoId, docId) {
         }
     }
 };
+
+document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const pass = document.getElementById('loginPass').value;
+    try {
+        await signInWithEmailAndPassword(auth, email, pass);
+    } catch (error) {
+        alert("Error al iniciar sesión: " + error.message);
+    }
+});
+
+document.getElementById('btnLogout')?.addEventListener('click', async () => {
+    await signOut(auth);
+});
