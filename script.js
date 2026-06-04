@@ -562,9 +562,6 @@ onAuthStateChanged(auth, async (user) => {
         window.aplicarPermisosVisuales(window.currentUserRole);
         if (typeof window.inicializarEquipos === 'function') {
             await window.inicializarEquipos();
-            if (typeof window.handleDeepLink === 'function') {
-                window.handleDeepLink();
-            }
         }
     } else {
         // Sin sesión: mostrar login, ocultar app
@@ -2276,8 +2273,8 @@ window.generarQR = function(equipoId, equipoNombre) {
     if (!modal || !title || !qrContainer || !linkInput) return;
 
     // Apuntar siempre a la URL de producción en GitHub Pages para que el QR sea universal
-    const GITHUB_PAGES_URL = 'https://jrodriguezfe.github.io/labcttc/index.html';
-    const url = `${GITHUB_PAGES_URL}#equipo=${equipoId}`;
+    const GITHUB_PAGES_URL = 'https://jrodriguezfe.github.io/labcttc/equipo.html';
+    const url = `${GITHUB_PAGES_URL}?id=${equipoId}`;
     
     title.innerText = `QR para: ${equipoNombre}`;
     linkInput.value = url;
@@ -2308,23 +2305,6 @@ window.addEventListener('click', (event) => {
         modal.style.display = 'none';
     }
 });
-
-window.handleDeepLink = function() {
-    const hash = window.location.hash;
-    if (hash && hash.startsWith('#equipo=')) {
-        const equipoId = hash.substring(8);
-        
-        setTimeout(() => {
-            const equipoContainer = document.getElementById(`equipo-container-${equipoId}`);
-            if (equipoContainer) {
-                const header = equipoContainer.querySelector('[onclick^="window.openEquipoModal"]');
-                if (header) {
-                    header.click(); // Dispara la apertura del modal
-                }
-            }
-        }, 500);
-    }
-};
 
 // --- Lógica del Modal de Equipos ---
 let currentModalContent = null;
