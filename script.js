@@ -2454,6 +2454,244 @@ document.getElementById('btnGuardarFichaSaca')?.addEventListener('click', async 
     await guardarFichaEquipo('sacabocado', data);
 });
 
+const inspectionTasks = [
+    "VERIFICAR LA LIMPIEZA DEL PROTECTOR DE ACRILICO",
+    "VERIFICAR LA LIMPIEZA DE LA CUBIERTA TRANSPARENTE DE LA BALANZA",
+    "VERIFICAR LA LIMPIEZA DEL PLATILLO CIRCULAR, SOPORTE DE 3 PUNTAS, ARO Y PLATILLO INTERNO",
+    "VERIFICAR LA LIMPIEZA DE LA BASE DE LA CAMARA Y EL RIEL DE LA PUERTA",
+    "",
+    "",
+    ""
+];
+const inspectionMonths = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+
+function generateInspectionTable(containerId, equipoId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    let headerHtml = `
+        <div style="text-align: center; font-weight: bold;">LABORATORIO DE ENSAYOS TEXTILES</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span></span>
+            <span>pág. 1 de 2</span>
+        </div>
+        <div style="text-align: center; font-weight: bold; margin-bottom: 15px;">PROGRAMA DE INSPECCIÓN, MANTENIMIENTO PREVENTIVO Y VERIFICACIÓN</div>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.8em; margin-bottom: 15px;" border="1">
+            <tr>
+                <td style="padding: 4px;"><b>EQUIPO</b></td>
+                <td colspan="10" style="padding: 4px;">BALANZA ANALITICA Serie PR - OHAUS - PR224ZH</td>
+                <td style="padding: 4px;"><b>CÓDIGO</b></td>
+                <td colspan="5" style="padding: 4px;">LabT-157-23</td>
+            </tr>
+            <tr>
+                <td style="padding: 4px;"><b>No. INVENTARIO</b></td>
+                <td colspan="10" style="padding: 4px;"><input type="text" id="insp-inventario-${equipoId}" style="width: 100%; border: none; background: transparent;"></td>
+                <td style="padding: 4px;"><b>AÑO</b></td>
+                <td colspan="5" style="padding: 4px;"><input type="number" id="insp-year-${equipoId}" value="${new Date().getFullYear()}" style="width: 80px; border: none; background: transparent; font-weight: bold;"></td>
+            </tr>
+            <tr>
+                <td style="padding: 4px;"><b>No. SERIE</b></td>
+                <td colspan="10" style="padding: 4px;"><input type="text" id="insp-serie-${equipoId}" value="C134798453" style="width: 100%; border: none; background: transparent;"></td>
+                <td colspan="6"></td>
+            </tr>
+        </table>
+    `;
+
+    let tableHeader = `
+        <thead>
+            <tr>
+                <th rowspan="2">Nº</th>
+                <th rowspan="2" style="min-width: 250px;">TAREAS</th>
+                <th rowspan="2">FREC.</th>
+                ${inspectionMonths.map(m => `<th colspan="4">${m}</th>`).join('')}
+            </tr>
+            <tr>
+                ${inspectionMonths.map(() => `<th>1</th><th>2</th><th>3</th><th>4</th>`).join('')}
+            </tr>
+        </thead>
+    `;
+
+    let tableBody = '<tbody>';
+    inspectionTasks.forEach((task, index) => {
+        tableBody += `<tr data-task-id="${index + 1}">`;
+        tableBody += `<td>${index + 1}</td>`;
+        tableBody += `<td style="text-align: left; padding: 4px;">${task}</td>`;
+        tableBody += `<td>${task ? 'S' : ''}</td>`;
+        if (task) {
+            inspectionMonths.forEach(month => {
+                for (let week = 1; week <= 4; week++) {
+                    tableBody += `<td><span class="insp-status" data-task="${index + 1}" data-month="${month}" data-week="${week}" style="cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 20px;">O</span></td>`;
+                }
+            });
+        } else {
+            tableBody += `<td colspan="${inspectionMonths.length * 4}"></td>`;
+        }
+        tableBody += `</tr>`;
+    });
+    tableBody += '</tbody>';
+
+    let tableFooter = '<tfoot>';
+    tableFooter += '<tr><td colspan="3" style="text-align: left; font-weight: bold; padding: 4px;">FECHA DE LA EJECUCIÓN DEL PROGRAMA (Según tarea)</td>';
+    inspectionMonths.forEach(month => {
+        for (let week = 1; week <= 4; week++) {
+            tableFooter += `<td><input type="text" class="insp-date" data-month="${month}" data-week="${week}" style="width: 100%; border: none; font-size: 0.9em; text-align: center; box-sizing: border-box;"></td>`;
+        }
+    });
+    tableFooter += '</tr>';
+    tableFooter += '<tr><td colspan="3" style="text-align: left; font-weight: bold; padding: 4px;">FIRMA DEL RESPONSABLE DE LA EJECUCIÓN DEL PROGRAMA</td>';
+    inspectionMonths.forEach(month => {
+        for (let week = 1; week <= 4; week++) {
+            tableFooter += `<td><input type="text" class="insp-signature" data-month="${month}" data-week="${week}" style="width: 100%; border: none; font-size: 0.9em; text-align: center; box-sizing: border-box;"></td>`;
+        }
+    });
+    tableFooter += '</tr>';
+    tableFooter += '</tfoot>';
+
+    let footerHtml = `
+        <div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.8em; flex-wrap: wrap; gap: 15px;">
+            <div style="flex: 2; min-width: 250px;">
+                <b>OBSERVACIONES:</b>
+                <textarea id="insp-observaciones-${equipoId}" style="width: 95%; height: 60px; margin-top: 5px; box-sizing: border-box;"></textarea>
+            </div>
+            <div style="flex: 1; min-width: 120px;">
+                <b>FRECUENCIA:</b><br>D = Diario<br>S = Semanal<br>Q = Quincenal<br>M = mensual<br>T = Trimestral<br>Sm = Semestral<br>A = Anual
+            </div>
+            <div style="flex: 1; min-width: 100px;">
+                <b>CLAVE:</b><br>V = Conforme<br>X = Con falla<br>O = Pendiente
+            </div>
+        </div>
+        <div style="margin-top: 10px; font-size: 0.7em;">F015-SEN-DIRE-25</div>
+        ${window.currentUserRole !== 'visor' ? `<button type="button" id="btnGuardarInspeccion-${equipoId}" class="btn-primary" style="margin-top: 15px; cursor: pointer;">Guardar Programa</button>` : ''}
+    `;
+
+    container.innerHTML = `
+        ${headerHtml}
+        <div style="overflow-x: auto;">
+            <table id="tablaInspeccion-${equipoId}" style="width: 100%; border-collapse: collapse; font-size: 0.75em; text-align: center;" border="1">
+                ${tableHeader}
+                ${tableBody}
+                ${tableFooter}
+            </table>
+        </div>
+        ${footerHtml}
+    `;
+
+    if (window.currentUserRole !== 'visor') {
+        container.querySelectorAll('.insp-status').forEach(span => {
+            span.addEventListener('click', () => {
+                switch (span.innerText) {
+                    case 'O': span.innerText = 'V'; span.style.color = '#217346'; break;
+                    case 'V': span.innerText = 'X'; span.style.color = '#c0392b'; break;
+                    case 'X': span.innerText = 'O'; span.style.color = 'black'; break;
+                }
+            });
+        });
+
+        const saveBtn = document.getElementById(`btnGuardarInspeccion-${equipoId}`);
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => guardarProgramaInspeccion(equipoId));
+        }
+    }
+}
+
+async function guardarProgramaInspeccion(equipoId) {
+    const container = document.getElementById(`mantenimientoOhaus`);
+    if (!container) return;
+
+    const programData = {
+        year: document.getElementById(`insp-year-${equipoId}`).value,
+        inventario: document.getElementById(`insp-inventario-${equipoId}`).value,
+        serie: document.getElementById(`insp-serie-${equipoId}`).value,
+        tasks: {},
+        dates: {},
+        signatures: {},
+        observations: document.getElementById(`insp-observaciones-${equipoId}`).value,
+        lastUpdated: new Date().toISOString()
+    };
+
+    container.querySelectorAll('.insp-status').forEach(span => {
+        const task = span.dataset.task;
+        const month = span.dataset.month;
+        const week = span.dataset.week;
+        if (!programData.tasks[task]) programData.tasks[task] = {};
+        if (!programData.tasks[task][month]) programData.tasks[task][month] = {};
+        programData.tasks[task][month][week] = span.innerText;
+    });
+
+    container.querySelectorAll('.insp-date').forEach(input => {
+        const month = input.dataset.month;
+        const week = input.dataset.week;
+        if (!programData.dates[month]) programData.dates[month] = {};
+        programData.dates[month][week] = input.value;
+    });
+
+    container.querySelectorAll('.insp-signature').forEach(input => {
+        const month = input.dataset.month;
+        const week = input.dataset.week;
+        if (!programData.signatures[month]) programData.signatures[month] = {};
+        programData.signatures[month][week] = input.value;
+    });
+
+    try {
+        await updateDoc(doc(db, "equipos", equipoId), { inspectionProgram: programData });
+        alert("Programa de inspección guardado exitosamente.");
+    } catch (error) {
+        console.error("Error al guardar el programa de inspección: ", error);
+        alert("Error al guardar: " + error.message);
+    }
+}
+
+async function cargarProgramaInspeccion(equipoId) {
+    const docSnap = await getDoc(doc(db, "equipos", equipoId));
+    if (!docSnap.exists() || !docSnap.data().inspectionProgram) {
+        return;
+    }
+    const programData = docSnap.data().inspectionProgram;
+    const container = document.getElementById(`mantenimientoOhaus`);
+    if (!container) return;
+
+    if (programData.year) document.getElementById(`insp-year-${equipoId}`).value = programData.year;
+    if (programData.inventario) document.getElementById(`insp-inventario-${equipoId}`).value = programData.inventario;
+    if (programData.serie) document.getElementById(`insp-serie-${equipoId}`).value = programData.serie;
+    if (programData.observations) document.getElementById(`insp-observaciones-${equipoId}`).value = programData.observations;
+
+    if (programData.tasks) {
+        for (const task in programData.tasks) {
+            for (const month in programData.tasks[task]) {
+                for (const week in programData.tasks[task][month]) {
+                    const status = programData.tasks[task][month][week];
+                    const span = container.querySelector(`.insp-status[data-task="${task}"][data-month="${month}"][data-week="${week}"]`);
+                    if (span) {
+                        span.innerText = status;
+                        if (status === 'V') span.style.color = '#217346';
+                        else if (status === 'X') span.style.color = '#c0392b';
+                        else span.style.color = 'black';
+                    }
+                }
+            }
+        }
+    }
+
+    if (programData.dates) {
+        for (const month in programData.dates) {
+            for (const week in programData.dates[month]) {
+                const input = container.querySelector(`.insp-date[data-month="${month}"][data-week="${week}"]`);
+                if (input) input.value = programData.dates[month][week];
+            }
+        }
+    }
+
+    if (programData.signatures) {
+        for (const month in programData.signatures) {
+            for (const week in programData.signatures[month]) {
+                const input = container.querySelector(`.insp-signature[data-month="${month}"][data-week="${week}"]`);
+                if (input) input.value = programData.signatures[month][week];
+            }
+        }
+    }
+}
+
 window.inicializarEquipos = async function() {
     const bindData = (idSuffix, data) => ['Marca', 'Modelo', 'Serie', 'Ubicacion', 'Rango', 'Resolucion'].forEach(k => { if (data[k.toLowerCase()] && document.getElementById(idSuffix + k)) document.getElementById(idSuffix + k).value = data[k.toLowerCase()]; });
     const d1 = await cargarFichaEquipo('ohaus_labt_157_23'); if (d1) bindData('ohaus', d1);
@@ -2463,6 +2701,10 @@ window.inicializarEquipos = async function() {
     cargarVerificaciones('ohaus_labt_157_23');
     llenarDesplegablesVerificacion();
     cargarAnalistasDropdown();
+
+    // Generate and load inspection program for Ohaus
+    generateInspectionTable('mantenimientoOhaus', 'ohaus_labt_157_23');
+    await cargarProgramaInspeccion('ohaus_labt_157_23');
 
     // Listeners para equipos estáticos
     document.getElementById('btn-eliminar-equipo-ohaus_labt_157_23')?.addEventListener('click', () => {
@@ -2568,11 +2810,11 @@ document.getElementById('formVerificacionOhaus')?.addEventListener('submit', asy
 window.graficosEquipos = {};
 
 async function cargarVerificaciones(equipoId) {
-    const tbody = document.getElementById(`historial-verificaciones-${equipoId}`);
+    const tbody = document.getElementById(equipoId === 'ohaus_labt_157_23' ? 'historialVerificacionesOhaus' : `historial-verificaciones-${equipoId}`);
     if (!tbody) return;
     try {
         const colRefVerif = collection(db, `equipos/${equipoId}/verificaciones`);
-        const qVerif = query(colRefVerif, orderBy("fecha", "desc"), orderBy("hora", "desc"));
+        const qVerif = query(colRefVerif, orderBy("fecha", "desc"));
         const snapshot = await getDocs(qVerif);
         if (snapshot.empty && equipoId === 'ohaus_labt_157_23') {
             await seedVerificacionesEjemplo(equipoId);
@@ -2594,12 +2836,27 @@ function renderVerificacionesTable(equipoId, snapshot) {
     const docs = [];
     snapshot.forEach(docSnap => {
         const data = docSnap.data();
+        data.id = docSnap.id; // Keep the document ID
         docs.push(data);
+    });
+
+    // Client-side sorting to avoid needing a composite index in Firestore
+    docs.sort((a, b) => {
+        const dateComparison = (b.fecha || '').localeCompare(a.fecha || '');
+        if (dateComparison !== 0) return dateComparison;
+        return (b.hora || '').localeCompare(a.hora || '');
+    });
+
+    if (docs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="21" style="padding: 8px; color: #888;">Aún no hay registros.</td></tr>';
+    } else {
+        docs.forEach(data => {
         const colorObs = (obs) => obs === 'No Conforme' ? 'color: #c0392b; font-weight: bold;' : (obs === 'Conforme' ? 'color: #217346; font-weight: bold;' : '');
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td style="padding: 5px;">${data.fecha || '-'}</td><td style="padding: 5px;">${data.hora || '-'}</td><td style="padding: 5px;">${data.temp ? data.temp + ' ºC' : '-'}</td><td style="padding: 5px;">${data.hr ? data.hr + '%' : '-'}</td><td style="padding: 5px;">${formatear(data.v1g_p1)}</td><td style="padding: 5px;">${formatear(data.v1g_p2)}</td><td style="padding: 5px;">${formatear(data.v1g_p3)}</td><td style="padding: 5px;">${formatear(data.v1g_rango)}</td><td style="padding: 5px; ${colorObs(data.v1g_obs)}">${data.v1g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v10g_p1)}</td><td style="padding: 5px;">${formatear(data.v10g_p2)}</td><td style="padding: 5px;">${formatear(data.v10g_p3)}</td><td style="padding: 5px;">${formatear(data.v10g_rango)}</td><td style="padding: 5px; ${colorObs(data.v10g_obs)}">${data.v10g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v100g_p1)}</td><td style="padding: 5px;">${formatear(data.v100g_p2)}</td><td style="padding: 5px;">${formatear(data.v100g_p3)}</td><td style="padding: 5px;">${formatear(data.v100g_rango)}</td><td style="padding: 5px; ${colorObs(data.v100g_obs)}">${data.v100g_obs || '-'}</td><td style="padding: 5px;">${data.responsable || '-'}</td><td style="padding: 5px;" class="no-export">${window.currentUserRole === 'visor' ? '<span style="color:#888;">Lectura</span>' : `<button class="delete-btn" style="padding: 2px 5px; font-size: 0.8em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px;" onclick="window.eliminarVerificacion('${equipoId}', '${docSnap.id}')">Eliminar</button>`}</td>`;
+            tr.innerHTML = `<td style="padding: 5px;">${data.fecha || '-'}</td><td style="padding: 5px;">${data.hora || '-'}</td><td style="padding: 5px;">${data.temp ? data.temp + ' ºC' : '-'}</td><td style="padding: 5px;">${data.hr ? data.hr + '%' : '-'}</td><td style="padding: 5px;">${formatear(data.v1g_p1)}</td><td style="padding: 5px;">${formatear(data.v1g_p2)}</td><td style="padding: 5px;">${formatear(data.v1g_p3)}</td><td style="padding: 5px;">${formatear(data.v1g_rango)}</td><td style="padding: 5px; ${colorObs(data.v1g_obs)}">${data.v1g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v10g_p1)}</td><td style="padding: 5px;">${formatear(data.v10g_p2)}</td><td style="padding: 5px;">${formatear(data.v10g_p3)}</td><td style="padding: 5px;">${formatear(data.v10g_rango)}</td><td style="padding: 5px; ${colorObs(data.v10g_obs)}">${data.v10g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v100g_p1)}</td><td style="padding: 5px;">${formatear(data.v100g_p2)}</td><td style="padding: 5px;">${formatear(data.v100g_p3)}</td><td style="padding: 5px;">${formatear(data.v100g_rango)}</td><td style="padding: 5px; ${colorObs(data.v100g_obs)}">${data.v100g_obs || '-'}</td><td style="padding: 5px;">${data.responsable || '-'}</td><td style="padding: 5px;" class="no-export">${window.currentUserRole === 'visor' ? '<span style="color:#888;">Lectura</span>' : `<button class="delete-btn" style="padding: 2px 5px; font-size: 0.8em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px;" onclick="window.eliminarVerificacion('${equipoId}', '${data.id}')">Eliminar</button>`}</td>`;
         tbody.appendChild(tr);
-    });
+        });
+    }
     renderGraficoTendencia(equipoId, docs);
 }
 

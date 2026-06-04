@@ -252,7 +252,7 @@ async function cargarVerificaciones(equipoId) {
     const tbody = document.getElementById(`historial-verificaciones-${equipoId}`);
     if (!tbody) return;
     try {
-        const qVerif = query(collection(db, `equipos/${equipoId}/verificaciones`), orderBy("fecha", "desc"), orderBy("hora", "desc"));
+        const qVerif = query(collection(db, `equipos/${equipoId}/verificaciones`), orderBy("fecha", "desc"));
         const snapshot = await getDocs(qVerif);
         renderVerificacionesTable(equipoId, snapshot);
     } catch (error) {
@@ -269,12 +269,27 @@ function renderVerificacionesTable(equipoId, snapshot) {
     const docs = [];
     snapshot.forEach(docSnap => {
         const data = docSnap.data();
+        data.id = docSnap.id; // Keep the document ID
         docs.push(data);
+    });
+
+    // Client-side sorting to avoid needing a composite index in Firestore
+    docs.sort((a, b) => {
+        const dateComparison = (b.fecha || '').localeCompare(a.fecha || '');
+        if (dateComparison !== 0) return dateComparison;
+        return (b.hora || '').localeCompare(a.hora || '');
+    });
+
+    if (docs.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="21" style="padding: 8px; color: #888;">Aún no hay registros.</td></tr>';
+    } else {
+        docs.forEach(data => {
         const colorObs = (obs) => obs === 'No Conforme' ? 'color: #c0392b; font-weight: bold;' : (obs === 'Conforme' ? 'color: #217346; font-weight: bold;' : '');
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td style="padding: 5px;">${data.fecha || '-'}</td><td style="padding: 5px;">${data.hora || '-'}</td><td style="padding: 5px;">${data.temp ? data.temp + ' ºC' : '-'}</td><td style="padding: 5px;">${data.hr ? data.hr + '%' : '-'}</td><td style="padding: 5px;">${formatear(data.v1g_p1)}</td><td style="padding: 5px;">${formatear(data.v1g_p2)}</td><td style="padding: 5px;">${formatear(data.v1g_p3)}</td><td style="padding: 5px;">${formatear(data.v1g_rango)}</td><td style="padding: 5px; ${colorObs(data.v1g_obs)}">${data.v1g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v10g_p1)}</td><td style="padding: 5px;">${formatear(data.v10g_p2)}</td><td style="padding: 5px;">${formatear(data.v10g_p3)}</td><td style="padding: 5px;">${formatear(data.v10g_rango)}</td><td style="padding: 5px; ${colorObs(data.v10g_obs)}">${data.v10g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v100g_p1)}</td><td style="padding: 5px;">${formatear(data.v100g_p2)}</td><td style="padding: 5px;">${formatear(data.v100g_p3)}</td><td style="padding: 5px;">${formatear(data.v100g_rango)}</td><td style="padding: 5px; ${colorObs(data.v100g_obs)}">${data.v100g_obs || '-'}</td><td style="padding: 5px;">${data.responsable || '-'}</td><td style="padding: 5px;" class="no-export">${window.currentUserRole === 'visor' ? '<span style="color:#888;">Lectura</span>' : `<button class="delete-btn" style="padding: 2px 5px; font-size: 0.8em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px;" onclick="eliminarVerificacion('${equipoId}', '${docSnap.id}')">Eliminar</button>`}</td>`;
+            tr.innerHTML = `<td style="padding: 5px;">${data.fecha || '-'}</td><td style="padding: 5px;">${data.hora || '-'}</td><td style="padding: 5px;">${data.temp ? data.temp + ' ºC' : '-'}</td><td style="padding: 5px;">${data.hr ? data.hr + '%' : '-'}</td><td style="padding: 5px;">${formatear(data.v1g_p1)}</td><td style="padding: 5px;">${formatear(data.v1g_p2)}</td><td style="padding: 5px;">${formatear(data.v1g_p3)}</td><td style="padding: 5px;">${formatear(data.v1g_rango)}</td><td style="padding: 5px; ${colorObs(data.v1g_obs)}">${data.v1g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v10g_p1)}</td><td style="padding: 5px;">${formatear(data.v10g_p2)}</td><td style="padding: 5px;">${formatear(data.v10g_p3)}</td><td style="padding: 5px;">${formatear(data.v10g_rango)}</td><td style="padding: 5px; ${colorObs(data.v10g_obs)}">${data.v10g_obs || '-'}</td><td style="padding: 5px;">${formatear(data.v100g_p1)}</td><td style="padding: 5px;">${formatear(data.v100g_p2)}</td><td style="padding: 5px;">${formatear(data.v100g_p3)}</td><td style="padding: 5px;">${formatear(data.v100g_rango)}</td><td style="padding: 5px; ${colorObs(data.v100g_obs)}">${data.v100g_obs || '-'}</td><td style="padding: 5px;">${data.responsable || '-'}</td><td style="padding: 5px;" class="no-export">${window.currentUserRole === 'visor' ? '<span style="color:#888;">Lectura</span>' : `<button class="delete-btn" style="padding: 2px 5px; font-size: 0.8em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px;" onclick="eliminarVerificacion('${equipoId}', '${data.id}')">Eliminar</button>`}</td>`;
         tbody.appendChild(tr);
-    });
+        });
+    }
     renderGraficoTendencia(equipoId, docs);
 }
 
