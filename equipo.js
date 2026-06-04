@@ -133,11 +133,11 @@ function adjuntarListenersParaEquipo(equipoId) {
             fecha: document.getElementById(`verif-fecha-${equipoId}`).value, hora: document.getElementById(`verif-hora-${equipoId}`).value,
             temp: document.getElementById(`verif-temp-${equipoId}`).value, hr: document.getElementById(`verif-hr-${equipoId}`).value,
             responsable: document.getElementById(`verif-resp-${equipoId}`).value,
-            v1g_p1: document.querySelector(`.verif-1g-${equipoId}:nth-child(1) input`)?.value, v1g_p2: document.querySelector(`.verif-1g-${equipoId}:nth-child(2) input`)?.value, v1g_p3: document.querySelector(`.verif-1g-${equipoId}:nth-child(3) input`)?.value,
+            v1g_p1: document.querySelectorAll(`.verif-1g-${equipoId}`)[0]?.value, v1g_p2: document.querySelectorAll(`.verif-1g-${equipoId}`)[1]?.value, v1g_p3: document.querySelectorAll(`.verif-1g-${equipoId}`)[2]?.value,
             v1g_rango: document.getElementById(`verif-1g-rango-${equipoId}`).value, v1g_obs: document.getElementById(`verif-1g-obs-${equipoId}`).value,
-            v10g_p1: document.querySelector(`.verif-10g-${equipoId}:nth-child(1) input`)?.value, v10g_p2: document.querySelector(`.verif-10g-${equipoId}:nth-child(2) input`)?.value, v10g_p3: document.querySelector(`.verif-10g-${equipoId}:nth-child(3) input`)?.value,
+            v10g_p1: document.querySelectorAll(`.verif-10g-${equipoId}`)[0]?.value, v10g_p2: document.querySelectorAll(`.verif-10g-${equipoId}`)[1]?.value, v10g_p3: document.querySelectorAll(`.verif-10g-${equipoId}`)[2]?.value,
             v10g_rango: document.getElementById(`verif-10g-rango-${equipoId}`).value, v10g_obs: document.getElementById(`verif-10g-obs-${equipoId}`).value,
-            v100g_p1: document.querySelector(`.verif-100g-${equipoId}:nth-child(1) input`)?.value, v100g_p2: document.querySelector(`.verif-100g-${equipoId}:nth-child(2) input`)?.value, v100g_p3: document.querySelector(`.verif-100g-${equipoId}:nth-child(3) input`)?.value,
+            v100g_p1: document.querySelectorAll(`.verif-100g-${equipoId}`)[0]?.value, v100g_p2: document.querySelectorAll(`.verif-100g-${equipoId}`)[1]?.value, v100g_p3: document.querySelectorAll(`.verif-100g-${equipoId}`)[2]?.value,
             v100g_rango: document.getElementById(`verif-100g-rango-${equipoId}`).value, v100g_obs: document.getElementById(`verif-100g-obs-${equipoId}`).value,
             createdAt: new Date().toISOString()
         };
