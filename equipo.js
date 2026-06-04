@@ -17,6 +17,22 @@ const auth = getAuth(app);
 window.graficosEquipos = {};
 window.currentUserRole = 'visor';
 
+window.toggleSection = function(contentId, headerElement) {
+    const content = document.getElementById(contentId);
+    const icon = headerElement.querySelector('span:last-child');
+    if (content.style.display === 'none') {
+        content.style.display = 'block';
+        if (icon) icon.innerText = '▼';
+        if (contentId.startsWith('verificacion-') && typeof setFechaHoraActual === 'function') {
+            const equipoId = contentId.replace('verificacion-', '');
+            setFechaHoraActual(equipoId);
+        }
+    } else {
+        content.style.display = 'none';
+        if (icon) icon.innerText = '▶';
+    }
+};
+
 onAuthStateChanged(auth, async (user) => {
     const authCheck = document.getElementById('auth-check');
     const appSection = document.getElementById('appSection');
@@ -70,6 +86,11 @@ async function loadEquipoView(equipoId) {
     
     adjuntarListenersParaEquipo(equipoId);
     
+    if (equipoId === 'ohaus_labt_157_23') {
+        generateInspectionTable(`mantenimiento-${equipoId}`, equipoId);
+        await cargarProgramaInspeccion(equipoId);
+    }
+    
     await cargarVerificaciones(equipoId);
     llenarDesplegablesVerificacion(equipoId);
     await cargarAnalistasDropdown(equipoId);
@@ -78,9 +99,21 @@ async function loadEquipoView(equipoId) {
 
 function crearVistaEquipoHTML(equipoId, equipoNombre) {
     const puedeEditar = window.currentUserRole === 'admin' || window.currentUserRole === 'analista';
+
+    const mantenimientoHTML = equipoId === 'ohaus_labt_157_23' ? `
+        <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="window.toggleSection('mantenimiento-${equipoId}', this)">
+            <span>1.1 Programa de Mantenimiento</span>
+            <span style="font-size: 0.8em;">▶</span>
+        </h4>
+        <div id="mantenimiento-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"></div>
+    ` : '';
+
     return `
-        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">1. Ficha de equipo</h4>
-        <div id="ficha-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+        <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="window.toggleSection('ficha-${equipoId}', this)">
+            <span>1. Ficha de equipo</span>
+            <span style="font-size: 0.8em;">▶</span>
+        </h4>
+        <div id="ficha-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
             <form id="form-ficha-${equipoId}" style="display: flex; flex-direction: column; gap: 15px;">
                 <div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1; min-width: 200px;"><label>Marca:</label><input type="text" id="${equipoId}-marca" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div><div style="flex: 1; min-width: 200px;"><label>Modelo:</label><input type="text" id="${equipoId}-modelo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div></div>
                 <div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1; min-width: 200px;"><label>N° Serie:</label><input type="text" id="${equipoId}-serie" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div><div style="flex: 1; min-width: 200px;"><label>Ubicación:</label><input type="text" id="${equipoId}-ubicacion" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div></div>
@@ -88,8 +121,12 @@ function crearVistaEquipoHTML(equipoId, equipoNombre) {
                 ${puedeEditar ? `<button type="button" id="btn-guardar-ficha-${equipoId}" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Guardar Ficha</button>` : ''}
             </form>
         </div>
-        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">2. Registro de verificación</h4>
-        <div id="verificacion-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+        ${mantenimientoHTML}
+        <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="window.toggleSection('verificacion-${equipoId}', this)">
+            <span>2. Registro de verificación</span>
+            <span style="font-size: 0.8em;">▶</span>
+        </h4>
+        <div id="verificacion-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
             ${puedeEditar ? `<form id="form-verificacion-${equipoId}" style="display: flex; flex-direction: column; gap: 15px;">
                 <div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1; min-width: 150px;"><label>Fecha:</label><input type="date" id="verif-fecha-${equipoId}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-top: 5px;"></div><div style="flex: 1; min-width: 100px;"><label>Hora:</label><input type="time" id="verif-hora-${equipoId}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-top: 5px;"></div><div style="flex: 1; min-width: 100px;"><label>T (°C):</label><select id="verif-temp-${equipoId}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-top: 5px; background: white;"></select></div><div style="flex: 1; min-width: 100px;"><label>H.R (%):</label><select id="verif-hr-${equipoId}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-top: 5px; background: white;"></select></div><div style="flex: 1; min-width: 150px;"><label>Responsable:</label><select id="verif-resp-${equipoId}" required style="width: 100%; padding: 8px; border: 1px solid #ccc; margin-top: 5px; background: white;"></select></div></div>
                 <fieldset style="border: 1px solid #ccc; padding: 10px;"><legend>VERIFICACIÓN (1.0000 g) - EMP ± 0.001 g</legend><div style="display: flex; gap: 15px; flex-wrap: wrap;"><div style="flex: 1;"><label>P1:</label><input type="number" step="0.0001" id="verif-1g-p1-${equipoId}" class="verif-1g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>P2:</label><input type="number" step="0.0001" id="verif-1g-p2-${equipoId}" class="verif-1g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>P3:</label><input type="number" step="0.0001" id="verif-1g-p3-${equipoId}" class="verif-1g-${equipoId}" required style="width: 100%; padding: 8px;"></div><div style="flex: 1;"><label>Rango:</label><input type="text" id="verif-1g-rango-${equipoId}" readonly style="width: 100%; padding: 8px; background: #eef;"></div><div style="flex: 2;"><label>Obs.:</label><input type="text" id="verif-1g-obs-${equipoId}" value="----" style="width: 100%; padding: 8px;"></div></div></fieldset>
@@ -102,9 +139,21 @@ function crearVistaEquipoHTML(equipoId, equipoNombre) {
             <h5 style="margin-top: 25px;">Tendencias de Verificaciones</h5>
             <div><canvas id="grafico-tendencia-${equipoId}" height="80"></canvas></div>
         </div>
-        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">3. Manual de equipo</h4><div id="manual-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><a href="https://drive.google.com/file/d/1ACJuAaBqiNLJi8JZLel762rrJ_zkh7MN/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a></div>
-        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">4. Certificado de calibración</h4><div id="certificado-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><a href="https://drive.google.com/file/d/1aA9osU4hcFoxvxA8FL9WEDqYgeYYP0H-/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a></div>
-        <h4 style="color: #004a8f; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;">5. Procedimiento para el equipo</h4><div id="procedimiento-${equipoId}" style="padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><a href="https://drive.google.com/file/d/1QZnGJcdVCQjl8uMwnh7IwtS-WrMimF1r/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a></div>
+        <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="window.toggleSection('manual-${equipoId}', this)">
+            <span>3. Manual de equipo</span>
+            <span style="font-size: 0.8em;">▶</span>
+        </h4>
+        <div id="manual-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><a href="https://drive.google.com/file/d/1ACJuAaBqiNLJi8JZLel762rrJ_zkh7MN/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a></div>
+        <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="window.toggleSection('certificado-${equipoId}', this)">
+            <span>4. Certificado de calibración</span>
+            <span style="font-size: 0.8em;">▶</span>
+        </h4>
+        <div id="certificado-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><a href="https://drive.google.com/file/d/1aA9osU4hcFoxvxA8FL9WEDqYgeYYP0H-/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a></div>
+        <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="window.toggleSection('procedimiento-${equipoId}', this)">
+            <span>5. Procedimiento para el equipo</span>
+            <span style="font-size: 0.8em;">▶</span>
+        </h4>
+        <div id="procedimiento-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><a href="https://drive.google.com/file/d/1QZnGJcdVCQjl8uMwnh7IwtS-WrMimF1r/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a></div>
     `;
 }
 
@@ -360,3 +409,241 @@ document.getElementById('loginForm')?.addEventListener('submit', async (e) => {
 document.getElementById('btnLogout')?.addEventListener('click', async () => {
     await signOut(auth);
 });
+
+const inspectionTasks = [
+    "VERIFICAR LA LIMPIEZA DEL PROTECTOR DE ACRILICO",
+    "VERIFICAR LA LIMPIEZA DE LA CUBIERTA TRANSPARENTE DE LA BALANZA",
+    "VERIFICAR LA LIMPIEZA DEL PLATILLO CIRCULAR, SOPORTE DE 3 PUNTAS, ARO Y PLATILLO INTERNO",
+    "VERIFICAR LA LIMPIEZA DE LA BASE DE LA CAMARA Y EL RIEL DE LA PUERTA",
+    "",
+    "",
+    ""
+];
+const inspectionMonths = ["ENERO", "FEBRERO", "MARZO", "ABRIL", "MAYO", "JUNIO", "JULIO", "AGOSTO", "SEPTIEMBRE", "OCTUBRE", "NOVIEMBRE", "DICIEMBRE"];
+
+function generateInspectionTable(containerId, equipoId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    let headerHtml = `
+        <div style="text-align: center; font-weight: bold;">LABORATORIO DE ENSAYOS TEXTILES</div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span></span>
+            <span>pág. 1 de 2</span>
+        </div>
+        <div style="text-align: center; font-weight: bold; margin-bottom: 15px;">PROGRAMA DE INSPECCIÓN, MANTENIMIENTO PREVENTIVO Y VERIFICACIÓN</div>
+        
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.8em; margin-bottom: 15px;" border="1">
+            <tr>
+                <td style="padding: 4px;"><b>EQUIPO</b></td>
+                <td colspan="10" style="padding: 4px;">BALANZA ANALITICA Serie PR - OHAUS - PR224ZH</td>
+                <td style="padding: 4px;"><b>CÓDIGO</b></td>
+                <td colspan="5" style="padding: 4px;">LabT-157-23</td>
+            </tr>
+            <tr>
+                <td style="padding: 4px;"><b>No. INVENTARIO</b></td>
+                <td colspan="10" style="padding: 4px;"><input type="text" id="insp-inventario-${equipoId}" style="width: 100%; border: none; background: transparent;"></td>
+                <td style="padding: 4px;"><b>AÑO</b></td>
+                <td colspan="5" style="padding: 4px;"><input type="number" id="insp-year-${equipoId}" value="${new Date().getFullYear()}" style="width: 80px; border: none; background: transparent; font-weight: bold;"></td>
+            </tr>
+            <tr>
+                <td style="padding: 4px;"><b>No. SERIE</b></td>
+                <td colspan="10" style="padding: 4px;"><input type="text" id="insp-serie-${equipoId}" value="C134798453" style="width: 100%; border: none; background: transparent;"></td>
+                <td colspan="6"></td>
+            </tr>
+        </table>
+    `;
+
+    let tableHeader = `
+        <thead>
+            <tr>
+                <th rowspan="2">Nº</th>
+                <th rowspan="2" style="min-width: 250px;">TAREAS</th>
+                <th rowspan="2">FREC.</th>
+                ${inspectionMonths.map(m => `<th colspan="4">${m}</th>`).join('')}
+            </tr>
+            <tr>
+                ${inspectionMonths.map(() => `<th>1</th><th>2</th><th>3</th><th>4</th>`).join('')}
+            </tr>
+        </thead>
+    `;
+
+    let tableBody = '<tbody>';
+    inspectionTasks.forEach((task, index) => {
+        tableBody += `<tr data-task-id="${index + 1}">`;
+        tableBody += `<td>${index + 1}</td>`;
+        tableBody += `<td style="text-align: left; padding: 4px;">${task}</td>`;
+        tableBody += `<td>${task ? 'S' : ''}</td>`;
+        if (task) {
+            inspectionMonths.forEach(month => {
+                for (let week = 1; week <= 4; week++) {
+                    tableBody += `<td><span class="insp-status" data-task="${index + 1}" data-month="${month}" data-week="${week}" style="cursor: pointer; font-weight: bold; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; min-height: 20px;">O</span></td>`;
+                }
+            });
+        } else {
+            tableBody += `<td colspan="${inspectionMonths.length * 4}"></td>`;
+        }
+        tableBody += `</tr>`;
+    });
+    tableBody += '</tbody>';
+
+    let tableFooter = '<tfoot>';
+    tableFooter += '<tr><td colspan="3" style="text-align: left; font-weight: bold; padding: 4px;">FECHA DE LA EJECUCIÓN DEL PROGRAMA (Según tarea)</td>';
+    inspectionMonths.forEach(month => {
+        for (let week = 1; week <= 4; week++) {
+            tableFooter += `<td><input type="text" class="insp-date" data-month="${month}" data-week="${week}" style="width: 100%; border: none; font-size: 0.9em; text-align: center; box-sizing: border-box;"></td>`;
+        }
+    });
+    tableFooter += '</tr>';
+    tableFooter += '<tr><td colspan="3" style="text-align: left; font-weight: bold; padding: 4px;">FIRMA DEL RESPONSABLE DE LA EJECUCIÓN DEL PROGRAMA</td>';
+    inspectionMonths.forEach(month => {
+        for (let week = 1; week <= 4; week++) {
+            tableFooter += `<td><input type="text" class="insp-signature" data-month="${month}" data-week="${week}" style="width: 100%; border: none; font-size: 0.9em; text-align: center; box-sizing: border-box;"></td>`;
+        }
+    });
+    tableFooter += '</tr>';
+    tableFooter += '</tfoot>';
+
+    let footerHtml = `
+        <div style="display: flex; justify-content: space-between; margin-top: 20px; font-size: 0.8em; flex-wrap: wrap; gap: 15px;">
+            <div style="flex: 2; min-width: 250px;">
+                <b>OBSERVACIONES:</b>
+                <textarea id="insp-observaciones-${equipoId}" style="width: 95%; height: 60px; margin-top: 5px; box-sizing: border-box;"></textarea>
+            </div>
+            <div style="flex: 1; min-width: 120px;">
+                <b>FRECUENCIA:</b><br>D = Diario<br>S = Semanal<br>Q = Quincenal<br>M = mensual<br>T = Trimestral<br>Sm = Semestral<br>A = Anual
+            </div>
+            <div style="flex: 1; min-width: 100px;">
+                <b>CLAVE:</b><br>V = Conforme<br>X = Con falla<br>O = Pendiente
+            </div>
+        </div>
+        <div style="margin-top: 10px; font-size: 0.7em;">F015-SEN-DIRE-25</div>
+        ${window.currentUserRole !== 'visor' ? `<button type="button" id="btnGuardarInspeccion-${equipoId}" class="btn-primary" style="margin-top: 15px; cursor: pointer;">Guardar Programa</button>` : ''}
+    `;
+
+    container.innerHTML = `
+        ${headerHtml}
+        <div style="overflow-x: auto;">
+            <table id="tablaInspeccion-${equipoId}" style="width: 100%; border-collapse: collapse; font-size: 0.75em; text-align: center;" border="1">
+                ${tableHeader}
+                ${tableBody}
+                ${tableFooter}
+            </table>
+        </div>
+        ${footerHtml}
+    `;
+
+    if (window.currentUserRole !== 'visor') {
+        container.querySelectorAll('.insp-status').forEach(span => {
+            span.addEventListener('click', () => {
+                switch (span.innerText) {
+                    case 'O': span.innerText = 'V'; span.style.color = '#217346'; break;
+                    case 'V': span.innerText = 'X'; span.style.color = '#c0392b'; break;
+                    case 'X': span.innerText = 'O'; span.style.color = 'black'; break;
+                }
+            });
+        });
+
+        const saveBtn = document.getElementById(`btnGuardarInspeccion-${equipoId}`);
+        if (saveBtn) {
+            saveBtn.addEventListener('click', () => guardarProgramaInspeccion(equipoId));
+        }
+    }
+}
+
+async function guardarProgramaInspeccion(equipoId) {
+    const container = document.getElementById(`mantenimiento-${equipoId}`);
+    if (!container) return;
+
+    const programData = {
+        year: document.getElementById(`insp-year-${equipoId}`).value,
+        inventario: document.getElementById(`insp-inventario-${equipoId}`).value,
+        serie: document.getElementById(`insp-serie-${equipoId}`).value,
+        tasks: {},
+        dates: {},
+        signatures: {},
+        observations: document.getElementById(`insp-observaciones-${equipoId}`).value,
+        lastUpdated: new Date().toISOString()
+    };
+
+    container.querySelectorAll('.insp-status').forEach(span => {
+        const task = span.dataset.task;
+        const month = span.dataset.month;
+        const week = span.dataset.week;
+        if (!programData.tasks[task]) programData.tasks[task] = {};
+        if (!programData.tasks[task][month]) programData.tasks[task][month] = {};
+        programData.tasks[task][month][week] = span.innerText;
+    });
+
+    container.querySelectorAll('.insp-date').forEach(input => {
+        const month = input.dataset.month;
+        const week = input.dataset.week;
+        if (!programData.dates[month]) programData.dates[month] = {};
+        programData.dates[month][week] = input.value;
+    });
+
+    container.querySelectorAll('.insp-signature').forEach(input => {
+        const month = input.dataset.month;
+        const week = input.dataset.week;
+        if (!programData.signatures[month]) programData.signatures[month] = {};
+        programData.signatures[month][week] = input.value;
+    });
+
+    try {
+        await updateDoc(doc(db, "equipos", equipoId), { inspectionProgram: programData });
+        alert("Programa de inspección guardado exitosamente.");
+    } catch (error) {
+        console.error("Error al guardar el programa de inspección: ", error);
+        alert("Error al guardar: " + error.message);
+    }
+}
+
+async function cargarProgramaInspeccion(equipoId) {
+    const docSnap = await getDoc(doc(db, "equipos", equipoId));
+    if (!docSnap.exists() || !docSnap.data().inspectionProgram) {
+        return;
+    }
+    const programData = docSnap.data().inspectionProgram;
+    const container = document.getElementById(`mantenimiento-${equipoId}`);
+    if (!container) return;
+
+    if (programData.year) document.getElementById(`insp-year-${equipoId}`).value = programData.year;
+    if (programData.inventario) document.getElementById(`insp-inventario-${equipoId}`).value = programData.inventario;
+    if (programData.serie) document.getElementById(`insp-serie-${equipoId}`).value = programData.serie;
+    if (programData.observations) document.getElementById(`insp-observaciones-${equipoId}`).value = programData.observations;
+
+    if (programData.tasks) {
+        for (const task in programData.tasks) {
+            for (const month in programData.tasks[task]) {
+                for (const week in programData.tasks[task][month]) {
+                    const status = programData.tasks[task][month][week];
+                    const span = container.querySelector(`.insp-status[data-task="${task}"][data-month="${month}"][data-week="${week}"]`);
+                    if (span) {
+                        span.innerText = status;
+                        if (status === 'V') span.style.color = '#217346';
+                        else if (status === 'X') span.style.color = '#c0392b';
+                        else span.style.color = 'black';
+                    }
+                }
+            }
+        }
+    }
+
+    if (programData.dates) {
+        for (const month in programData.dates) {
+            for (const week in programData.dates[month]) {
+                const input = container.querySelector(`.insp-date[data-month="${month}"][data-week="${week}"]`);
+                if (input) input.value = programData.dates[month][week];
+            }
+        }
+    }
+
+    if (programData.signatures) {
+        for (const month in programData.signatures) {
+            for (const week in programData.signatures[month]) {
+                const input = container.querySelector(`.insp-signature[data-month="${month}"][data-week="${week}"]`);
+                if (input) input.value = programData.signatures[month][week];
+            }
+        }
+    }
+}
