@@ -23,6 +23,9 @@ let currentMuestra = null;
 let currentEnsayo = null;
 let esRepeticionActiva = false;
 let currentEficaciaId = null;
+window.numColumnasEficacia = 3;
+window.encabezadosEficacia = ["Gramaje 1", "Gramaje 2", "Gramaje 3"];
+window.encabezadoUnidadEficacia = "g/m²";
 window.currentUserRole = 'visor'; // Por defecto solo lectura
 
 const mockEnsayos = [
@@ -168,7 +171,6 @@ function calcularOpcionC() {
 // --- Generador de la Tabla de Eficacia ---
 function generarTablasEficacia() {
     const container = document.getElementById('contenedorTablasEficacia');
-    if (container.innerHTML !== '') return; // Evitar regenerar si ya existe
     
     let html = '';
     html += generarBloqueAnalistasEficacia('A1', 'A2');
@@ -188,22 +190,54 @@ function generarTablasEficacia() {
             }
         });
     });
+
+    // Listeners para sincronizar los encabezados editables
+    const headerInputs = container.querySelectorAll('.efi-header-input');
+    headerInputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+            const colIdx = parseInt(e.target.getAttribute('data-colindex'));
+            const val = e.target.value;
+            window.encabezadosEficacia[colIdx] = val;
+            container.querySelectorAll(`.efi-header-input[data-colindex="${colIdx}"]`).forEach(inp => {
+                if(inp !== e.target) inp.value = val;
+            });
+        });
+    });
+
+    const unidadInputs = container.querySelectorAll('.efi-unidad-input');
+    unidadInputs.forEach(input => {
+        input.addEventListener('input', (e) => {
+            const val = e.target.value;
+            window.encabezadoUnidadEficacia = val;
+            container.querySelectorAll('.efi-unidad-input').forEach(inp => {
+                if(inp !== e.target) inp.value = val;
+            });
+        });
+    });
 }
 
 function generarBloqueAnalistasEficacia(id1, id2) {
+    let headersHtml = '';
+    for(let c=0; c<window.numColumnasEficacia; c++) {
+        headersHtml += `<th style="padding: 4px; min-width: 90px;"><input type="text" class="efi-header-input" data-colindex="${c}" value="${window.encabezadosEficacia[c] || ('Gramaje '+(c+1))}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; background: transparent; color: #333;"></th>`;
+    }
+
     let rows = '';
     for (let i = 1; i <= 10; i++) {
+        let colsId1 = '';
+        let colsId2 = '';
+        for(let c=0; c<window.numColumnasEficacia; c++) {
+            colsId1 += `<td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>`;
+            colsId2 += `<td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>`;
+        }
+
         rows += `
         <tr>
             <td style="text-align: center; font-weight: bold; padding: 5px;">${i}</td>
-            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
-            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
-            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id1}-${i}" data-analista="${id1}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            ${colsId1}
             <td style="background: #eef; font-weight: bold; text-align: center; padding: 5px;" id="efi-prom-${id1}-${i}">-</td>
             <td style="text-align: center; font-weight: bold; border-left: 2px solid #004a8f; padding: 5px;">${i}</td>
-            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
-            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
-            <td style="padding: 2px;"><input type="number" step="0.01" class="efi-input efi-row-${id2}-${i}" data-analista="${id2}" data-row="${i}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>
+            ${colsId2}
             <td style="background: #eef; font-weight: bold; text-align: center; padding: 5px;" id="efi-prom-${id2}-${i}">-</td>
         </tr>`;
     }
@@ -212,14 +246,16 @@ function generarBloqueAnalistasEficacia(id1, id2) {
     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.9em;" border="1">
         <thead style="background: #f3f3f3;">
             <tr>
-                <th colspan="5" style="padding: 10px;">Analista ${id1}: <input type="text" id="nombre-analista-${id1}" placeholder="Nombre" style="padding: 5px; width: 60%; margin-left: 10px;"></th>
-                <th colspan="5" style="padding: 10px; border-left: 2px solid #004a8f;">Analista ${id2}: <input type="text" id="nombre-analista-${id2}" placeholder="Nombre" style="padding: 5px; width: 60%; margin-left: 10px;"></th>
+                <th colspan="${window.numColumnasEficacia + 2}" style="padding: 10px;">Analista ${id1}: <input type="text" id="nombre-analista-${id1}" placeholder="Nombre" style="padding: 5px; width: 60%; margin-left: 10px;"></th>
+                <th colspan="${window.numColumnasEficacia + 2}" style="padding: 10px; border-left: 2px solid #004a8f;">Analista ${id2}: <input type="text" id="nombre-analista-${id2}" placeholder="Nombre" style="padding: 5px; width: 60%; margin-left: 10px;"></th>
             </tr>
             <tr>
-                <th style="padding: 8px;">#</th>
-                <th style="padding: 8px;">Gramaje 1</th><th style="padding: 8px;">Gramaje 2</th><th style="padding: 8px;">Gramaje 3</th><th style="padding: 8px;">g/m²</th>
-                <th style="border-left: 2px solid #004a8f; padding: 8px;">#</th>
-                <th style="padding: 8px;">Gramaje 1</th><th style="padding: 8px;">Gramaje 2</th><th style="padding: 8px;">Gramaje 3</th><th style="padding: 8px;">g/m²</th>
+                <th style="padding: 8px; width: 30px;">#</th>
+                ${headersHtml}
+                <th style="padding: 4px; width: 80px;"><input type="text" class="efi-unidad-input" value="${window.encabezadoUnidadEficacia}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; background: transparent; color: #333;"></th>
+                <th style="border-left: 2px solid #004a8f; padding: 8px; width: 30px;">#</th>
+                ${headersHtml}
+                <th style="padding: 4px; width: 80px;"><input type="text" class="efi-unidad-input" value="${window.encabezadoUnidadEficacia}" style="width: 100%; box-sizing: border-box; padding: 4px; text-align: center; border: 1px solid #ccc; border-radius: 3px; font-weight: bold; background: transparent; color: #333;"></th>
             </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -282,6 +318,86 @@ function handlePasteEficacia(e) {
         }
     }
 }
+
+// --- Listener para Agregar Columna ---
+document.getElementById('btnAgregarColumnaEficacia')?.addEventListener('click', () => {
+    if (window.currentUserRole === 'visor') return;
+
+    // 1. Guardar estado actual
+    const dataState = {};
+    ['A1', 'A2', 'A3', 'A4'].forEach(id => {
+        dataState[id] = { nombre: document.getElementById(`nombre-analista-${id}`)?.value || '', valores: [] };
+        for(let i=1; i<=10; i++) {
+            const inputs = document.querySelectorAll(`.efi-row-${id}-${i}`);
+            dataState[id].valores[i] = Array.from(inputs).map(inp => inp.value);
+        }
+    });
+
+    // 2. Modificar variables de estado
+    window.numColumnasEficacia++;
+    window.encabezadosEficacia.push(`Gramaje ${window.numColumnasEficacia}`);
+
+    // 3. Regenerar
+    document.getElementById('contenedorTablasEficacia').innerHTML = ''; // Forzar regeneración
+    generarTablasEficacia();
+
+    // 4. Restaurar datos
+    ['A1', 'A2', 'A3', 'A4'].forEach(id => {
+        const nameInput = document.getElementById(`nombre-analista-${id}`);
+        if(nameInput) nameInput.value = dataState[id].nombre;
+
+        for(let i=1; i<=10; i++) {
+            const inputs = document.querySelectorAll(`.efi-row-${id}-${i}`);
+            const oldVals = dataState[id].valores[i] || [];
+            inputs.forEach((inp, index) => {
+                if(index < oldVals.length) { inp.value = oldVals[index]; }
+            });
+            if(inputs.length > 0) { inputs[0].dispatchEvent(new Event('input', { bubbles: true })); }
+        }
+    });
+});
+
+// --- Listener para Eliminar Columna ---
+document.getElementById('btnEliminarColumnaEficacia')?.addEventListener('click', () => {
+    if (window.currentUserRole === 'visor') return;
+    if (window.numColumnasEficacia <= 1) {
+        alert("Debe haber al menos una columna de ensayo.");
+        return;
+    }
+
+    // 1. Guardar estado actual
+    const dataState = {};
+    ['A1', 'A2', 'A3', 'A4'].forEach(id => {
+        dataState[id] = { nombre: document.getElementById(`nombre-analista-${id}`)?.value || '', valores: [] };
+        for(let i=1; i<=10; i++) {
+            const inputs = document.querySelectorAll(`.efi-row-${id}-${i}`);
+            dataState[id].valores[i] = Array.from(inputs).map(inp => inp.value);
+        }
+    });
+
+    // 2. Modificar variables de estado
+    window.numColumnasEficacia--;
+    window.encabezadosEficacia.pop();
+
+    // 3. Regenerar
+    document.getElementById('contenedorTablasEficacia').innerHTML = ''; // Forzar regeneración
+    generarTablasEficacia();
+
+    // 4. Restaurar datos (truncando el último valor)
+    ['A1', 'A2', 'A3', 'A4'].forEach(id => {
+        const nameInput = document.getElementById(`nombre-analista-${id}`);
+        if(nameInput) nameInput.value = dataState[id].nombre;
+
+        for(let i=1; i<=10; i++) {
+            const inputs = document.querySelectorAll(`.efi-row-${id}-${i}`);
+            const oldVals = dataState[id].valores[i] || [];
+            inputs.forEach((inp, index) => {
+                if(index < oldVals.length) { inp.value = oldVals[index]; }
+            });
+            if(inputs.length > 0) { inputs[0].dispatchEvent(new Event('input', { bubbles: true })); }
+        }
+    });
+});
 
 // Carga de datos iniciales filtrados por la OT y Muestra seleccionadas
 async function cargarDatos() {
@@ -526,7 +642,7 @@ window.aplicarPermisosVisuales = function(rol) {
     const puedeEditar = (rol === 'admin' || rol === 'analista');
     
     // Ocultar botones de guardado principales y formularios de ingreso
-    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion, #btnGuardarFichaOhaus, #btnGuardarFichaSaca, #btnGuardarVerifOhaus').forEach(btn => {
+    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion, #btnGuardarFichaOhaus, #btnGuardarFichaSaca, #btnGuardarVerifOhaus, #btnAgregarColumnaEficacia, #btnEliminarColumnaEficacia').forEach(btn => {
         btn.style.display = puedeEditar ? '' : 'none';
     });
 
@@ -777,6 +893,11 @@ async function cargarDatosIncertidumbre(eficaciaId) {
             if (el.id !== 'efiFecha') el.value = '';
         });
         document.getElementById('efiFecha').value = new Date().toISOString().split('T')[0];
+        
+        window.numColumnasEficacia = 3;
+        window.encabezadosEficacia = ["Gramaje 1", "Gramaje 2", "Gramaje 3"];
+        window.encabezadoUnidadEficacia = "g/m²";
+        document.getElementById('contenedorTablasEficacia').innerHTML = '';
         generarTablasEficacia(); // This clears and regenerates the input tables
         document.getElementById('evaluacionEstadistica').style.display = 'none'; // Hide reports
     };
@@ -786,6 +907,24 @@ async function cargarDatosIncertidumbre(eficaciaId) {
         resetEficaciaForm();
         if (docSnap.exists()) {
             const data = docSnap.data();
+            
+            let reRender = false;
+            if (data.numColumnasEficacia) {
+                window.numColumnasEficacia = data.numColumnasEficacia;
+                window.encabezadosEficacia = data.encabezadosEficacia || [];
+                for(let c=0; c<window.numColumnasEficacia; c++) {
+                    if(!window.encabezadosEficacia[c]) window.encabezadosEficacia[c] = `Gramaje ${c+1}`;
+                }
+                reRender = true;
+            }
+            if (data.encabezadoUnidadEficacia) {
+                window.encabezadoUnidadEficacia = data.encabezadoUnidadEficacia;
+                reRender = true;
+            }
+            if (reRender) {
+                document.getElementById('contenedorTablasEficacia').innerHTML = '';
+                generarTablasEficacia();
+            }
             
             if (data.prueba) document.getElementById('efiPrueba').value = data.prueba;
             if (data.laboratorio) document.getElementById('efiLaboratorio').value = data.laboratorio;
@@ -2260,6 +2399,9 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
         const data = {
             nombre: nombreEnsayo,
             ensayo: "Masa por Unidad de Area ASTM D3776",
+            numColumnasEficacia: window.numColumnasEficacia,
+            encabezadosEficacia: window.encabezadosEficacia,
+            encabezadoUnidadEficacia: window.encabezadoUnidadEficacia,
             prueba: prueba,
             laboratorio: laboratorio,
             determinacion: determinacion,
