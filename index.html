@@ -200,15 +200,15 @@
                 <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
                     <tr>
                         <td style="padding: 8px; width: 15%;"><strong>1. PRUEBA:</strong></td>
-                        <td style="padding: 8px; width: 35%; border-bottom: 1px dotted #ccc;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td>
+                        <td style="padding: 8px; width: 35%;"><input type="text" id="efiPrueba" value="Determinacion de Masa por Unidad de Area (Peso) de tejido" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;"></td>
                         <td style="padding: 8px; width: 15%;"><strong>2. LABORATORIO:</strong></td>
-                        <td style="padding: 8px; width: 35%; border-bottom: 1px dotted #ccc;">Área Física</td>
+                        <td style="padding: 8px; width: 35%;"><input type="text" id="efiLaboratorio" value="Área Física" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;"></td>
                     </tr>
                     <tr>
                         <td style="padding: 8px;"><strong>3. DETERMINACION:</strong></td>
-                        <td style="padding: 8px; border-bottom: 1px dotted #ccc;">Gramaje</td>
+                        <td style="padding: 8px;"><input type="text" id="efiDeterminacion" value="Gramaje" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;"></td>
                         <td style="padding: 8px;"><strong>4. METODO USADO:</strong></td>
-                        <td style="padding: 8px; border-bottom: 1px dotted #ccc;">ASTM D3776/D3776M-20</td>
+                        <td style="padding: 8px;"><input type="text" id="efiMetodo" value="ASTM D3776/D3776M-20" style="width: 100%; padding: 5px; border: 1px solid #ccc; border-radius: 3px;"></td>
                     </tr>
                     <tr>
                         <td style="padding: 8px;"><strong>5. PRODUCTO:</strong></td>
@@ -299,10 +299,10 @@
                     
                     <div id="contentEstadistica" style="display: none;">
                     <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
-                        <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
-                        <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;">Área Física</td></tr>
-                        <tr><td style="padding: 5px;"><strong>3. DETERMINACION:</strong></td><td style="padding: 5px;">Gramaje</td></tr>
-                        <tr><td style="padding: 5px;"><strong>4. METODO USADO:</strong></td><td style="padding: 5px;">ASTM D3776/D3776M-20</td></tr>
+                        <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;" id="estPrueba">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
+                        <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;" id="estLaboratorio">Área Física</td></tr>
+                        <tr><td style="padding: 5px;"><strong>3. DETERMINACION:</strong></td><td style="padding: 5px;" id="estDeterminacion">Gramaje</td></tr>
+                        <tr><td style="padding: 5px;"><strong>4. METODO USADO:</strong></td><td style="padding: 5px;" id="estMetodo">ASTM D3776/D3776M-20</td></tr>
                         <tr><td style="padding: 5px;"><strong>5. PRODUCTO:</strong></td><td style="padding: 5px;" id="estProducto"></td></tr>
                         <tr><td style="padding: 5px; vertical-align: top;"><strong>6. PARTICIPANTES:</strong></td>
                             <td style="padding: 5px;">
@@ -547,10 +547,10 @@
                         <div id="contentVeracidad" style="display: none;">
                         <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">DESARROLLO DE LOS PARÁMETROS</h3>
                         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
-                            <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
-                            <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;">Área Física</td></tr>
-                            <tr><td style="padding: 5px;"><strong>3. DETERMINACION:</strong></td><td style="padding: 5px;">Gramaje</td></tr>
-                            <tr><td style="padding: 5px;"><strong>4. METODO USADO:</strong></td><td style="padding: 5px;">ASTM D3776/D3776M-20</td></tr>
+                            <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;" id="verPrueba">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
+                            <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;" id="verLaboratorio">Área Física</td></tr>
+                            <tr><td style="padding: 5px;"><strong>3. DETERMINACION:</strong></td><td style="padding: 5px;" id="verDeterminacion">Gramaje</td></tr>
+                            <tr><td style="padding: 5px;"><strong>4. METODO USADO:</strong></td><td style="padding: 5px;" id="verMetodo">ASTM D3776/D3776M-20</td></tr>
                             <tr><td style="padding: 5px;"><strong>5. CODIGO DE MUESTRA:</strong></td><td style="padding: 5px;" id="verCodigoMuestra">-</td></tr>
                             <tr><td style="padding: 5px;"><strong>6. PRODUCTO:</strong></td><td style="padding: 5px;" id="verProducto"></td></tr>
                             <tr><td style="padding: 5px; vertical-align: top;"><strong>7. PARTICIPANTES:</strong></td>
@@ -812,7 +812,7 @@
                         
                         <h4 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">IDENTIFICACION DE LAS FUENTES DE INCERTIDUMBRE</h4>
                         <div style="background: #f9f9f9; padding: 15px; border-radius: 5px; border-left: 4px solid #004a8f; margin-bottom: 20px;">
-                            <p style="margin: 0; font-size: 0.95em; color: #333; font-weight: bold;">Determinacion de Masa por Unidad de Area (Peso) de tejido</p>
+                            <p style="margin: 0; font-size: 0.95em; color: #333; font-weight: bold;" id="incertidumbrePrueba1">Determinacion de Masa por Unidad de Area (Peso) de tejido</p>
                         </div>
 
                         <!-- Diagrama de Ishikawa -->
@@ -874,7 +874,7 @@
 
                         <!-- Cálculos y Definiciones -->
                         <div style="margin-bottom: 20px;">
-                            <p style="font-size: 0.95em; color: #333; margin-bottom: 10px;"><strong>Cálculo:</strong> Determinacion de Masa por Unidad de Area (Peso) de tejido</p>
+                            <p style="font-size: 0.95em; color: #333; margin-bottom: 10px;"><strong>Cálculo:</strong> <span id="incertidumbrePrueba2">Determinacion de Masa por Unidad de Area (Peso) de tejido</span></p>
                             <p style="font-size: 1.2em; color: #004a8f; text-align: center; margin-bottom: 10px; font-weight: bold;">$g/m^2$</p>
                             <p style="font-size: 0.95em; color: #333; margin-bottom: 5px;"><strong>Donde:</strong></p>
                             <ul style="font-size: 0.95em; color: #555; list-style-type: none; padding-left: 0; margin-bottom: 20px;">
@@ -984,10 +984,10 @@
                         
                         <div id="contentFactores" style="display: none;">
                         <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em;">
-                            <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
-                            <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;">Área Física</td></tr>
-                            <tr><td style="padding: 5px;"><strong>3. DETERMINACION:</strong></td><td style="padding: 5px;">Gramaje</td></tr>
-                            <tr><td style="padding: 5px;"><strong>4. METODO USADO:</strong></td><td style="padding: 5px;">ASTM D3776/D3776M-20</td></tr>
+                            <tr><td style="width: 25%; padding: 5px;"><strong>1. PRUEBA:</strong></td><td style="padding: 5px;" id="factoresPrueba">Determinacion de Masa por Unidad de Area (Peso) de tejido</td></tr>
+                            <tr><td style="padding: 5px;"><strong>2. LABORATORIO:</strong></td><td style="padding: 5px;" id="factoresLaboratorio">Área Física</td></tr>
+                            <tr><td style="padding: 5px;"><strong>3. DETERMINACION:</strong></td><td style="padding: 5px;" id="factoresDeterminacion">Gramaje</td></tr>
+                            <tr><td style="padding: 5px;"><strong>4. METODO USADO:</strong></td><td style="padding: 5px;" id="factoresMetodo">ASTM D3776/D3776M-20</td></tr>
                             <tr><td style="padding: 5px;"><strong>5. CODIGO DE MUESTRA:</strong></td><td style="padding: 5px;" id="factoresCodigoMuestra">-</td></tr>
                             <tr><td style="padding: 5px;"><strong>6. PRODUCTO:</strong></td><td style="padding: 5px;" id="factoresProducto"></td></tr>
                             <tr><td style="padding: 5px; vertical-align: top;"><strong>7. PARTICIPANTES:</strong></td>

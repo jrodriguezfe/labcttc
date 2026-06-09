@@ -787,6 +787,10 @@ async function cargarDatosIncertidumbre(eficaciaId) {
         if (docSnap.exists()) {
             const data = docSnap.data();
             
+            if (data.prueba) document.getElementById('efiPrueba').value = data.prueba;
+            if (data.laboratorio) document.getElementById('efiLaboratorio').value = data.laboratorio;
+            if (data.determinacion) document.getElementById('efiDeterminacion').value = data.determinacion;
+            if (data.metodo) document.getElementById('efiMetodo').value = data.metodo;
             if (data.producto) document.getElementById('efiProducto').value = data.producto;
             if (data.fecha) document.getElementById('efiFecha').value = data.fecha;
             if (data.resultados) document.getElementById('efiResultados').value = data.resultados;
@@ -913,6 +917,10 @@ async function agregarNuevoEnsayoEficacia() {
     const newEficaciaData = {
         nombre: eficaciaNombre,
         fechaCreacion: new Date().toISOString(),
+        prueba: 'Determinacion de Masa por Unidad de Area (Peso) de tejido',
+        laboratorio: 'Área Física',
+        determinacion: 'Gramaje',
+        metodo: 'ASTM D3776/D3776M-20',
         producto: '',
         fecha: new Date().toISOString().split('T')[0],
     };
@@ -1617,6 +1625,11 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     document.getElementById('estProducto').innerText = document.getElementById('efiProducto').value;
     document.getElementById('estFecha').innerText = document.getElementById('efiFecha').value;
     
+    document.getElementById('estPrueba').innerText = document.getElementById('efiPrueba').value;
+    document.getElementById('estLaboratorio').innerText = document.getElementById('efiLaboratorio').value;
+    document.getElementById('estDeterminacion').innerText = document.getElementById('efiDeterminacion').value;
+    document.getElementById('estMetodo').innerText = document.getElementById('efiMetodo').value;
+
     const nombres = {
         A1: document.getElementById('nombre-analista-A1')?.value || 'Analista 1',
         A2: document.getElementById('nombre-analista-A2')?.value || 'Analista 2',
@@ -1630,6 +1643,10 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
     document.getElementById('estA4').innerText = nombres.A4;
     
     // Rellenar cabeceras de Sección II: Veracidad
+    document.getElementById('verPrueba').innerText = document.getElementById('efiPrueba').value;
+    document.getElementById('verLaboratorio').innerText = document.getElementById('efiLaboratorio').value;
+    document.getElementById('verDeterminacion').innerText = document.getElementById('efiDeterminacion').value;
+    document.getElementById('verMetodo').innerText = document.getElementById('efiMetodo').value;
     document.getElementById('verProducto').innerText = document.getElementById('efiProducto').value;
     document.getElementById('verFecha').innerText = document.getElementById('efiFecha').value;
     document.getElementById('verCodigoMuestra').innerText = currentMuestra || '-';
@@ -1640,6 +1657,10 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
 
     // Rellenar cabeceras de Sección V: Cálculo de Incertidumbre de Factores
     if (document.getElementById('factoresProducto')) {
+        document.getElementById('factoresPrueba').innerText = document.getElementById('efiPrueba').value;
+        document.getElementById('factoresLaboratorio').innerText = document.getElementById('efiLaboratorio').value;
+        document.getElementById('factoresDeterminacion').innerText = document.getElementById('efiDeterminacion').value;
+        document.getElementById('factoresMetodo').innerText = document.getElementById('efiMetodo').value;
         document.getElementById('factoresProducto').innerText = document.getElementById('efiProducto').value;
         document.getElementById('factoresFecha').innerText = document.getElementById('efiFecha').value;
         document.getElementById('factoresCodigoMuestra').innerText = currentMuestra || '-';
@@ -1648,6 +1669,9 @@ document.getElementById('btnCalcularEstadistica').addEventListener('click', () =
         document.getElementById('factoresA3').innerText = nombres.A3;
         document.getElementById('factoresA4').innerText = nombres.A4;
     }
+    
+    if (document.getElementById('incertidumbrePrueba1')) document.getElementById('incertidumbrePrueba1').innerText = document.getElementById('efiPrueba').value;
+    if (document.getElementById('incertidumbrePrueba2')) document.getElementById('incertidumbrePrueba2').innerText = document.getElementById('efiPrueba').value;
 
     const promedios = { A1: [], A2: [], A3: [], A4: [] };
     let todosLosDatos = [];
@@ -2197,6 +2221,10 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
 
         const nameSpan = document.getElementById(`nombre-eficacia-${currentEficaciaId}`);
         const nombreEnsayo = nameSpan ? nameSpan.innerText.trim() : currentEficaciaId;
+        const prueba = document.getElementById('efiPrueba').value;
+        const laboratorio = document.getElementById('efiLaboratorio').value;
+        const determinacion = document.getElementById('efiDeterminacion').value;
+        const metodo = document.getElementById('efiMetodo').value;
         const producto = document.getElementById('efiProducto').value;
         const fecha = document.getElementById('efiFecha').value;
         const resultadosText = document.getElementById('efiResultados').value;
@@ -2232,6 +2260,10 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
         const data = {
             nombre: nombreEnsayo,
             ensayo: "Masa por Unidad de Area ASTM D3776",
+            prueba: prueba,
+            laboratorio: laboratorio,
+            determinacion: determinacion,
+            metodo: metodo,
             producto: producto,
             fecha: fecha,
             analistas: analistasData,
