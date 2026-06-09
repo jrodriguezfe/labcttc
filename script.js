@@ -894,6 +894,26 @@ async function cargarDatosIncertidumbre(eficaciaId) {
         });
         document.getElementById('efiFecha').value = new Date().toISOString().split('T')[0];
         
+        // Valores por defecto para cabeceras y parámetros
+        document.getElementById('efiPrueba').value = 'Determinacion de Masa por Unidad de Area (Peso) de tejido';
+        document.getElementById('efiLaboratorio').value = 'Área Física';
+        document.getElementById('efiDeterminacion').value = 'Gramaje';
+        document.getElementById('efiMetodo').value = 'ASTM D3776/D3776M-20';
+        
+        document.getElementById('precRefText1').value = "WOV2208 ASTM -Programa de prueba de competencia textil. AGOSTO 2022";
+        document.getElementById('precRefVar').value = 2.22;
+        document.getElementById('precRefText2').value = "D3776 Peso de la tela: Opción C: MEDIUM (g / m2) Desv. Std.";
+        document.getElementById('precRefStd').value = 1.49;
+        document.getElementById('certBalanzaCodigo').value = "1AMC-0484-2024";
+        document.getElementById('certBalanzaUR1').value = 7.78e-9;
+        document.getElementById('certBalanzaUR2').value = 1.36e-10;
+        document.getElementById('certBalanzaR').value = 0.00000334;
+        document.getElementById('certSacabocadoCodigo').value = "IT-227-2024";
+        document.getElementById('certSacaUexp').value = 0.000015;
+        document.getElementById('certSacaProm1').value = 0.010021;
+        document.getElementById('certSacaProm2').value = 0.000021;
+        document.getElementById('certSacaNominal').value = 0.01;
+
         window.numColumnasEficacia = 3;
         window.encabezadosEficacia = ["Gramaje 1", "Gramaje 2", "Gramaje 3"];
         window.encabezadoUnidadEficacia = "g/m²";
@@ -940,6 +960,26 @@ async function cargarDatosIncertidumbre(eficaciaId) {
             if (data.estConclusionNormalidad) document.getElementById('estConclusionNormalidad').value = data.estConclusionNormalidad;
             if (data.estConclusionVarianzas) document.getElementById('estConclusionVarianzas').value = data.estConclusionVarianzas;
             if (data.estConclusionMedias) document.getElementById('estConclusionMedias').value = data.estConclusionMedias;
+
+            // Cargar datos sección 8 (Prueba de Aptitud) y 9 (Certificados)
+            if (data.precRefText1 !== undefined) document.getElementById('precRefText1').value = data.precRefText1;
+            if (data.precRefVar !== undefined) document.getElementById('precRefVar').value = data.precRefVar;
+            if (data.precRefText2 !== undefined) document.getElementById('precRefText2').value = data.precRefText2;
+            if (data.precRefStd !== undefined) document.getElementById('precRefStd').value = data.precRefStd;
+            if (data.certBalanzaCodigo !== undefined) document.getElementById('certBalanzaCodigo').value = data.certBalanzaCodigo;
+            if (data.certBalanzaUR1 !== undefined) document.getElementById('certBalanzaUR1').value = data.certBalanzaUR1;
+            if (data.certBalanzaUR2 !== undefined) document.getElementById('certBalanzaUR2').value = data.certBalanzaUR2;
+            if (data.certBalanzaR !== undefined) document.getElementById('certBalanzaR').value = data.certBalanzaR;
+            if (data.certSacabocadoCodigo !== undefined) document.getElementById('certSacabocadoCodigo').value = data.certSacabocadoCodigo;
+            if (data.certSacaUexp !== undefined) document.getElementById('certSacaUexp').value = data.certSacaUexp;
+            if (data.certSacaProm1 !== undefined) document.getElementById('certSacaProm1').value = data.certSacaProm1;
+            if (data.certSacaProm2 !== undefined) document.getElementById('certSacaProm2').value = data.certSacaProm2;
+            if (data.certSacaNominal !== undefined) document.getElementById('certSacaNominal').value = data.certSacaNominal;
+
+            if (typeof window.sincronizarVistaCertificados === 'function') window.sincronizarVistaCertificados();
+            if (typeof window.actualizarFormulasBalanza === 'function') window.actualizarFormulasBalanza();
+            if (typeof window.actualizarFormulasSacabocado === 'function') window.actualizarFormulasSacabocado();
+            if (typeof window.calcularPesosSesgo === 'function') window.calcularPesosSesgo();
 
             if (data.labExt) {
                 if (data.labExt[0]) document.getElementById('labExt1').value = data.labExt[0];
@@ -2375,6 +2415,22 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
         const estConclusionVarianzas = document.getElementById('estConclusionVarianzas')?.value || '';
         const estConclusionMedias = document.getElementById('estConclusionMedias')?.value || '';
         const verConclusion = document.getElementById('verConclusion')?.value || '';
+        
+        // Extraer datos de sección 8 y 9
+        const precRefText1 = document.getElementById('precRefText1')?.value || '';
+        const precRefVar = parseFloat(document.getElementById('precRefVar')?.value) || 0;
+        const precRefText2 = document.getElementById('precRefText2')?.value || '';
+        const precRefStd = parseFloat(document.getElementById('precRefStd')?.value) || 0;
+        const certBalanzaCodigo = document.getElementById('certBalanzaCodigo')?.value || '';
+        const certBalanzaUR1 = parseFloat(document.getElementById('certBalanzaUR1')?.value) || 0;
+        const certBalanzaUR2 = parseFloat(document.getElementById('certBalanzaUR2')?.value) || 0;
+        const certBalanzaR = parseFloat(document.getElementById('certBalanzaR')?.value) || 0;
+        const certSacabocadoCodigo = document.getElementById('certSacabocadoCodigo')?.value || '';
+        const certSacaUexp = parseFloat(document.getElementById('certSacaUexp')?.value) || 0;
+        const certSacaProm1 = parseFloat(document.getElementById('certSacaProm1')?.value) || 0;
+        const certSacaProm2 = parseFloat(document.getElementById('certSacaProm2')?.value) || 0;
+        const certSacaNominal = parseFloat(document.getElementById('certSacaNominal')?.value) || 0;
+        
         const labExt = [
             document.getElementById('labExt1')?.value || '',
             document.getElementById('labExt2')?.value || '',
@@ -2417,6 +2473,9 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
             estConclusionVarianzas: estConclusionVarianzas,
             estConclusionMedias: estConclusionMedias,
             verConclusion: verConclusion,
+            precRefText1, precRefVar, precRefText2, precRefStd,
+            certBalanzaCodigo, certBalanzaUR1, certBalanzaUR2, certBalanzaR,
+            certSacabocadoCodigo, certSacaUexp, certSacaProm1, certSacaProm2, certSacaNominal,
             labExt: labExt,
             fechaRegistro: new Date().toISOString()
         };
