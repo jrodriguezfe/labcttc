@@ -179,6 +179,7 @@
             <div id="otList" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px;"></div>
 
             <h2 style="color: #333; margin-bottom: 10px; border-top: 1px solid #ccc; padding-top: 20px;">Cálculo de Eficacia e Incertidumbre</h2>
+            <button id="btnAgregarEficacia" class="btn-primary" style="margin-bottom: 20px; cursor: pointer;">+ Agregar Nuevo Ensayo de Eficacia</button>
             
             <div id="incertidumbreEnsayoTray" style="margin-bottom: 20px;">
                 <p style="color: #666; margin-bottom: 10px;">Seleccione el ensayo para cargar su matriz de eficacia:</p>
@@ -188,7 +189,7 @@
             <!-- NUEVA ÁREA: REGISTRO DE EFICACIA -->
             <div id="areaEficacia" style="display: none; padding: 20px; background: white; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 20px;">
                 <div class="header-eficacia" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #004a8f; padding-bottom: 10px; margin-bottom: 20px;">
-                    <h2 style="color: #004a8f; margin: 0; font-size: 1.4em;">REGISTRO DE EFICACIA DE MASA POR UNIDAD DE AREA ASTM D3776</h2>
+                    <h2 style="color: #004a8f; margin: 0; font-size: 1.4em;">REGISTRO DE EFICACIA</h2>
                     <div style="display: flex; gap: 10px;">
                         <button class="btn-exportar" id="btnExportarExcelTop">📊 Exportar Excel</button>
                         <button class="btn-exportar" id="btnExportarPdfTop">📕 Exportar PDF</button>
@@ -471,7 +472,6 @@
                         </div>
                     </div>
 
-                    <textarea id="estConclusionVarianzas" style="width: 100%; padding: 8px; margin-top: 5px; margin-bottom: 20px; height: 50px; font-family: inherit; border: 1px solid #ccc; border-radius: 3px;">0.985(P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los analistas tienen similar precisión.</textarea>
                     <div style="background-color: #f4f9ff; padding: 15px; border-radius: 5px; border: 2px solid #004a8f; margin-bottom: 20px; box-shadow: 0 2px 4px rgba(0,74,143,0.1);">
                         <p style="font-size: 1.1em; color: #004a8f; margin-top: 0; margin-bottom: 10px;"><strong>Conclusión:</strong></p>
                         <textarea id="estConclusionVarianzas" style="width: 100%; padding: 12px; margin-top: 0; margin-bottom: 0; height: 80px; font-family: inherit; border: 1px solid #004a8f; border-radius: 4px; font-size: 1.05em; color: #217346; font-weight: bold; background: #fff; line-height: 1.4;">0.985(P valor) es mayor que el nivel de significancia (0.05) por lo que podemos afirmar, al 95% de confianza, que los analistas tienen similar precisión.</textarea>
@@ -1340,9 +1340,10 @@
                 <!-- Balanza OHAUS -->
                 <div id="equipo-container-ohaus_labt_157_23">
                     <div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ccc; padding: 0; border-radius: 5px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-weight: bold; color: #333;">
-                        <div style="padding: 15px; cursor: pointer; flex-grow: 1;" onclick="window.openEquipoModal('ohaus_labt_157_23', 'Balanza analítica OHAUS LABT-157-23')">
-                            ⚖️ Balanza analítica OHAUS LABT-157-23
+                        <div id="open-modal-ohaus_labt_157_23" style="padding: 15px; cursor: pointer; flex-grow: 1;">
+                            ⚖️ <span id="nombre-equipo-ohaus_labt_157_23">Balanza analítica OHAUS LABT-157-23</span>
                         </div>
+                        <button class="btn-secondary btn-editar-nombre" id="btn-editar-nombre-ohaus_labt_157_23" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 5px;">Editar Nombre</button>
                         <button class="btn-secondary" id="btn-generar-qr-ohaus_labt_157_23" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 10px;">Generar QR</button>
                         <button class="delete-btn" id="btn-eliminar-equipo-ohaus_labt_157_23" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px; margin-right: 15px;">Eliminar</button>
                     </div>
@@ -1518,9 +1519,10 @@
                 <!-- Sacabocado -->
                 <div id="equipo-container-sacabocado">
                     <div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ccc; padding: 0; border-radius: 5px; background: #fff; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-weight: bold; color: #333;">
-                        <div style="padding: 15px; cursor: pointer; flex-grow: 1;" onclick="window.openEquipoModal('sacabocado', 'Sacabocado')">
-                            🛠️ Sacabocado
+                        <div id="open-modal-sacabocado" style="padding: 15px; cursor: pointer; flex-grow: 1;">
+                            🛠️ <span id="nombre-equipo-sacabocado">Sacabocado</span>
                         </div>
+                        <button class="btn-secondary btn-editar-nombre" id="btn-editar-nombre-sacabocado" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 5px;">Editar Nombre</button>
                         <button class="btn-secondary" id="btn-generar-qr-sacabocado" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 10px;">Generar QR</button>
                         <button class="delete-btn" id="btn-eliminar-equipo-sacabocado" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px; margin-right: 15px;">Eliminar</button>
                     </div>

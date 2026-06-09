@@ -22,6 +22,7 @@ let currentOT = null;
 let currentMuestra = null;
 let currentEnsayo = null;
 let esRepeticionActiva = false;
+let currentEficaciaId = null;
 window.currentUserRole = 'visor'; // Por defecto solo lectura
 
 const mockEnsayos = [
@@ -560,9 +561,17 @@ onAuthStateChanged(auth, async (user) => {
         if (userDisplay) userDisplay.innerHTML = `${user.email} <span style="font-size:0.8em; background:#004a8f; color:#fff; padding:3px 8px; border-radius:12px; margin-left:8px; display:inline-block;">Rol: ${window.currentUserRole.toUpperCase()}</span>`;
         
         window.aplicarPermisosVisuales(window.currentUserRole);
+
+        // Run initializations in parallel for faster loading
+        const initPromises = [];
         if (typeof window.inicializarEquipos === 'function') {
-            await window.inicializarEquipos();
+            initPromises.push(window.inicializarEquipos());
         }
+        if (typeof window.inicializarEficacia === 'function') {
+            initPromises.push(window.inicializarEficacia());
+        }
+        await Promise.all(initPromises);
+
     } else {
         // Sin sesión: mostrar login, ocultar app
         if (authSection) authSection.style.display = 'block';
@@ -728,10 +737,53 @@ document.getElementById('btnVolverAEnsayos').addEventListener('click', () => {
     document.getElementById('ensayoTray').style.display = 'block';
 });
 
+// --- Función para Editar Nombre de Eficacia ---
+async function editarNombreEficacia(eficaciaId) {
+    if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'analista') {
+        alert("No tiene permisos para editar nombres de ensayos de eficacia.");
+        return;
+    }
+
+    const nameSpan = document.getElementById(`nombre-eficacia-${eficaciaId}`);
+    if (!nameSpan) return;
+    const currentName = nameSpan.innerText.trim();
+
+    const newName = prompt(`Editar nombre del Ensayo de Eficacia "${currentName}":`, currentName);
+    if (newName && newName.trim() !== '' && newName !== currentName) {
+        try {
+            await updateDoc(doc(db, "incertidumbre", eficaciaId), { nombre: newName.trim() });
+            
+            // Actualizar interfaz visual
+            nameSpan.innerText = newName.trim();
+            
+            if (currentEficaciaId === eficaciaId) {
+                document.querySelector('#areaEficacia .header-eficacia h2').innerText = `REGISTRO DE EFICACIA DE ${newName.trim().toUpperCase()}`;
+            }
+            alert(`Nombre del ensayo de eficacia actualizado a "${newName.trim()}".`);
+        } catch (error) {
+            console.error("Error al actualizar el nombre del ensayo de eficacia:", error);
+            alert("Error al actualizar el nombre: " + error.message);
+        }
+    }
+}
+window.editarNombreEficacia = editarNombreEficacia;
+
 // --- Lógica de Carga de Datos de Incertidumbre ---
-async function cargarDatosIncertidumbre() {
+async function cargarDatosIncertidumbre(eficaciaId) {
+    if (!eficaciaId) return;
+
+    const resetEficaciaForm = () => {
+        document.getElementById('areaEficacia').querySelectorAll('input[type="text"], input[type="number"], input[type="date"], textarea').forEach(el => {
+            if (el.id !== 'efiFecha') el.value = '';
+        });
+        document.getElementById('efiFecha').value = new Date().toISOString().split('T')[0];
+        generarTablasEficacia(); // This clears and regenerates the input tables
+        document.getElementById('evaluacionEstadistica').style.display = 'none'; // Hide reports
+    };
+
     try {
-        const docSnap = await getDoc(doc(db, "incertidumbre", "MasaAreaASTM"));
+        const docSnap = await getDoc(doc(db, "incertidumbre", eficaciaId));
+        resetEficaciaForm();
         if (docSnap.exists()) {
             const data = docSnap.data();
             
@@ -768,7 +820,9 @@ async function cargarDatosIncertidumbre() {
                                 if (med.valores) {
                                     inputs.forEach((inp, idx) => {
                                         const v = med.valores[idx];
-                                        inp.value = (v !== null && v !== '' && !isNaN(v)) ? parseFloat(v).toFixed(2) : '';
+                                        if (v !== null && v !== undefined && v !== '') {
+                                            inp.value = parseFloat(v).toFixed(2);
+                                        }
                                     });
                                 }
                                 const promCell = document.getElementById(`efi-prom-${id}-${r}`);
@@ -785,42 +839,150 @@ async function cargarDatosIncertidumbre() {
 }
 
 // --- Lógica de Selección para Incertidumbre ---
-function renderIncertidumbreEnsayos() {
+window.inicializarEficacia = async function() {
+    const eficaciaRef = collection(db, "incertidumbre");
+    const snapshot = await getDocs(eficaciaRef);
     const list = document.getElementById('incertidumbreEnsayoList');
     if (!list) return;
-    list.innerHTML = '';
-    mockEnsayos.forEach(ensayo => {
-        const div = document.createElement('div');
-        div.style = "border: 1px solid #ccc; padding: 15px; cursor: pointer; border-radius: 5px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: background 0.2s; font-weight: bold; color: #333;";
-        div.onmouseover = () => div.style.background = '#f9f9f9';
-        div.onmouseout = () => div.style.background = '#fff';
-        div.innerHTML = `🔬 ${ensayo}`;
-        div.onclick = () => {
-            const areaEficacia = document.getElementById('areaEficacia');
+    list.innerHTML = ''; // Clear list
 
-            if (ensayo === "GRAMAJE ASTM D3776") {
-                // Alternar visibilidad si ya está abierto
-                if (areaEficacia.style.display === 'block') {
-                    areaEficacia.style.display = 'none';
-                    div.style.borderLeft = "1px solid #ccc"; // Quitar resaltado
-                } else {
-                    Array.from(list.children).forEach(child => child.style.borderLeft = "1px solid #ccc");
-                    div.style.borderLeft = "4px solid #004a8f"; // Añadir resaltado
-                    areaEficacia.style.display = 'block';
-                    cargarDatosIncertidumbre();
-                }
-            } else {
-                Array.from(list.children).forEach(child => child.style.borderLeft = "1px solid #ccc");
-                div.style.borderLeft = "4px solid #004a8f";
-                areaEficacia.style.display = 'none';
+    if (snapshot.empty) {
+        list.innerHTML = '<p style="color: #888;">No hay ensayos de eficacia registrados. Haga clic en "Agregar" para crear uno.</p>';
+    } else {
+        snapshot.forEach(docSnap => {
+            renderFilaEficacia(docSnap.id, docSnap.data());
+        });
+    }
+
+    const btnAgregar = document.getElementById('btnAgregarEficacia');
+    if (btnAgregar) {
+        btnAgregar.addEventListener('click', agregarNuevoEnsayoEficacia);
+    }
+};
+
+function renderFilaEficacia(eficaciaId, eficaciaData) {
+    const list = document.getElementById('incertidumbreEnsayoList');
+    if (!list) return;
+
+    const eficaciaNombre = eficaciaData.nombre || eficaciaId.replace(/_/g, ' ');
+
+    const div = document.createElement('div');
+    div.id = `eficacia-container-${eficaciaId}`;
+    div.style = "display: flex; align-items: center; gap: 10px; border: 1px solid #ccc; padding: 0; border-radius: 5px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-weight: bold; color: #333;";
+    
+    const textDiv = document.createElement('div');
+    textDiv.style = "padding: 15px; cursor: pointer; flex-grow: 1;";
+    textDiv.innerHTML = `🔬 <span id="nombre-eficacia-${eficaciaId}">${eficaciaNombre}</span>`;
+    textDiv.onclick = () => seleccionarEnsayoEficacia(eficaciaId);
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'btn-secondary btn-editar-nombre';
+    editBtn.style = "padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 5px;";
+    editBtn.innerText = 'Editar Nombre';
+    editBtn.onclick = (e) => {
+        e.stopPropagation(); // Prevent selecting the efficacy when clicking edit
+        editarNombreEficacia(eficaciaId);
+    };
+    if (window.currentUserRole === 'visor') editBtn.style.display = 'none';
+
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.style = "padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px; margin-right: 15px;";
+    deleteBtn.innerText = 'Eliminar';
+    deleteBtn.onclick = () => eliminarEnsayoEficacia(eficaciaId, eficaciaNombre);
+
+    div.appendChild(textDiv);
+    div.appendChild(editBtn);
+    div.appendChild(deleteBtn);
+    list.appendChild(div);
+}
+
+async function agregarNuevoEnsayoEficacia() {
+    const eficaciaNombre = prompt("Ingrese el nombre del nuevo Ensayo de Eficacia (ej: GRAMAJE ASTM D3776):");
+    if (!eficaciaNombre || eficaciaNombre.trim() === '') {
+        return;
+    }
+
+    const eficaciaId = eficaciaNombre.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+    
+    if (document.getElementById(`eficacia-container-${eficaciaId}`)) {
+        alert("Ya existe un ensayo con un nombre similar. Por favor, elija otro nombre.");
+        return;
+    }
+
+    const newEficaciaData = {
+        nombre: eficaciaNombre,
+        fechaCreacion: new Date().toISOString(),
+        producto: '',
+        fecha: new Date().toISOString().split('T')[0],
+    };
+
+    try {
+        await setDoc(doc(db, "incertidumbre", eficaciaId), newEficaciaData);
+        const list = document.getElementById('incertidumbreEnsayoList');
+        if (list.querySelector('p')) {
+            list.innerHTML = '';
+        }
+        renderFilaEficacia(eficaciaId, newEficaciaData);
+        alert(`Ensayo de eficacia "${eficaciaNombre}" creado correctamente.`);
+    } catch (error) {
+        console.error("Error al crear el ensayo de eficacia:", error);
+        alert("No se pudo crear el ensayo en la base de datos: " + error.message);
+    }
+}
+
+async function eliminarEnsayoEficacia(eficaciaId, eficaciaNombre) {
+    if (confirm(`¿Está seguro de que desea eliminar el ensayo de eficacia "${eficaciaNombre}" y todos sus datos asociados? Esta acción no se puede deshacer.`)) {
+        try {
+            await deleteDoc(doc(db, "incertidumbre", eficaciaId));
+            
+            const container = document.getElementById(`eficacia-container-${eficaciaId}`);
+            if (container) {
+                container.remove();
             }
-        };
-        list.appendChild(div);
-    });
+
+            if (currentEficaciaId === eficaciaId) {
+                document.getElementById('areaEficacia').style.display = 'none';
+                currentEficaciaId = null;
+            }
+
+            alert(`Ensayo "${eficaciaNombre}" eliminado correctamente.`);
+        } catch (error) {
+            console.error(`Error al eliminar el ensayo ${eficaciaId}: `, error);
+            alert("Error al eliminar el ensayo de la base de datos: " + error.message);
+        }
+    }
+}
+
+function seleccionarEnsayoEficacia(eficaciaId) {
+    const areaEficacia = document.getElementById('areaEficacia');
+    const list = document.getElementById('incertidumbreEnsayoList');
+    
+    const nameSpan = document.getElementById(`nombre-eficacia-${eficaciaId}`);
+    const eficaciaNombre = nameSpan ? nameSpan.innerText.trim() : eficaciaId;
+
+    if (areaEficacia.style.display === 'block' && currentEficaciaId === eficaciaId) {
+        areaEficacia.style.display = 'none';
+        currentEficaciaId = null;
+        const currentDiv = document.getElementById(`eficacia-container-${eficaciaId}`);
+        if (currentDiv) currentDiv.style.borderLeft = "1px solid #ccc";
+    } else {
+        Array.from(list.children).forEach(child => {
+            if (child.tagName === 'DIV' && child.id.startsWith('eficacia-container-')) {
+                child.style.borderLeft = "1px solid #ccc";
+            }
+        });
+        const newDiv = document.getElementById(`eficacia-container-${eficaciaId}`);
+        if (newDiv) newDiv.style.borderLeft = "4px solid #004a8f";
+
+        areaEficacia.style.display = 'block';
+        currentEficaciaId = eficaciaId;
+        document.querySelector('#areaEficacia .header-eficacia h2').innerText = `REGISTRO DE EFICACIA DE ${eficaciaNombre.toUpperCase()}`;
+        cargarDatosIncertidumbre(eficaciaId);
+    }
 }
 
 renderOTTray();
-renderIncertidumbreEnsayos();
 generarTablasEficacia();
 
 // --- Función para Calcular la Prueba de Veracidad (T-Student 2 Muestras) ---
@@ -2028,6 +2190,13 @@ document.getElementById('precRefVar')?.addEventListener('input', window.calcular
 // --- Lógica de Guardado de Eficacia (Incertidumbre) ---
 document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
     btn.addEventListener('click', async () => {
+        if (!currentEficaciaId) {
+            alert("Por favor, seleccione o cree un ensayo de eficacia antes de guardar.");
+            return;
+        }
+
+        const nameSpan = document.getElementById(`nombre-eficacia-${currentEficaciaId}`);
+        const nombreEnsayo = nameSpan ? nameSpan.innerText.trim() : currentEficaciaId;
         const producto = document.getElementById('efiProducto').value;
         const fecha = document.getElementById('efiFecha').value;
         const resultadosText = document.getElementById('efiResultados').value;
@@ -2061,6 +2230,7 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
         });
 
         const data = {
+            nombre: nombreEnsayo,
             ensayo: "Masa por Unidad de Area ASTM D3776",
             producto: producto,
             fecha: fecha,
@@ -2078,7 +2248,7 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
         };
 
         try {
-            await setDoc(doc(db, "incertidumbre", "MasaAreaASTM"), data);
+            await setDoc(doc(db, "incertidumbre", currentEficaciaId), data, { merge: true });
             alert("Registro de incertidumbre guardado exitosamente en la base de datos.");
         } catch (error) {
             console.error("Error al guardar registro de incertidumbre: ", error);
@@ -2269,6 +2439,7 @@ window.generarQR = function(equipoId, equipoNombre) {
     const title = document.getElementById('qrModalTitle');
     const qrContainer = document.getElementById('qrCodeContainer');
     const linkInput = document.getElementById('qrLinkInput');
+    const nameSpan = document.getElementById(`nombre-equipo-${equipoId}`);
     
     if (!modal || !title || !qrContainer || !linkInput) return;
 
@@ -2276,7 +2447,7 @@ window.generarQR = function(equipoId, equipoNombre) {
     const GITHUB_PAGES_URL = 'https://jrodriguezfe.github.io/labcttc/equipo.html';
     const url = `${GITHUB_PAGES_URL}?id=${equipoId}`;
     
-    title.innerText = `QR para: ${equipoNombre}`;
+    title.innerText = `QR para: ${nameSpan ? nameSpan.innerText : equipoId}`;
     linkInput.value = url;
     
     qrContainer.innerHTML = ''; // Limpiar QR anterior
@@ -2310,10 +2481,11 @@ window.addEventListener('click', (event) => {
 let currentModalContent = null;
 let originalParent = null;
 
-window.openEquipoModal = function(equipoId, equipoNombre) {
+function openEquipoModal(equipoId) {
     const modal = document.getElementById('equipoModal');
     const modalTitle = document.getElementById('equipoModalTitle');
     const modalBody = document.getElementById('equipoModalBody');
+    const nameSpan = document.getElementById(`nombre-equipo-${equipoId}`); // Get current name from span
 
     const contentId = (equipoId === 'ohaus_labt_157_23') ? 'equipoOhaus' : (equipoId === 'sacabocado' ? 'equipoSaca' : `equipo-${equipoId}`);
     currentModalContent = document.getElementById(contentId);
@@ -2327,7 +2499,7 @@ window.openEquipoModal = function(equipoId, equipoNombre) {
     modalBody.appendChild(currentModalContent);      // Moverlo al modal
     currentModalContent.style.display = 'block';     // Asegurarse de que sea visible
 
-    modalTitle.innerText = equipoNombre;
+    modalTitle.innerText = nameSpan ? nameSpan.innerText : equipoId;
     modal.style.display = 'flex';
     
     // Si el equipo tiene un gráfico, es necesario redimensionarlo después de que el modal sea visible
@@ -2335,6 +2507,7 @@ window.openEquipoModal = function(equipoId, equipoNombre) {
         setTimeout(() => window.graficosEquipos[equipoId].resize(), 200);
     }
 };
+window.openEquipoModal = openEquipoModal; // Expose to window for older HTML elements if any
 
 function closeEquipoModal() {
     const modal = document.getElementById('equipoModal');
@@ -2343,8 +2516,6 @@ function closeEquipoModal() {
         originalParent.appendChild(currentModalContent); // Devolverlo a su lugar original
     }
     modal.style.display = 'none';
-    currentModalContent = null;
-    originalParent = null;
 }
 
 document.getElementById('closeEquipoModal')?.addEventListener('click', closeEquipoModal);
@@ -2353,6 +2524,39 @@ window.addEventListener('click', (event) => {
         closeEquipoModal();
     }
 });
+
+// New function for editing Equipo name
+async function editarNombreEquipo(equipoId) {
+    if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'analista') {
+        alert("No tiene permisos para editar nombres de equipos.");
+        return;
+    }
+
+    const nameSpan = document.getElementById(`nombre-equipo-${equipoId}`);
+    if (!nameSpan) return;
+    const currentName = nameSpan.innerText;
+
+    const newName = prompt(`Editar nombre del equipo "${currentName}":`, currentName);
+    if (newName && newName.trim() !== '' && newName !== currentName) {
+        try {
+            await updateDoc(doc(db, "equipos", equipoId), { nombre: newName.trim() });
+            
+            // Update UI
+            const container = document.getElementById(`equipo-container-${equipoId}`);
+            if (nameSpan) {
+                nameSpan.innerText = newName.trim();
+            }
+            if (currentModalContent && (currentModalContent.id === `equipo-${equipoId}` || (equipoId === 'ohaus_labt_157_23' && currentModalContent.id === 'equipoOhaus') || (equipoId === 'sacabocado' && currentModalContent.id === 'equipoSaca'))) {
+                document.getElementById('equipoModalTitle').innerText = newName.trim();
+            }
+            alert(`Nombre del equipo actualizado a "${newName.trim()}".`);
+        } catch (error) {
+            console.error("Error al actualizar el nombre del equipo:", error);
+            alert("Error al actualizar el nombre: " + error.message);
+        }
+    }
+};
+window.editarNombreEquipo = editarNombreEquipo; // Expose to window for older HTML elements if any
 
 // --- Lógica de Gestión de Máquinas y Equipos ---
 async function guardarFichaEquipo(equipoId, data) {
@@ -2695,16 +2899,24 @@ async function cargarProgramaInspeccion(equipoId) {
 window.inicializarEquipos = async function() {
     const bindData = (idSuffix, data) => ['Marca', 'Modelo', 'Serie', 'Ubicacion', 'Rango', 'Resolucion'].forEach(k => { if (data[k.toLowerCase()] && document.getElementById(idSuffix + k)) document.getElementById(idSuffix + k).value = data[k.toLowerCase()]; });
     const d1 = await cargarFichaEquipo('ohaus_labt_157_23'); 
+    let ohausName = 'Balanza analítica OHAUS LABT-157-23';
     if (d1) {
         bindData('ohaus', d1);
+        if (d1.nombre) ohausName = d1.nombre;
     }
+    document.getElementById('nombre-equipo-ohaus_labt_157_23').innerText = ohausName;
+
     const d2 = await cargarFichaEquipo('sacabocado'); 
+    let sacabocadoName = 'Sacabocado';
     if (d2) {
         bindData('saca', d2);
+        if (d2.nombre) sacabocadoName = d2.nombre;
     }
+    document.getElementById('nombre-equipo-sacabocado').innerText = sacabocadoName;
     
     // Cargar historial de verificaciones de balanza
     cargarVerificaciones('ohaus_labt_157_23');
+    // These are for the static equipment in index.html, not the dynamic ones
     llenarDesplegablesVerificacion();
     cargarAnalistasDropdown();
 
@@ -2716,14 +2928,29 @@ window.inicializarEquipos = async function() {
     document.getElementById('btn-eliminar-equipo-ohaus_labt_157_23')?.addEventListener('click', () => {
         window.eliminarEquipoCompleto('ohaus_labt_157_23');
     });
-    document.getElementById('btn-generar-qr-ohaus_labt_157_23')?.addEventListener('click', () => {
-        window.generarQR('ohaus_labt_157_23', 'Balanza analítica OHAUS LABT-157-23');
+    document.getElementById('open-modal-ohaus_labt_157_23')?.addEventListener('click', () => {
+        openEquipoModal('ohaus_labt_157_23');
     });
+    document.getElementById('btn-editar-nombre-ohaus_labt_157_23')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editarNombreEquipo('ohaus_labt_157_23');
+    });
+    document.getElementById('btn-generar-qr-ohaus_labt_157_23')?.addEventListener('click', () => {
+        window.generarQR('ohaus_labt_157_23');
+    });
+
     document.getElementById('btn-eliminar-equipo-sacabocado')?.addEventListener('click', () => {
         window.eliminarEquipoCompleto('sacabocado');
     });
+    document.getElementById('open-modal-sacabocado')?.addEventListener('click', () => {
+        openEquipoModal('sacabocado');
+    });
+    document.getElementById('btn-editar-nombre-sacabocado')?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editarNombreEquipo('sacabocado');
+    });
     document.getElementById('btn-generar-qr-sacabocado')?.addEventListener('click', () => {
-        window.generarQR('sacabocado', 'Sacabocado');
+        window.generarQR('sacabocado');
     });
 
     // Cargar equipos dinámicos desde Firestore
@@ -3036,9 +3263,10 @@ function crearTemplateEquipoHTML(equipoId, equipoNombre) {
     return `
     <div id="equipo-container-${equipoId}">
         <div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ccc; padding: 0; border-radius: 5px; background: #fff; margin-top: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-weight: bold; color: #333;">
-            <div style="padding: 15px; cursor: pointer; flex-grow: 1;" onclick="window.openEquipoModal('${equipoId}', '${equipoNombre}')">
-                ⚙️ ${equipoNombre}
+            <div id="open-modal-${equipoId}" style="padding: 15px; cursor: pointer; flex-grow: 1;">
+                ⚙️ <span id="nombre-equipo-${equipoId}">${equipoNombre}</span>
             </div>
+            ${window.currentUserRole !== 'visor' ? `<button class="btn-secondary btn-editar-nombre" id="btn-editar-nombre-${equipoId}" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 5px;">Editar Nombre</button>` : ''}
             <button class="btn-secondary" id="btn-generar-qr-${equipoId}" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #007bff; color: #fff; border: none; border-radius: 3px; margin-right: 10px;">Generar QR</button>
             <button class="delete-btn" id="btn-eliminar-equipo-${equipoId}" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; background: #c0392b; color: #fff; border: none; border-radius: 3px; margin-right: 15px;">Eliminar</button>
         </div>
@@ -3086,11 +3314,21 @@ async function adjuntarListenersParaEquipo(equipoId, fichaData = null) {
         window.eliminarEquipoCompleto(equipoId);
     });
 
+    // Listener para abrir modal de equipo dinámico
+    document.getElementById(`open-modal-${equipoId}`)?.addEventListener('click', () => {
+        openEquipoModal(equipoId);
+    });
+
+    // Listener para editar nombre de equipo dinámico
+    document.getElementById(`btn-editar-nombre-${equipoId}`)?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editarNombreEquipo(equipoId);
+    });
+
     // Listener para generar QR
     document.getElementById(`btn-generar-qr-${equipoId}`)?.addEventListener('click', () => {
-        const equipoNombreElement = document.querySelector(`#equipo-container-${equipoId} div[onclick^="window.openEquipoModal"]`);
-        const equipoNombre = equipoNombreElement ? equipoNombreElement.innerText.replace(/⚖️|🛠️|⚙️/, '').trim() : equipoId;
-        window.generarQR(equipoId, equipoNombre);
+        // La función ahora obtiene el nombre desde el DOM
+        window.generarQR(equipoId);
     });
 
     // Guardar Ficha
