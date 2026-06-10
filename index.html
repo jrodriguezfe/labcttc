@@ -246,8 +246,15 @@
                     </div>
                 </div>
 
-                <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; margin-bottom: 15px;">9. DATOS DE CERTIFICADOS (BALANZA Y SACABOCADO)</h3>
-                <div style="overflow-x: auto; margin-bottom: 20px;">
+            <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; margin-bottom: 15px;">9. DATOS DE CERTIFICADOS</h3>
+            <div style="margin-bottom: 15px; background: #eef; padding: 10px; border-radius: 4px; border: 1px solid #ccc; display: flex; align-items: center; gap: 10px;">
+                <label style="font-weight: bold; color: #004a8f;">Equipos del Ensayo:</label>
+                <select id="certificadosSelector" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; flex-grow: 1; max-width: 300px;">
+                    <option value="BALANZA_SACABOCADO">BALANZA Y SACABOCADO</option>
+                    <!-- Se pueden añadir más equipos aquí en el futuro -->
+                </select>
+            </div>
+            <div id="certificadosBalanzaSaca" style="overflow-x: auto; margin-bottom: 20px;">
                     <table style="width: 100%; border-collapse: collapse; font-size: 0.95em;" border="1">
                         <tbody>
                             <tr style="background: #eef;">
@@ -290,6 +297,18 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+
+                <h3 style="color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 30px; margin-bottom: 15px;">10. COMPARACIÓN LABORATORIO EXTERNO</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <p style="margin: 0; color: #555;">Ingrese los valores del laboratorio externo:</p>
+                    <div>
+                        <button type="button" class="btn-secondary" id="btnEliminarLabExt" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer; margin-right: 5px;">➖ Eliminar Dato</button>
+                        <button type="button" class="btn-secondary" id="btnAgregarLabExt" style="padding: 5px 10px; font-size: 0.9em; cursor: pointer;">➕ Agregar Dato</button>
+                    </div>
+                </div>
+                <div style="overflow-x: auto; margin-bottom: 20px;" id="contenedorLabExt">
+                    <!-- La tabla de inputs generada dinamicamente irá aquí -->
                 </div>
 
                 <div class="acciones-eficacia" style="text-align: right; display: flex; justify-content: flex-end; gap: 15px; align-items: center; margin-top: 15px;">
@@ -578,15 +597,15 @@
                         <p style="font-size: 0.95em; color: #555;">La veracidad se evaluará mediante la comparación de valores obtenidos del laboratorio externo con el Laboratorio de CTTC, mediante la Prueba estadística T-student de 2 muestras.</p>
 
                         <table style="width: 100%; max-width: 600px; border-collapse: collapse; margin-bottom: 20px; font-size: 0.95em; text-align: center;" border="1">
-                            <thead style="background: #f3f3f3;">
+                            <thead style="background: #f3f3f3;" id="veracidadLabExtHead">
                                 <tr><th colspan="3" style="padding: 8px;">Gramaje (g/m²) - Lab externo</th><th style="padding: 8px;">Promedio</th></tr>
                             </thead>
-                            <tbody>
+                            <tbody id="veracidadLabExtBody">
                                 <tr>
-                                    <td style="padding: 5px;"><input type="number" step="0.001" id="labExt1" class="lab-ext-input" style="width: 100%; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;" value="217.1"></td>
-                                    <td style="padding: 5px;"><input type="number" step="0.001" id="labExt2" class="lab-ext-input" style="width: 100%; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;" value="218.4"></td>
-                                    <td style="padding: 5px;"><input type="number" step="0.001" id="labExt3" class="lab-ext-input" style="width: 100%; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;" value="217.3"></td>
-                                    <td style="padding: 5px; font-weight: bold; background: #eef;" id="labExtProm">217.600</td>
+                                    <td style="padding: 5px;">-</td>
+                                    <td style="padding: 5px;">-</td>
+                                    <td style="padding: 5px;">-</td>
+                                    <td style="padding: 5px; font-weight: bold; background: #eef;" id="labExtProm">-</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -1007,8 +1026,9 @@
                             </tr>
                         </table>
 
+                    <div id="calcFactoresBalanzaSaca">
                         <div style="display: flex; justify-content: space-between; align-items: baseline; border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-bottom: 15px;">
-                            <h3 style="color: #333; margin: 0;">9. DATOS DE CERTIFICADOS (BALANZA Y SACABOCADO)</h3>
+                        <h3 style="color: #333; margin: 0;">9. DATOS DE CERTIFICADOS</h3>
                             <span style="font-size: 0.8em; color: #666; font-weight: normal;">FECHA: <span id="factoresFecha"></span></span>
                         </div>
 
@@ -1307,6 +1327,7 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
                         </div>
                     </div>
                 </div>

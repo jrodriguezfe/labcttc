@@ -24,6 +24,7 @@ let currentEnsayo = null;
 let esRepeticionActiva = false;
 let currentEficaciaId = null;
 window.numColumnasEficacia = 3;
+window.numDatosLabExt = 3;
 window.encabezadosEficacia = ["Gramaje 1", "Gramaje 2", "Gramaje 3"];
 window.encabezadoUnidadEficacia = "g/m²";
 window.currentUserRole = 'visor'; // Por defecto solo lectura
@@ -642,7 +643,7 @@ window.aplicarPermisosVisuales = function(rol) {
     const puedeEditar = (rol === 'admin' || rol === 'analista');
     
     // Ocultar botones de guardado principales y formularios de ingreso
-    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion, #btnGuardarFichaOhaus, #btnGuardarFichaSaca, #btnGuardarVerifOhaus, #btnGuardarPeriodicidadOhaus, #btnGuardarPeriodicidadSaca, button[id^="btn-guardar-periodicidad-"], #btnAgregarColumnaEficacia, #btnEliminarColumnaEficacia').forEach(btn => {
+    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion, #btnGuardarFichaOhaus, #btnGuardarFichaSaca, #btnGuardarVerifOhaus, #btnGuardarPeriodicidadOhaus, #btnGuardarPeriodicidadSaca, button[id^="btn-guardar-periodicidad-"], #btnAgregarColumnaEficacia, #btnEliminarColumnaEficacia, #btnAgregarLabExt, #btnEliminarLabExt').forEach(btn => {
         btn.style.display = puedeEditar ? '' : 'none';
     });
 
@@ -887,6 +888,45 @@ async function editarNombreEficacia(eficaciaId) {
 }
 window.editarNombreEficacia = editarNombreEficacia;
 
+// --- Lógica para Tabla de Laboratorio Externo ---
+window.generarTablaLabExt = function() {
+    const container = document.getElementById('contenedorLabExt');
+    if (!container) return;
+    let html = '<table style="width: 100%; max-width: 800px; border-collapse: collapse; font-size: 0.95em; text-align: center;" border="1">';
+    html += '<thead style="background: #f3f3f3;"><tr>';
+    html += `<th colspan="${window.numDatosLabExt}" style="padding: 8px;">Gramaje (g/m²) - Lab externo</th><th style="padding: 8px;">Promedio</th>`;
+    html += '</tr></thead><tbody><tr>';
+    for (let i = 1; i <= window.numDatosLabExt; i++) {
+        html += `<td style="padding: 5px;"><input type="number" step="0.001" id="labExt${i}" class="lab-ext-input" style="width: 100%; padding: 5px; text-align: center; border: 1px solid #ccc; border-radius: 3px;"></td>`;
+    }
+    html += `<td style="padding: 5px; font-weight: bold; background: #eef;" id="labExtPromInput">-</td>`;
+    html += '</tr></tbody></table>';
+    container.innerHTML = html;
+
+    document.querySelectorAll('.lab-ext-input').forEach(inp => {
+        inp.addEventListener('input', window.calcularVeracidad);
+    });
+};
+
+document.getElementById('btnAgregarLabExt')?.addEventListener('click', () => {
+    if (window.currentUserRole === 'visor') return;
+    const vals = Array.from(document.querySelectorAll('.lab-ext-input')).map(i => i.value);
+    window.numDatosLabExt++;
+    window.generarTablaLabExt();
+    vals.forEach((v, idx) => { if (document.getElementById(`labExt${idx+1}`)) document.getElementById(`labExt${idx+1}`).value = v; });
+    if (typeof window.calcularVeracidad === 'function') window.calcularVeracidad();
+});
+
+document.getElementById('btnEliminarLabExt')?.addEventListener('click', () => {
+    if (window.currentUserRole === 'visor') return;
+    if (window.numDatosLabExt <= 1) { alert("Debe haber al menos un dato."); return; }
+    const vals = Array.from(document.querySelectorAll('.lab-ext-input')).map(i => i.value);
+    window.numDatosLabExt--;
+    window.generarTablaLabExt();
+    for (let idx = 0; idx < window.numDatosLabExt; idx++) { if (document.getElementById(`labExt${idx+1}`)) document.getElementById(`labExt${idx+1}`).value = vals[idx]; }
+    if (typeof window.calcularVeracidad === 'function') window.calcularVeracidad();
+});
+
 // --- Lógica de Carga de Datos de Incertidumbre ---
 async function cargarDatosIncertidumbre(eficaciaId) {
     if (!eficaciaId) return;
@@ -916,6 +956,13 @@ async function cargarDatosIncertidumbre(eficaciaId) {
         document.getElementById('certSacaProm1').value = 0.010021;
         document.getElementById('certSacaProm2').value = 0.000021;
         document.getElementById('certSacaNominal').value = 0.01;
+        if (document.getElementById('certificadosSelector')) document.getElementById('certificadosSelector').value = 'BALANZA_SACABOCADO';
+
+        window.numDatosLabExt = 3;
+        window.generarTablaLabExt();
+        if (document.getElementById('labExt1')) document.getElementById('labExt1').value = 217.1;
+        if (document.getElementById('labExt2')) document.getElementById('labExt2').value = 218.4;
+        if (document.getElementById('labExt3')) document.getElementById('labExt3').value = 217.3;
 
         window.numColumnasEficacia = 3;
         window.encabezadosEficacia = ["Gramaje 1", "Gramaje 2", "Gramaje 3"];
@@ -984,10 +1031,13 @@ async function cargarDatosIncertidumbre(eficaciaId) {
             if (typeof window.actualizarFormulasSacabocado === 'function') window.actualizarFormulasSacabocado();
             if (typeof window.calcularPesosSesgo === 'function') window.calcularPesosSesgo();
 
+            if (data.certificadosSelector !== undefined && document.getElementById('certificadosSelector')) document.getElementById('certificadosSelector').value = data.certificadosSelector;
+            if (typeof window.actualizarVistaCertificados === 'function') window.actualizarVistaCertificados();
+
             if (data.labExt) {
-                if (data.labExt[0]) document.getElementById('labExt1').value = data.labExt[0];
-                if (data.labExt[1]) document.getElementById('labExt2').value = data.labExt[1];
-                if (data.labExt[2]) document.getElementById('labExt3').value = data.labExt[2];
+                window.numDatosLabExt = Math.max(1, data.labExt.length);
+                window.generarTablaLabExt();
+                data.labExt.forEach((v, idx) => { if (document.getElementById(`labExt${idx+1}`)) document.getElementById(`labExt${idx+1}`).value = v; });
             }
             if (data.verConclusion) document.getElementById('verConclusion').value = data.verConclusion;
             calcularVeracidad();
@@ -1174,6 +1224,7 @@ function seleccionarEnsayoEficacia(eficaciaId) {
 
 renderOTTray();
 generarTablasEficacia();
+window.generarTablaLabExt();
 
 // --- Función para Calcular la Prueba de Veracidad (T-Student 2 Muestras) ---
 window.calcularVeracidad = function() {
@@ -1196,17 +1247,28 @@ window.calcularVeracidad = function() {
     let var1 = cttcData.reduce((a,b)=>a+Math.pow(b-mean1,2), 0) / (n1 - 1);
 
     let extData = [];
-    [1, 2, 3].forEach(i => {
-        let val = parseFloat(document.getElementById(`labExt${i}`)?.value);
+    document.querySelectorAll('.lab-ext-input').forEach(inp => {
+        let val = parseFloat(inp.value);
         if (!isNaN(val)) extData.push(val);
     });
     
     let n2 = extData.length;
-    let extPromCell = document.getElementById('labExtProm');
     let mean2 = n2 > 0 ? extData.reduce((a,b)=>a+b, 0) / n2 : 0;
     
-    if (extPromCell) {
-        extPromCell.innerText = n2 > 0 ? mean2.toFixed(3) : '-';
+    // Rellenar visualmente el input prom y la tabla en la sección "II. Veracidad"
+    if (document.getElementById('labExtPromInput')) document.getElementById('labExtPromInput').innerText = n2 > 0 ? mean2.toFixed(3) : '-';
+    
+    const headVer = document.getElementById('veracidadLabExtHead');
+    const bodyVer = document.getElementById('veracidadLabExtBody');
+    if (headVer && bodyVer) {
+        headVer.innerHTML = `<tr><th colspan="${window.numDatosLabExt}" style="padding: 8px;">Gramaje (g/m²) - Lab externo</th><th style="padding: 8px;">Promedio</th></tr>`;
+        let trHtml = '<tr>';
+        for (let i = 1; i <= window.numDatosLabExt; i++) {
+            let val = document.getElementById(`labExt${i}`)?.value || '-';
+            trHtml += `<td style="padding: 5px;">${val}</td>`;
+        }
+        trHtml += `<td style="padding: 5px; font-weight: bold; background: #eef;">${n2 > 0 ? mean2.toFixed(3) : '-'}</td></tr>`;
+        bodyVer.innerHTML = trHtml;
     }
     
     // --- Actualizar Tabla de Sesgo (Incertidumbre) ---
@@ -1372,10 +1434,6 @@ window.calcularVeracidad = function() {
     }
 }
 
-document.getElementById('labExt1')?.addEventListener('input', calcularVeracidad);
-document.getElementById('labExt2')?.addEventListener('input', calcularVeracidad);
-document.getElementById('labExt3')?.addEventListener('input', calcularVeracidad);
-
 window.calcularPesosSesgo = function() {
     const certSacaProm1 = parseFloat(document.getElementById('certSacaProm1')?.value) || 0;
     const selects = document.querySelectorAll('.sesgo-ensayo-select');
@@ -1449,6 +1507,21 @@ window.sincronizarVistaCertificados = function() {
     document.getElementById(id)?.addEventListener('input', window.sincronizarVistaCertificados);
 });
 window.sincronizarVistaCertificados();
+
+window.actualizarVistaCertificados = function() {
+    const selector = document.getElementById('certificadosSelector')?.value;
+    const divCert = document.getElementById('certificadosBalanzaSaca');
+    const divCalc = document.getElementById('calcFactoresBalanzaSaca');
+    if (selector === 'BALANZA_SACABOCADO') {
+        if (divCert) divCert.style.display = 'block';
+        if (divCalc) divCalc.style.display = 'block';
+    } else {
+        if (divCert) divCert.style.display = 'none';
+        if (divCalc) divCalc.style.display = 'none';
+    }
+};
+document.getElementById('certificadosSelector')?.addEventListener('change', window.actualizarVistaCertificados);
+window.actualizarVistaCertificados();
 
 window.actualizarFormulasBalanza = function() {
     const ur1 = parseFloat(document.getElementById('certBalanzaUR1')?.value) || 0;
@@ -2419,6 +2492,7 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
         const estConclusionMedias = document.getElementById('estConclusionMedias')?.value || '';
         const verConclusion = document.getElementById('verConclusion')?.value || '';
         
+        const certificadosSelector = document.getElementById('certificadosSelector')?.value || 'BALANZA_SACABOCADO';
         // Extraer datos de sección 8 y 9
         const precRefText1 = document.getElementById('precRefText1')?.value || '';
         const precRefVar = parseFloat(document.getElementById('precRefVar')?.value) || 0;
@@ -2434,11 +2508,7 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
         const certSacaProm2 = parseFloat(document.getElementById('certSacaProm2')?.value) || 0;
         const certSacaNominal = parseFloat(document.getElementById('certSacaNominal')?.value) || 0;
         
-        const labExt = [
-            document.getElementById('labExt1')?.value || '',
-            document.getElementById('labExt2')?.value || '',
-            document.getElementById('labExt3')?.value || ''
-        ];
+        const labExt = Array.from(document.querySelectorAll('.lab-ext-input')).map(inp => inp.value);
 
         const analistasData = {};
         ['A1', 'A2', 'A3', 'A4'].forEach(id => {
@@ -2476,6 +2546,7 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
             estConclusionVarianzas: estConclusionVarianzas,
             estConclusionMedias: estConclusionMedias,
             verConclusion: verConclusion,
+            certificadosSelector: certificadosSelector,
             precRefText1, precRefVar, precRefText2, precRefStd,
             certBalanzaCodigo, certBalanzaUR1, certBalanzaUR2, certBalanzaR,
             certSacabocadoCodigo, certSacaUexp, certSacaProm1, certSacaProm2, certSacaNominal,
