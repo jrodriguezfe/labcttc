@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/jstat@1.9.6/dist/jstat.min.js"></script>
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/qrcode-generator/qrcode.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
     <script>
       MathJax = {
         tex: {
@@ -1519,6 +1520,33 @@
                     <div id="procedimientoOhaus" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
                         <a href="https://drive.google.com/file/d/1QZnGJcdVCQjl8uMwnh7IwtS-WrMimF1r/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a>
                     </div>
+
+                    <!-- Cálculo de periodicidad -->
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('periodicidadOhaus', this)"><span>6. Cálculo de periodicidad</span><span style="font-size: 0.8em;">▶</span></h4>
+                    <div id="periodicidadOhaus" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <form id="formPeriodicidadOhaus" style="display: flex; flex-direction: column; gap: 15px;">
+                            <h5 style="margin: 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Calibración</h5>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Última Calibración:</label><input type="date" id="ohaus-calib-ultima" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Frecuencia (meses):</label><input type="number" id="ohaus-calib-frec" min="1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Próxima Calibración:</label><input type="date" id="ohaus-calib-proxima" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;" readonly></div>
+                            </div>
+                            <h5 style="margin: 10px 0 0 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Mantenimiento</h5>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Último Mantenimiento:</label><input type="date" id="ohaus-mant-ultimo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Frecuencia (meses):</label><input type="number" id="ohaus-mant-frec" min="1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Próximo Mantenimiento:</label><input type="date" id="ohaus-mant-proximo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;" readonly></div>
+                            </div>
+                            <button type="button" id="btnGuardarPeriodicidadOhaus" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Guardar Periodicidad</button>
+                        </form>
+                        <h5 style="margin-top: 25px; color: #333;">Historial de Eventos (Mantenimiento y Calibración)</h5>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.85em; text-align: left;" border="1">
+                                <thead style="background: #f3f3f3;"><tr><th style="padding: 5px;">Fecha Ejecución</th><th style="padding: 5px;">Tipo de Evento</th><th style="padding: 5px;">Fecha Programada (Original)</th><th style="padding: 5px;">Responsable</th></tr></thead>
+                                <tbody id="historial-eventos-ohaus_labt_157_23"><tr><td colspan="4" style="padding: 5px; text-align: center;">No hay historial.</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
                 </div>
 
@@ -1585,8 +1613,66 @@
                     <div id="procedimientoSaca" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
                         <a href="https://drive.google.com/file/d/1QZnGJcdVCQjl8uMwnh7IwtS-WrMimF1r/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a>
                     </div>
+
+                    <!-- Cálculo de periodicidad -->
+                    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('periodicidadSaca', this)"><span>6. Cálculo de periodicidad</span><span style="font-size: 0.8em;">▶</span></h4>
+                    <div id="periodicidadSaca" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        <form id="formPeriodicidadSaca" style="display: flex; flex-direction: column; gap: 15px;">
+                            <h5 style="margin: 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Calibración</h5>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Última Calibración:</label><input type="date" id="saca-calib-ultima" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Frecuencia (meses):</label><input type="number" id="saca-calib-frec" min="1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Próxima Calibración:</label><input type="date" id="saca-calib-proxima" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;" readonly></div>
+                            </div>
+                            <h5 style="margin: 10px 0 0 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Mantenimiento</h5>
+                            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Último Mantenimiento:</label><input type="date" id="saca-mant-ultimo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Frecuencia (meses):</label><input type="number" id="saca-mant-frec" min="1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                                <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Próximo Mantenimiento:</label><input type="date" id="saca-mant-proximo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;" readonly></div>
+                            </div>
+                            <button type="button" id="btnGuardarPeriodicidadSaca" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Guardar Periodicidad</button>
+                        </form>
+                        <h5 style="margin-top: 25px; color: #333;">Historial de Eventos (Mantenimiento y Calibración)</h5>
+                        <div style="overflow-x: auto;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.85em; text-align: left;" border="1">
+                                <thead style="background: #f3f3f3;"><tr><th style="padding: 5px;">Fecha Ejecución</th><th style="padding: 5px;">Tipo de Evento</th><th style="padding: 5px;">Fecha Programada (Original)</th><th style="padding: 5px;">Responsable</th></tr></thead>
+                                <tbody id="historial-eventos-sacabocado"><tr><td colspan="4" style="padding: 5px; text-align: center;">No hay historial.</td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
                 </div>
+            </div>
+
+            <!-- NUEVA SECCION: CALENDARIO -->
+            <h2 style="color: #333; margin-bottom: 10px; border-top: 1px solid #ccc; padding-top: 20px;">Calendario de mantenimiento y calibración</h2>
+            <div id="calendarioFiltros" style="display: flex; gap: 15px; margin-bottom: 15px; align-items: center; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; flex-wrap: wrap;">
+                <div>
+                    <label style="font-weight: bold; color: #555;">Desde:</label>
+                    <input type="date" id="calDesde" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div>
+                    <label style="font-weight: bold; color: #555;">Hasta:</label>
+                    <input type="date" id="calHasta" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div style="flex-grow: 1; display: flex; gap: 10px;">
+                    <button id="btnFiltrarCalendario" class="btn-primary" style="padding: 8px 15px; cursor: pointer;">Filtrar Rango</button>
+                    <button id="btnResetCalendario" class="btn-secondary" style="padding: 8px 15px; cursor: pointer;">Mostrar Todo</button>
+                </div>
+                <div>
+                    <button id="btnExportarCalendario" class="btn-exportar">📊 Exportar Excel</button>
+                </div>
+            </div>
+            
+            <div id="calendarContainer" style="background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; min-height: 500px;">
+                <div id="calendar"></div>
+            </div>
+
+            <div id="calendarioListaContainer" style="display: none; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; overflow-x: auto;">
+                <table id="tablaCalendarioEventos" style="width: 100%; border-collapse: collapse; font-size: 0.9em; text-align: left;" border="1">
+                    <thead style="background: #f3f3f3;"><tr><th style="padding: 8px;">Fecha</th><th style="padding: 8px;">Equipo</th><th style="padding: 8px;">Tipo de Evento</th><th style="padding: 8px;">Estado</th><th style="padding: 8px;" class="no-export">Acciones</th></tr></thead>
+                    <tbody id="bodyCalendarioEventos"></tbody>
+                </table>
             </div>
         </div>
 

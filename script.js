@@ -642,7 +642,7 @@ window.aplicarPermisosVisuales = function(rol) {
     const puedeEditar = (rol === 'admin' || rol === 'analista');
     
     // Ocultar botones de guardado principales y formularios de ingreso
-    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion, #btnGuardarFichaOhaus, #btnGuardarFichaSaca, #btnGuardarVerifOhaus, #btnAgregarColumnaEficacia, #btnEliminarColumnaEficacia').forEach(btn => {
+    document.querySelectorAll('.btn-guardar-principal, #btnEliminarSeleccionados, #gramajeForm button[type="submit"], #btnRepeticion, #btnGuardarFichaOhaus, #btnGuardarFichaSaca, #btnGuardarVerifOhaus, #btnGuardarPeriodicidadOhaus, #btnGuardarPeriodicidadSaca, button[id^="btn-guardar-periodicidad-"], #btnAgregarColumnaEficacia, #btnEliminarColumnaEficacia').forEach(btn => {
         btn.style.display = puedeEditar ? '' : 'none';
     });
 
@@ -685,6 +685,9 @@ onAuthStateChanged(auth, async (user) => {
         }
         if (typeof window.inicializarEficacia === 'function') {
             initPromises.push(window.inicializarEficacia());
+        }
+        if (typeof window.cargarDatosCalendario === 'function') {
+            initPromises.push(window.cargarDatosCalendario());
         }
         await Promise.all(initPromises);
 
@@ -3129,8 +3132,38 @@ async function cargarProgramaInspeccion(equipoId) {
     }
 }
 
+window.renderHistorialEventos = function(equipoId, eventos) {
+    const tbody = document.getElementById(`historial-eventos-${equipoId}`);
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (!eventos || eventos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding: 5px; text-align: center;">No hay historial.</td></tr>';
+        return;
+    }
+    const eventosOrdenados = [...eventos].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    eventosOrdenados.forEach(e => {
+        tbody.innerHTML += `<tr>
+            <td style="padding: 5px;">${e.fechaEjecucion}</td>
+            <td style="padding: 5px;">${e.tipo}</td>
+            <td style="padding: 5px;">${e.fechaProgramada || '-'}</td>
+            <td style="padding: 5px;">${e.usuario || '-'}</td>
+        </tr>`;
+    });
+};
+
 window.inicializarEquipos = async function() {
-    const bindData = (idSuffix, data) => ['Marca', 'Modelo', 'Serie', 'Ubicacion', 'Rango', 'Resolucion'].forEach(k => { if (data[k.toLowerCase()] && document.getElementById(idSuffix + k)) document.getElementById(idSuffix + k).value = data[k.toLowerCase()]; });
+    const bindData = (idSuffix, data) => {
+        ['Marca', 'Modelo', 'Serie', 'Ubicacion', 'Rango', 'Resolucion'].forEach(k => { if (data[k.toLowerCase()] && document.getElementById(idSuffix + k)) document.getElementById(idSuffix + k).value = data[k.toLowerCase()]; });
+        if (data.calibUltima && document.getElementById(`${idSuffix}-calib-ultima`)) document.getElementById(`${idSuffix}-calib-ultima`).value = data.calibUltima;
+        if (data.calibFrec && document.getElementById(`${idSuffix}-calib-frec`)) document.getElementById(`${idSuffix}-calib-frec`).value = data.calibFrec;
+        if (data.calibProxima && document.getElementById(`${idSuffix}-calib-proxima`)) document.getElementById(`${idSuffix}-calib-proxima`).value = data.calibProxima;
+        if (data.mantUltimo && document.getElementById(`${idSuffix}-mant-ultimo`)) document.getElementById(`${idSuffix}-mant-ultimo`).value = data.mantUltimo;
+        if (data.mantFrec && document.getElementById(`${idSuffix}-mant-frec`)) document.getElementById(`${idSuffix}-mant-frec`).value = data.mantFrec;
+        if (data.mantProximo && document.getElementById(`${idSuffix}-mant-proximo`)) document.getElementById(`${idSuffix}-mant-proximo`).value = data.mantProximo;
+        
+        let equipoId = idSuffix === 'ohaus' ? 'ohaus_labt_157_23' : (idSuffix === 'saca' ? 'sacabocado' : idSuffix);
+        window.renderHistorialEventos(equipoId, data.historialEventos || []);
+    };
     const d1 = await cargarFichaEquipo('ohaus_labt_157_23'); 
     let ohausName = 'Balanza analítica OHAUS LABT-157-23';
     if (d1) {
@@ -3156,6 +3189,33 @@ window.inicializarEquipos = async function() {
     // Generate and load inspection program for Ohaus
     generateInspectionTable('mantenimientoOhaus', 'ohaus_labt_157_23');
     await cargarProgramaInspeccion('ohaus_labt_157_23');
+
+    const adjuntarListenersPeriodicidadEstaticos = (idSuffix, equipoId) => {
+        const calcularProxima = (ultimaId, frecId, proximaId) => {
+            const ultima = document.getElementById(ultimaId)?.value;
+            const frec = parseInt(document.getElementById(frecId)?.value);
+            if (ultima && !isNaN(frec) && frec > 0) {
+                const date = new Date(ultima);
+                date.setMonth(date.getMonth() + frec);
+                document.getElementById(proximaId).value = date.toISOString().split('T')[0];
+            } else if (document.getElementById(proximaId)) document.getElementById(proximaId).value = '';
+        };
+        document.getElementById(`${idSuffix}-calib-ultima`)?.addEventListener('input', () => calcularProxima(`${idSuffix}-calib-ultima`, `${idSuffix}-calib-frec`, `${idSuffix}-calib-proxima`));
+        document.getElementById(`${idSuffix}-calib-frec`)?.addEventListener('input', () => calcularProxima(`${idSuffix}-calib-ultima`, `${idSuffix}-calib-frec`, `${idSuffix}-calib-proxima`));
+        document.getElementById(`${idSuffix}-mant-ultimo`)?.addEventListener('input', () => calcularProxima(`${idSuffix}-mant-ultimo`, `${idSuffix}-mant-frec`, `${idSuffix}-mant-proximo`));
+        document.getElementById(`${idSuffix}-mant-frec`)?.addEventListener('input', () => calcularProxima(`${idSuffix}-mant-ultimo`, `${idSuffix}-mant-frec`, `${idSuffix}-mant-proximo`));
+
+        document.getElementById(`btnGuardarPeriodicidad${idSuffix.charAt(0).toUpperCase() + idSuffix.slice(1)}`)?.addEventListener('click', async () => {
+            const data = {
+                calibUltima: document.getElementById(`${idSuffix}-calib-ultima`)?.value || '', calibFrec: document.getElementById(`${idSuffix}-calib-frec`)?.value || '', calibProxima: document.getElementById(`${idSuffix}-calib-proxima`)?.value || '',
+                mantUltimo: document.getElementById(`${idSuffix}-mant-ultimo`)?.value || '', mantFrec: document.getElementById(`${idSuffix}-mant-frec`)?.value || '', mantProximo: document.getElementById(`${idSuffix}-mant-proximo`)?.value || ''
+            };
+            await guardarFichaEquipo(equipoId, data);
+            if (typeof window.cargarDatosCalendario === 'function') window.cargarDatosCalendario();
+        });
+    };
+    adjuntarListenersPeriodicidadEstaticos('ohaus', 'ohaus_labt_157_23');
+    adjuntarListenersPeriodicidadEstaticos('saca', 'sacabocado');
 
     // Listeners para equipos estáticos
     document.getElementById('btn-eliminar-equipo-ohaus_labt_157_23')?.addEventListener('click', () => {
@@ -3207,11 +3267,20 @@ window.inicializarEquipos = async function() {
         const newEquipoHTML = crearTemplateEquipoHTML(equipoId, equipoNombre);
         document.getElementById('equiposList').insertAdjacentHTML('beforeend', newEquipoHTML);
 
-        const bindDynamicData = (id, data) => ['marca', 'modelo', 'serie', 'ubicacion', 'rango', 'resolucion'].forEach(k => {
-            const el = document.getElementById(`${id}-${k}`);
-            if (data[k] && el) el.value = data[k];
+        const bindDynamicData = (id, data) => ['marca', 'modelo', 'serie', 'ubicacion', 'rango', 'resolucion', 'calibUltima', 'calibFrec', 'calibProxima', 'mantUltimo', 'mantFrec', 'mantProximo'].forEach(k => {
+            let elId = `${id}-${k}`;
+            if (k === 'calibUltima') elId = `${id}-calib-ultima`;
+            if (k === 'calibFrec') elId = `${id}-calib-frec`;
+            if (k === 'calibProxima') elId = `${id}-calib-proxima`;
+            if (k === 'mantUltimo') elId = `${id}-mant-ultimo`;
+            if (k === 'mantFrec') elId = `${id}-mant-frec`;
+            if (k === 'mantProximo') elId = `${id}-mant-proximo`;
+            
+            const el = document.getElementById(elId);
+            if (data[k] !== undefined && el) el.value = data[k];
         });
         bindDynamicData(equipoId, equipoData);
+        window.renderHistorialEventos(equipoId, equipoData.historialEventos || []);
 
         await adjuntarListenersParaEquipo(equipoId, equipoData);
     }
@@ -3460,20 +3529,27 @@ document.getElementById('btnAgregarEquipo')?.addEventListener('click', async () 
 });
 
 async function agregarNuevoEquipo() {
-    const equipoNombre = prompt("Ingrese el nombre del nuevo equipo:");
-    if (!equipoNombre || equipoNombre.trim() === '') {
+    const equipoCodigo = prompt("Ingrese el código del nuevo equipo (Ej: LABT-001):");
+    if (!equipoCodigo || equipoCodigo.trim() === '') {
         return;
     }
 
+    const equipoNombreIngresado = prompt("Ingrese el nombre del nuevo equipo:");
+    if (!equipoNombreIngresado || equipoNombreIngresado.trim() === '') {
+        return;
+    }
+
+    const equipoNombre = `${equipoNombreIngresado.trim()} - ${equipoCodigo.trim()}`;
     const equipoId = equipoNombre.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     
     if (document.getElementById(`equipo-container-${equipoId}`)) {
-        alert("Ya existe un equipo con un nombre similar. Por favor, elija otro nombre.");
+        alert("Ya existe un equipo con un nombre o código similar. Por favor, elija otro.");
         return;
     }
 
     // Guardar inmediatamente en la base de datos para persistencia
     const newEquipoData = {
+        codigo: equipoCodigo.trim(),
         nombre: equipoNombre,
         fechaCreacion: new Date().toISOString(),
         marca: '', modelo: '', serie: '', ubicacion: '', rango: '', resolucion: ''
@@ -3535,6 +3611,32 @@ function crearTemplateEquipoHTML(equipoId, equipoNombre) {
             <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('manual-${equipoId}', this)"><span>3. Manual de equipo</span><span style="font-size: 0.8em;">▶</span></h4><div id="manual-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><a href="https://drive.google.com/file/d/1ACJuAaBqiNLJi8JZLel762rrJ_zkh7MN/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a></div>
             <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('certificado-${equipoId}', this)"><span>4. Certificado de calibración</span><span style="font-size: 0.8em;">▶</span></h4><div id="certificado-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><a href="https://drive.google.com/file/d/1aA9osU4hcFoxvxA8FL9WEDqYgeYYP0H-/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a></div>
             <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('procedimiento-${equipoId}', this)"><span>5. Procedimiento para el equipo</span><span style="font-size: 0.8em;">▶</span></h4><div id="procedimiento-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><a href="https://drive.google.com/file/d/1QZnGJcdVCQjl8uMwnh7IwtS-WrMimF1r/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a></div>
+            
+            <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="toggleSection('periodicidad-${equipoId}', this)"><span>6. Cálculo de periodicidad</span><span style="font-size: 0.8em;">▶</span></h4>
+            <div id="periodicidad-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                <form id="form-periodicidad-${equipoId}" style="display: flex; flex-direction: column; gap: 15px;">
+                    <h5 style="margin: 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Calibración</h5>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Última Calibración:</label><input type="date" id="${equipoId}-calib-ultima" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                        <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Frecuencia (meses):</label><input type="number" id="${equipoId}-calib-frec" min="1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                        <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Próxima Calibración:</label><input type="date" id="${equipoId}-calib-proxima" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;" readonly></div>
+                    </div>
+                    <h5 style="margin: 10px 0 0 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Mantenimiento</h5>
+                    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                        <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Último Mantenimiento:</label><input type="date" id="${equipoId}-mant-ultimo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                        <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Frecuencia (meses):</label><input type="number" id="${equipoId}-mant-frec" min="1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;"></div>
+                        <div style="flex: 1; min-width: 150px;"><label style="font-weight: bold; color: #555;">Próximo Mantenimiento:</label><input type="date" id="${equipoId}-mant-proximo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;" readonly></div>
+                    </div>
+                    <button type="button" id="btn-guardar-periodicidad-${equipoId}" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Guardar Periodicidad</button>
+                </form>
+                <h5 style="margin-top: 25px; color: #333;">Historial de Eventos (Mantenimiento y Calibración)</h5>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.85em; text-align: left;" border="1">
+                        <thead style="background: #f3f3f3;"><tr><th style="padding: 5px;">Fecha Ejecución</th><th style="padding: 5px;">Tipo de Evento</th><th style="padding: 5px;">Fecha Programada (Original)</th><th style="padding: 5px;">Responsable</th></tr></thead>
+                        <tbody id="historial-eventos-${equipoId}"><tr><td colspan="4" style="padding: 5px; text-align: center;">No hay historial.</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
         </div>
     </div>
     `;
@@ -3613,6 +3715,30 @@ async function adjuntarListenersParaEquipo(equipoId, fichaData = null) {
         }
     });
 
+    // Listeners y Lógica para Periodicidad
+    const calcularProxima = (ultimaId, frecId, proximaId) => {
+        const ultima = document.getElementById(ultimaId)?.value;
+        const frec = parseInt(document.getElementById(frecId)?.value);
+        if (ultima && !isNaN(frec) && frec > 0) {
+            const date = new Date(ultima);
+            date.setMonth(date.getMonth() + frec);
+            document.getElementById(proximaId).value = date.toISOString().split('T')[0];
+        } else if (document.getElementById(proximaId)) document.getElementById(proximaId).value = '';
+    };
+    document.getElementById(`${equipoId}-calib-ultima`)?.addEventListener('input', () => calcularProxima(`${equipoId}-calib-ultima`, `${equipoId}-calib-frec`, `${equipoId}-calib-proxima`));
+    document.getElementById(`${equipoId}-calib-frec`)?.addEventListener('input', () => calcularProxima(`${equipoId}-calib-ultima`, `${equipoId}-calib-frec`, `${equipoId}-calib-proxima`));
+    document.getElementById(`${equipoId}-mant-ultimo`)?.addEventListener('input', () => calcularProxima(`${equipoId}-mant-ultimo`, `${equipoId}-mant-frec`, `${equipoId}-mant-proximo`));
+    document.getElementById(`${equipoId}-mant-frec`)?.addEventListener('input', () => calcularProxima(`${equipoId}-mant-ultimo`, `${equipoId}-mant-frec`, `${equipoId}-mant-proximo`));
+
+    document.getElementById(`btn-guardar-periodicidad-${equipoId}`)?.addEventListener('click', async () => {
+        const data = {
+            calibUltima: document.getElementById(`${equipoId}-calib-ultima`)?.value || '', calibFrec: document.getElementById(`${equipoId}-calib-frec`)?.value || '', calibProxima: document.getElementById(`${equipoId}-calib-proxima`)?.value || '',
+            mantUltimo: document.getElementById(`${equipoId}-mant-ultimo`)?.value || '', mantFrec: document.getElementById(`${equipoId}-mant-frec`)?.value || '', mantProximo: document.getElementById(`${equipoId}-mant-proximo`)?.value || ''
+        };
+        await guardarFichaEquipo(equipoId, data);
+        if (typeof window.cargarDatosCalendario === 'function') window.cargarDatosCalendario();
+    });
+
     // Listeners para cálculo de rango
     document.querySelectorAll(`.verif-1g-${equipoId}`).forEach(inp => {
         inp.addEventListener('input', () => calcularRangoVerificacion(`verif-1g-${equipoId}`, `verif-1g-rango-${equipoId}`, 1.0000, 0.001, `verif-1g-obs-${equipoId}`));
@@ -3678,4 +3804,183 @@ document.getElementById('btnEliminarSeleccionados')?.addEventListener('click', a
         calcularDiferenciaCritica();
         calcularOpcionC();
     }
+});
+
+// --- Lógica de Calendario de Mantenimiento y Calibración ---
+let calendar;
+let todosLosEventosCalendario = [];
+
+window.cargarDatosCalendario = async function() {
+    try {
+        const snapshot = await getDocs(collection(db, "equipos"));
+        todosLosEventosCalendario = [];
+        
+        snapshot.forEach(docSnap => {
+            const data = docSnap.data();
+            const equipoId = docSnap.id;
+            const equipoNombre = data.nombre || equipoId;
+            
+            if (data.calibProxima) {
+                const isOverdue = new Date(data.calibProxima) < new Date();
+                todosLosEventosCalendario.push({
+                    title: `Calibración: ${equipoNombre}`,
+                    start: data.calibProxima,
+                    color: isOverdue ? '#c0392b' : '#004a8f', // Rojo si venció, azul en caso contrario
+                    extendedProps: { equipoId: equipoId, equipoNombre: equipoNombre, tipo: 'Calibración', estado: isOverdue ? 'Vencido' : 'Programado' }
+                });
+            }
+            
+            if (data.mantProximo) {
+                const isOverdue = new Date(data.mantProximo) < new Date();
+                todosLosEventosCalendario.push({
+                    title: `Mantenimiento: ${equipoNombre}`,
+                    start: data.mantProximo,
+                    color: isOverdue ? '#d97706' : '#217346', // Naranja si venció, verde en caso contrario
+                    extendedProps: { equipoId: equipoId, equipoNombre: equipoNombre, tipo: 'Mantenimiento', estado: isOverdue ? 'Vencido' : 'Programado' }
+                });
+            }
+        });
+        
+        if (calendar) {
+            calendar.removeAllEvents();
+            calendar.addEventSource(todosLosEventosCalendario);
+        } else {
+            const calendarEl = document.getElementById('calendar');
+            if (calendarEl && window.FullCalendar) {
+                calendar = new FullCalendar.Calendar(calendarEl, {
+                    initialView: 'dayGridMonth',
+                    locale: 'es',
+                    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
+                    buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
+                    events: todosLosEventosCalendario,
+                    eventClick: function(info) {
+                        if (typeof window.openEquipoModal === 'function') {
+                            window.openEquipoModal(info.event.extendedProps.equipoId);
+                        }
+                    }
+                });
+                calendar.render();
+            }
+        }
+        renderListaCalendario(todosLosEventosCalendario);
+    } catch (error) {
+        console.error("Error al cargar calendario: ", error);
+    }
+};
+
+function renderListaCalendario(eventos) {
+    const tbody = document.getElementById('bodyCalendarioEventos');
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    const sorted = [...eventos].sort((a, b) => new Date(a.start) - new Date(b.start));
+    if (sorted.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 10px;">No hay eventos para el rango seleccionado.</td></tr>';
+        return;
+    }
+    sorted.forEach(e => {
+        const colorEstado = e.extendedProps.estado === 'Vencido' ? 'color: #c0392b; font-weight: bold;' : 'color: #217346;';
+        const btnAccion = (window.currentUserRole === 'admin' || window.currentUserRole === 'analista') ? 
+            `<button type="button" class="btn-primary" style="padding: 4px 8px; font-size: 0.85em; cursor: pointer; border-radius: 4px; background-color: #28a745; border: none; color: white;" onclick="window.marcarEventoEjecutado('${e.extendedProps.equipoId}', '${e.extendedProps.tipo}')">✔ Marcar Ejecutado</button>` : 
+            `<span style="color:#888;">Lectura</span>`;
+        tbody.innerHTML += `<tr><td style="padding: 8px;">${e.start}</td><td style="padding: 8px;">${e.extendedProps.equipoNombre}</td><td style="padding: 8px;">${e.extendedProps.tipo}</td><td style="padding: 8px; ${colorEstado}">${e.extendedProps.estado}</td><td style="padding: 8px; text-align: center;" class="no-export">${btnAccion}</td></tr>`;
+    });
+}
+
+window.marcarEventoEjecutado = async function(equipoId, tipo) {
+    if (!confirm(`¿Está seguro de marcar este evento de ${tipo} como "Ejecutado" con fecha de hoy?\nEsto autocalculará y reprogramará automáticamente la próxima fecha.`)) return;
+
+    try {
+        const docSnap = await getDoc(doc(db, "equipos", equipoId));
+        if (!docSnap.exists()) {
+            alert("El equipo no existe.");
+            return;
+        }
+
+        const data = docSnap.data();
+        const hoy = new Date();
+        const hoyStr = hoy.toISOString().split('T')[0];
+        const updates = {};
+        
+        let prefix = equipoId;
+        if (equipoId === 'ohaus_labt_157_23') prefix = 'ohaus';
+        else if (equipoId === 'sacabocado') prefix = 'saca';
+        
+        const usuarioActual = auth.currentUser ? auth.currentUser.email : 'Sistema';
+        const historial = data.historialEventos || [];
+        historial.push({
+            tipo: tipo,
+            fechaEjecucion: hoyStr,
+            fechaProgramada: tipo === 'Calibración' ? (data.calibProxima || '') : (data.mantProximo || ''),
+            usuario: usuarioActual,
+            timestamp: hoy.toISOString()
+        });
+        updates.historialEventos = historial;
+
+        if (tipo === 'Calibración') {
+            updates.calibUltima = hoyStr;
+            const frec = parseInt(data.calibFrec);
+            if (!isNaN(frec) && frec > 0) {
+                const proximaDate = new Date(hoy);
+                proximaDate.setMonth(proximaDate.getMonth() + frec);
+                updates.calibProxima = proximaDate.toISOString().split('T')[0];
+            } else updates.calibProxima = '';
+            if (document.getElementById(`${prefix}-calib-ultima`)) document.getElementById(`${prefix}-calib-ultima`).value = updates.calibUltima;
+            if (document.getElementById(`${prefix}-calib-proxima`)) document.getElementById(`${prefix}-calib-proxima`).value = updates.calibProxima;
+        } else if (tipo === 'Mantenimiento') {
+            updates.mantUltimo = hoyStr;
+            const frec = parseInt(data.mantFrec);
+            if (!isNaN(frec) && frec > 0) {
+                const proximaDate = new Date(hoy);
+                proximaDate.setMonth(proximaDate.getMonth() + frec);
+                updates.mantProximo = proximaDate.toISOString().split('T')[0];
+            } else updates.mantProximo = '';
+            if (document.getElementById(`${prefix}-mant-ultimo`)) document.getElementById(`${prefix}-mant-ultimo`).value = updates.mantUltimo;
+            if (document.getElementById(`${prefix}-mant-proximo`)) document.getElementById(`${prefix}-mant-proximo`).value = updates.mantProximo;
+        }
+
+        await updateDoc(doc(db, "equipos", equipoId), updates);
+        window.renderHistorialEventos(equipoId, historial);
+        alert(`Evento ejecutado. Nueva fecha de ${tipo} reprogramada a: ${updates.calibProxima || updates.mantProximo || 'No definida'}`);
+        
+        if (typeof window.cargarDatosCalendario === 'function') {
+            await window.cargarDatosCalendario();
+            const desde = document.getElementById('calDesde').value;
+            const hasta = document.getElementById('calHasta').value;
+            if (document.getElementById('calendarioListaContainer').style.display === 'block') {
+                let eventosFiltrados = todosLosEventosCalendario;
+                if (desde) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) >= new Date(desde));
+                if (hasta) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) <= new Date(hasta));
+                renderListaCalendario(eventosFiltrados);
+            }
+        }
+    } catch (error) {
+        console.error("Error al ejecutar evento:", error);
+        alert("Error al actualizar el evento: " + error.message);
+    }
+};
+
+document.getElementById('btnFiltrarCalendario')?.addEventListener('click', () => {
+    const desde = document.getElementById('calDesde').value;
+    const hasta = document.getElementById('calHasta').value;
+    let eventosFiltrados = todosLosEventosCalendario;
+    if (desde) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) >= new Date(desde));
+    if (hasta) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) <= new Date(hasta));
+    renderListaCalendario(eventosFiltrados);
+    document.getElementById('calendarContainer').style.display = 'none';
+    document.getElementById('calendarioListaContainer').style.display = 'block';
+});
+
+document.getElementById('btnResetCalendario')?.addEventListener('click', () => {
+    document.getElementById('calDesde').value = '';
+    document.getElementById('calHasta').value = '';
+    renderListaCalendario(todosLosEventosCalendario);
+    document.getElementById('calendarContainer').style.display = 'block';
+    document.getElementById('calendarioListaContainer').style.display = 'none';
+});
+
+document.getElementById('btnExportarCalendario')?.addEventListener('click', () => {
+    const table = document.getElementById('tablaCalendarioEventos');
+    if (!table) return;
+    const wb = XLSX.utils.table_to_book(table, { sheet: "Calendario" });
+    XLSX.writeFile(wb, `Calendario_Mantenimiento_Calibracion_${new Date().toISOString().split('T')[0]}.xlsx`);
 });

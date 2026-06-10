@@ -77,11 +77,20 @@ async function loadEquipoView(equipoId) {
     document.getElementById('equipoContent').innerHTML = equipoHTML;
 
     if (ficha) {
-        const bindData = (idSuffix, data) => ['marca', 'modelo', 'serie', 'ubicacion', 'rango', 'resolucion'].forEach(k => {
-            const el = document.getElementById(`${idSuffix}-${k}`);
-            if (data[k] && el) el.value = data[k];
+        const bindData = (idSuffix, data) => ['marca', 'modelo', 'serie', 'ubicacion', 'rango', 'resolucion', 'calibUltima', 'calibFrec', 'calibProxima', 'mantUltimo', 'mantFrec', 'mantProximo'].forEach(k => {
+            let elId = `${idSuffix}-${k}`;
+            if (k === 'calibUltima') elId = `${idSuffix}-calib-ultima`;
+            if (k === 'calibFrec') elId = `${idSuffix}-calib-frec`;
+            if (k === 'calibProxima') elId = `${idSuffix}-calib-proxima`;
+            if (k === 'mantUltimo') elId = `${idSuffix}-mant-ultimo`;
+            if (k === 'mantFrec') elId = `${idSuffix}-mant-frec`;
+            if (k === 'mantProximo') elId = `${idSuffix}-mant-proximo`;
+            
+            const el = document.getElementById(elId);
+            if (data[k] !== undefined && el) el.value = data[k];
         });
         bindData(equipoId, ficha);
+        window.renderHistorialEventos(equipoId, ficha.historialEventos || []);
     }
     
     adjuntarListenersParaEquipo(equipoId);
@@ -154,8 +163,56 @@ function crearVistaEquipoHTML(equipoId, equipoNombre) {
             <span style="font-size: 0.8em;">▶</span>
         </h4>
         <div id="procedimiento-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"><a href="https://drive.google.com/file/d/1QZnGJcdVCQjl8uMwnh7IwtS-WrMimF1r/view?usp=sharing" target="_blank" class="btn-secondary" style="text-decoration: none;">📄 Ver Documento</a></div>
+
+    <h4 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px; margin-top: 10px;" onclick="window.toggleSection('periodicidad-${equipoId}', this)">
+        <span>6. Cálculo de periodicidad</span>
+        <span style="font-size: 0.8em;">▶</span>
+    </h4>
+    <div id="periodicidad-${equipoId}" style="display: none; padding: 15px; background: #fff; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+        <form id="form-periodicidad-${equipoId}" style="display: flex; flex-direction: column; gap: 15px;">
+            <h5 style="margin: 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Calibración</h5>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 150px;"><label>Última Calibración:</label><input type="date" id="${equipoId}-calib-ultima" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;" ${puedeEditar ? '' : 'disabled'}></div>
+                <div style="flex: 1; min-width: 150px;"><label>Frecuencia (meses):</label><input type="number" id="${equipoId}-calib-frec" min="1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;" ${puedeEditar ? '' : 'disabled'}></div>
+                <div style="flex: 1; min-width: 150px;"><label>Próxima Calibración:</label><input type="date" id="${equipoId}-calib-proxima" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;" disabled></div>
+            </div>
+            <h5 style="margin: 10px 0 0 0; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 5px;">Mantenimiento</h5>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 150px;"><label>Último Mantenimiento:</label><input type="date" id="${equipoId}-mant-ultimo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;" ${puedeEditar ? '' : 'disabled'}></div>
+                <div style="flex: 1; min-width: 150px;"><label>Frecuencia (meses):</label><input type="number" id="${equipoId}-mant-frec" min="1" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px;" ${puedeEditar ? '' : 'disabled'}></div>
+                <div style="flex: 1; min-width: 150px;"><label>Próximo Mantenimiento:</label><input type="date" id="${equipoId}-mant-proximo" style="width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; margin-top: 5px; background: #eef;" disabled></div>
+            </div>
+            ${puedeEditar ? `<button type="button" id="btn-guardar-periodicidad-${equipoId}" class="btn-primary" style="align-self: flex-start; padding: 10px 20px; margin-top: 10px; cursor: pointer;">Guardar Periodicidad</button>` : ''}
+        </form>
+        <h5 style="margin-top: 25px; color: #333;">Historial de Eventos (Mantenimiento y Calibración)</h5>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.85em; text-align: left;" border="1">
+                <thead style="background: #f3f3f3;"><tr><th style="padding: 5px;">Fecha Ejecución</th><th style="padding: 5px;">Tipo de Evento</th><th style="padding: 5px;">Fecha Programada (Original)</th><th style="padding: 5px;">Responsable</th></tr></thead>
+                <tbody id="historial-eventos-${equipoId}"><tr><td colspan="4" style="padding: 5px; text-align: center;">No hay historial.</td></tr></tbody>
+            </table>
+        </div>
+    </div>
     `;
 }
+
+window.renderHistorialEventos = function(equipoId, eventos) {
+    const tbody = document.getElementById(`historial-eventos-${equipoId}`);
+    if (!tbody) return;
+    tbody.innerHTML = '';
+    if (!eventos || eventos.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" style="padding: 5px; text-align: center;">No hay historial.</td></tr>';
+        return;
+    }
+    const eventosOrdenados = [...eventos].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    eventosOrdenados.forEach(e => {
+        tbody.innerHTML += `<tr>
+            <td style="padding: 5px;">${e.fechaEjecucion}</td>
+            <td style="padding: 5px;">${e.tipo}</td>
+            <td style="padding: 5px;">${e.fechaProgramada || '-'}</td>
+            <td style="padding: 5px;">${e.usuario || '-'}</td>
+        </tr>`;
+    });
+};
 
 function adjuntarListenersParaEquipo(equipoId) {
     if (window.currentUserRole !== 'admin' && window.currentUserRole !== 'analista') {
@@ -172,6 +229,28 @@ function adjuntarListenersParaEquipo(equipoId) {
             rango: document.getElementById(`${equipoId}-rango`)?.value || '',
             resolucion: document.getElementById(`${equipoId}-resolucion`)?.value || '',
             fechaActualizacion: new Date().toISOString()
+        };
+        await guardarFichaEquipo(equipoId, data);
+    });
+
+    const calcularProxima = (ultimaId, frecId, proximaId) => {
+        const ultima = document.getElementById(ultimaId)?.value;
+        const frec = parseInt(document.getElementById(frecId)?.value);
+        if (ultima && !isNaN(frec) && frec > 0) {
+            const date = new Date(ultima);
+            date.setMonth(date.getMonth() + frec);
+            document.getElementById(proximaId).value = date.toISOString().split('T')[0];
+        } else if (document.getElementById(proximaId)) document.getElementById(proximaId).value = '';
+    };
+    document.getElementById(`${equipoId}-calib-ultima`)?.addEventListener('input', () => calcularProxima(`${equipoId}-calib-ultima`, `${equipoId}-calib-frec`, `${equipoId}-calib-proxima`));
+    document.getElementById(`${equipoId}-calib-frec`)?.addEventListener('input', () => calcularProxima(`${equipoId}-calib-ultima`, `${equipoId}-calib-frec`, `${equipoId}-calib-proxima`));
+    document.getElementById(`${equipoId}-mant-ultimo`)?.addEventListener('input', () => calcularProxima(`${equipoId}-mant-ultimo`, `${equipoId}-mant-frec`, `${equipoId}-mant-proximo`));
+    document.getElementById(`${equipoId}-mant-frec`)?.addEventListener('input', () => calcularProxima(`${equipoId}-mant-ultimo`, `${equipoId}-mant-frec`, `${equipoId}-mant-proximo`));
+
+    document.getElementById(`btn-guardar-periodicidad-${equipoId}`)?.addEventListener('click', async () => {
+        const data = {
+            calibUltima: document.getElementById(`${equipoId}-calib-ultima`)?.value || '', calibFrec: document.getElementById(`${equipoId}-calib-frec`)?.value || '', calibProxima: document.getElementById(`${equipoId}-calib-proxima`)?.value || '',
+            mantUltimo: document.getElementById(`${equipoId}-mant-ultimo`)?.value || '', mantFrec: document.getElementById(`${equipoId}-mant-frec`)?.value || '', mantProximo: document.getElementById(`${equipoId}-mant-proximo`)?.value || ''
         };
         await guardarFichaEquipo(equipoId, data);
     });
