@@ -3878,8 +3878,28 @@ document.getElementById('btnEliminarSeleccionados')?.addEventListener('click', a
 });
 
 // --- Lógica de Calendario de Mantenimiento y Calibración ---
-let calendar;
 let todosLosEventosCalendario = [];
+
+window.aplicarFiltrosTablaCalendario = function() {
+    const desde = document.getElementById('calDesde')?.value;
+    const hasta = document.getElementById('calHasta')?.value;
+    const fFecha = document.getElementById('filtroCalFecha')?.value.toLowerCase() || '';
+    const fEquipo = document.getElementById('filtroCalEquipo')?.value.toLowerCase() || '';
+    const fTipos = Array.from(document.querySelectorAll('.filtroCalTipo:checked')).map(cb => cb.value);
+    const fEstados = Array.from(document.querySelectorAll('.filtroCalEstado:checked')).map(cb => cb.value);
+
+    let eventosFiltrados = todosLosEventosCalendario;
+    if (desde) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) >= new Date(desde));
+    if (hasta) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) <= new Date(hasta));
+    eventosFiltrados = eventosFiltrados.filter(e => {
+        const matchFecha = e.start.toLowerCase().includes(fFecha);
+        const matchEquipo = e.extendedProps.equipoNombre.toLowerCase().includes(fEquipo);
+        const matchTipo = fTipos.includes(e.extendedProps.tipo);
+        const matchEstado = fEstados.includes(e.extendedProps.estado);
+        return matchFecha && matchEquipo && matchTipo && matchEstado;
+    });
+    renderListaCalendario(eventosFiltrados);
+};
 
 window.cargarDatosCalendario = async function() {
     try {
@@ -3910,30 +3930,20 @@ window.cargarDatosCalendario = async function() {
                     extendedProps: { equipoId: equipoId, equipoNombre: equipoNombre, tipo: 'Mantenimiento', estado: isOverdue ? 'Vencido' : 'Programado' }
                 });
             }
+            
+            if (data.historialEventos && Array.isArray(data.historialEventos)) {
+                data.historialEventos.forEach(hist => {
+                    todosLosEventosCalendario.push({
+                        title: `${hist.tipo} (Ejecutado): ${equipoNombre}`,
+                        start: hist.fechaProgramada || hist.fechaEjecucion,
+                        color: '#6c757d', // Gris para eventos ya ejecutados
+                    extendedProps: { equipoId: equipoId, equipoNombre: equipoNombre, tipo: hist.tipo, estado: 'Ejecutado', fechaEjecucion: hist.fechaEjecucion, timestamp: hist.timestamp }
+                    });
+                });
+            }
         });
         
-        if (calendar) {
-            calendar.removeAllEvents();
-            calendar.addEventSource(todosLosEventosCalendario);
-        } else {
-            const calendarEl = document.getElementById('calendar');
-            if (calendarEl && window.FullCalendar) {
-                calendar = new FullCalendar.Calendar(calendarEl, {
-                    initialView: 'dayGridMonth',
-                    locale: 'es',
-                    headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listMonth' },
-                    buttonText: { today: 'Hoy', month: 'Mes', list: 'Lista' },
-                    events: todosLosEventosCalendario,
-                    eventClick: function(info) {
-                        if (typeof window.openEquipoModal === 'function') {
-                            window.openEquipoModal(info.event.extendedProps.equipoId);
-                        }
-                    }
-                });
-                calendar.render();
-            }
-        }
-        renderListaCalendario(todosLosEventosCalendario);
+        window.aplicarFiltrosTablaCalendario();
     } catch (error) {
         console.error("Error al cargar calendario: ", error);
     }
@@ -3949,11 +3959,20 @@ function renderListaCalendario(eventos) {
         return;
     }
     sorted.forEach(e => {
-        const colorEstado = e.extendedProps.estado === 'Vencido' ? 'color: #c0392b; font-weight: bold;' : 'color: #217346;';
-        const btnAccion = (window.currentUserRole === 'admin' || window.currentUserRole === 'analista') ? 
-            `<button type="button" class="btn-primary" style="padding: 4px 8px; font-size: 0.85em; cursor: pointer; border-radius: 4px; background-color: #28a745; border: none; color: white;" onclick="window.marcarEventoEjecutado('${e.extendedProps.equipoId}', '${e.extendedProps.tipo}')">✔ Marcar Ejecutado</button>` : 
-            `<span style="color:#888;">Lectura</span>`;
-        tbody.innerHTML += `<tr><td style="padding: 8px;">${e.start}</td><td style="padding: 8px;">${e.extendedProps.equipoNombre}</td><td style="padding: 8px;">${e.extendedProps.tipo}</td><td style="padding: 8px; ${colorEstado}">${e.extendedProps.estado}</td><td style="padding: 8px; text-align: center;" class="no-export">${btnAccion}</td></tr>`;
+        let colorEstado = 'color: #217346;';
+        if (e.extendedProps.estado === 'Vencido') colorEstado = 'color: #c0392b; font-weight: bold;';
+        else if (e.extendedProps.estado === 'Ejecutado') colorEstado = 'color: #6c757d; font-style: italic;';
+        
+        let btnAccion = `<span style="color:#888;">Lectura</span>`;
+        if (window.currentUserRole === 'admin' || window.currentUserRole === 'analista') {
+            const btnEliminar = `<button type="button" class="btn-secondary" style="padding: 4px 8px; font-size: 0.85em; cursor: pointer; border-radius: 4px; background-color: #c0392b; border: none; color: white; margin-left: 5px;" onclick="window.eliminarEventoCalendario('${e.extendedProps.equipoId}', '${e.extendedProps.tipo}', '${e.extendedProps.estado}', '${e.extendedProps.timestamp || ''}')">🗑️ Eliminar</button>`;
+            if (e.extendedProps.estado === 'Ejecutado') {
+                btnAccion = `<span style="color:#6c757d; font-weight: bold;">✔ Realizado el ${e.extendedProps.fechaEjecucion || ''}</span>` + btnEliminar;
+            } else {
+                btnAccion = `<button type="button" class="btn-primary" style="padding: 4px 8px; font-size: 0.85em; cursor: pointer; border-radius: 4px; background-color: #28a745; border: none; color: white;" onclick="window.marcarEventoEjecutado('${e.extendedProps.equipoId}', '${e.extendedProps.tipo}')">✔ Marcar Ejecutado</button>` + btnEliminar;
+            }
+        }
+        tbody.innerHTML += `<tr><td style="padding: 8px;">${e.start}</td><td style="padding: 8px;">${e.extendedProps.equipoNombre}</td><td style="padding: 8px;">${e.extendedProps.tipo}</td><td style="padding: 8px; ${colorEstado}">${e.extendedProps.estado}</td><td style="padding: 8px; text-align: center; white-space: nowrap;" class="no-export">${btnAccion}</td></tr>`;
     });
 }
 
@@ -4015,14 +4034,6 @@ window.marcarEventoEjecutado = async function(equipoId, tipo) {
         
         if (typeof window.cargarDatosCalendario === 'function') {
             await window.cargarDatosCalendario();
-            const desde = document.getElementById('calDesde').value;
-            const hasta = document.getElementById('calHasta').value;
-            if (document.getElementById('calendarioListaContainer').style.display === 'block') {
-                let eventosFiltrados = todosLosEventosCalendario;
-                if (desde) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) >= new Date(desde));
-                if (hasta) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) <= new Date(hasta));
-                renderListaCalendario(eventosFiltrados);
-            }
         }
     } catch (error) {
         console.error("Error al ejecutar evento:", error);
@@ -4030,23 +4041,80 @@ window.marcarEventoEjecutado = async function(equipoId, tipo) {
     }
 };
 
+window.eliminarEventoCalendario = async function(equipoId, tipo, estado, timestamp) {
+    if (!confirm(`¿Está seguro de eliminar este evento de ${tipo} (${estado})?`)) return;
+
+    try {
+        const docSnap = await getDoc(doc(db, "equipos", equipoId));
+        if (!docSnap.exists()) {
+            alert("El equipo no existe.");
+            return;
+        }
+
+        const data = docSnap.data();
+        const updates = {};
+        
+        let prefix = equipoId;
+        if (equipoId === 'ohaus_labt_157_23') prefix = 'ohaus';
+        else if (equipoId === 'sacabocado') prefix = 'saca';
+
+        if (estado === 'Ejecutado') {
+            let historial = data.historialEventos || [];
+            historial = historial.filter(h => h.timestamp !== timestamp);
+            updates.historialEventos = historial;
+            window.renderHistorialEventos(equipoId, historial);
+        } else {
+            if (tipo === 'Calibración') {
+                updates.calibProxima = '';
+                if (document.getElementById(`${prefix}-calib-proxima`)) document.getElementById(`${prefix}-calib-proxima`).value = '';
+            } else if (tipo === 'Mantenimiento') {
+                updates.mantProximo = '';
+                if (document.getElementById(`${prefix}-mant-proximo`)) document.getElementById(`${prefix}-mant-proximo`).value = '';
+            }
+        }
+
+        await updateDoc(doc(db, "equipos", equipoId), updates);
+        alert(`Evento de ${tipo} eliminado correctamente.`);
+        
+        if (typeof window.cargarDatosCalendario === 'function') await window.cargarDatosCalendario();
+    } catch (error) {
+        console.error("Error al eliminar evento:", error);
+        alert("Error al eliminar el evento: " + error.message);
+    }
+};
+
+// --- Inicialización de Flatpickr para mejor UX en navegación de fechas ---
+let fpDesde, fpHasta;
+if (typeof window.flatpickr !== 'undefined') {
+    const fpOptions = {
+        locale: "es",
+        dateFormat: "Y-m-d", // Formato para el filtro de validación por debajo
+        altInput: true,      // Muestra un input visible con formato amigable
+        altFormat: "d/m/Y",  // Formato visual amigable
+        allowInput: true     // Permite también escribir la fecha de forma manual
+    };
+    const initDesde = window.flatpickr("#calDesde", fpOptions);
+    const initHasta = window.flatpickr("#calHasta", fpOptions);
+    fpDesde = Array.isArray(initDesde) ? initDesde[0] : initDesde;
+    fpHasta = Array.isArray(initHasta) ? initHasta[0] : initHasta;
+}
+
 document.getElementById('btnFiltrarCalendario')?.addEventListener('click', () => {
-    const desde = document.getElementById('calDesde').value;
-    const hasta = document.getElementById('calHasta').value;
-    let eventosFiltrados = todosLosEventosCalendario;
-    if (desde) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) >= new Date(desde));
-    if (hasta) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) <= new Date(hasta));
-    renderListaCalendario(eventosFiltrados);
-    document.getElementById('calendarContainer').style.display = 'none';
-    document.getElementById('calendarioListaContainer').style.display = 'block';
+    window.aplicarFiltrosTablaCalendario();
 });
 
-document.getElementById('btnResetCalendario')?.addEventListener('click', () => {
-    document.getElementById('calDesde').value = '';
-    document.getElementById('calHasta').value = '';
-    renderListaCalendario(todosLosEventosCalendario);
-    document.getElementById('calendarContainer').style.display = 'block';
-    document.getElementById('calendarioListaContainer').style.display = 'none';
+['filtroCalFecha', 'filtroCalEquipo'].forEach(id => {
+    document.getElementById(id)?.addEventListener('input', window.aplicarFiltrosTablaCalendario);
+});
+document.querySelectorAll('.filtroCalTipo, .filtroCalEstado').forEach(cb => {
+    cb.addEventListener('change', window.aplicarFiltrosTablaCalendario);
+});
+
+document.getElementById('btnLimpiarFiltrosCal')?.addEventListener('click', () => {
+    if(document.getElementById('filtroCalFecha')) document.getElementById('filtroCalFecha').value = '';
+    if(document.getElementById('filtroCalEquipo')) document.getElementById('filtroCalEquipo').value = '';
+    document.querySelectorAll('.filtroCalTipo, .filtroCalEstado').forEach(cb => cb.checked = true);
+    window.aplicarFiltrosTablaCalendario();
 });
 
 document.getElementById('btnExportarCalendario')?.addEventListener('click', () => {

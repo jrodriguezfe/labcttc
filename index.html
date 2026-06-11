@@ -12,6 +12,9 @@
     <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/qrcode-generator/qrcode.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://npmcdn.com/flatpickr/dist/l10n/es.js"></script>
     <script>
       MathJax = {
         tex: {
@@ -1670,28 +1673,43 @@
             <div id="calendarioFiltros" style="display: flex; gap: 15px; margin-bottom: 15px; align-items: center; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; flex-wrap: wrap;">
                 <div>
                     <label style="font-weight: bold; color: #555;">Desde:</label>
-                    <input type="date" id="calDesde" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <input type="text" id="calDesde" placeholder="dd/mm/aaaa" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 </div>
                 <div>
                     <label style="font-weight: bold; color: #555;">Hasta:</label>
-                    <input type="date" id="calHasta" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    <input type="text" id="calHasta" placeholder="dd/mm/aaaa" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
                 </div>
                 <div style="flex-grow: 1; display: flex; gap: 10px;">
                     <button id="btnFiltrarCalendario" class="btn-primary" style="padding: 8px 15px; cursor: pointer;">Filtrar Rango</button>
-                    <button id="btnResetCalendario" class="btn-secondary" style="padding: 8px 15px; cursor: pointer;">Mostrar Todo</button>
                 </div>
                 <div>
                     <button id="btnExportarCalendario" class="btn-exportar">📊 Exportar Excel</button>
                 </div>
             </div>
             
-            <div id="calendarContainer" style="background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; min-height: 500px;">
-                <div id="calendar"></div>
-            </div>
-
-            <div id="calendarioListaContainer" style="display: none; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; overflow-x: auto;">
+            <div id="calendarioListaContainer" style="background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; overflow-x: auto;">
                 <table id="tablaCalendarioEventos" style="width: 100%; border-collapse: collapse; font-size: 0.9em; text-align: left;" border="1">
-                    <thead style="background: #f3f3f3;"><tr><th style="padding: 8px;">Fecha</th><th style="padding: 8px;">Equipo</th><th style="padding: 8px;">Tipo de Evento</th><th style="padding: 8px;">Estado</th><th style="padding: 8px;" class="no-export">Acciones</th></tr></thead>
+                    <thead style="background: #f3f3f3;">
+                        <tr><th style="padding: 8px;">Fecha</th><th style="padding: 8px;">Equipo</th><th style="padding: 8px;">Tipo de Evento</th><th style="padding: 8px;">Estado</th><th style="padding: 8px;" class="no-export">Acciones</th></tr>
+                        <tr class="filtros-tabla">
+                            <th style="padding: 4px;"><input type="text" id="filtroCalFecha" placeholder="Buscar fecha..." style="width: 100%; box-sizing: border-box; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-weight: normal;"></th>
+                            <th style="padding: 4px;"><input type="text" id="filtroCalEquipo" placeholder="Buscar equipo..." style="width: 100%; box-sizing: border-box; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-weight: normal;"></th>
+                            <th style="padding: 4px;">
+                                <div style="display: flex; gap: 10px; font-weight: normal; flex-wrap: wrap; font-size: 0.9em; padding: 4px;">
+                                    <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalTipo" value="Mantenimiento" checked> Mantenimiento</label>
+                                    <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalTipo" value="Calibración" checked> Calibración</label>
+                                </div>
+                            </th>
+                            <th style="padding: 4px;">
+                                <div style="display: flex; gap: 10px; font-weight: normal; flex-wrap: wrap; font-size: 0.9em; padding: 4px;">
+                                    <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalEstado" value="Programado" checked> Programado</label>
+                                    <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalEstado" value="Vencido" checked> Vencido</label>
+                                    <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalEstado" value="Ejecutado" checked> Ejecutado</label>
+                                </div>
+                            </th>
+                            <th style="padding: 4px;" class="no-export"><button id="btnLimpiarFiltrosCal" class="btn-secondary" style="width: 100%; padding: 4px; font-size: 0.9em; cursor: pointer; border-radius: 3px;">Limpiar Filtros</button></th>
+                        </tr>
+                    </thead>
                     <tbody id="bodyCalendarioEventos"></tbody>
                 </table>
             </div>
