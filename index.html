@@ -179,19 +179,26 @@
         </header>
 
         <div id="otTray" style="padding: 20px;">
-            <h2 style="color: #333; margin-bottom: 10px;">Bandeja de Órdenes de Trabajo (OT)</h2>
-            <div id="otList" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px;"></div>
-
-            <h2 style="color: #333; margin-bottom: 10px; border-top: 1px solid #ccc; padding-top: 20px;">Cálculo de Eficacia e Incertidumbre</h2>
-            <button id="btnAgregarEficacia" class="btn-primary" style="margin-bottom: 20px; cursor: pointer;">+ Agregar Nuevo Ensayo de Eficacia</button>
-            
-            <div id="incertidumbreEnsayoTray" style="margin-bottom: 20px;">
-                <p style="color: #666; margin-bottom: 10px;">Seleccione el ensayo para cargar su matriz de eficacia:</p>
-                <div id="incertidumbreEnsayoList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            <h2 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px;" onclick="toggleSection('contentOtTray', this)">
+                <span>Bandeja de Órdenes de Trabajo (OT)</span><span style="font-size: 0.8em;">▼</span>
+            </h2>
+            <div id="contentOtTray" style="display: block; padding: 15px 0;">
+                <div id="otList" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 40px;"></div>
             </div>
 
-            <!-- NUEVA ÁREA: REGISTRO DE EFICACIA -->
-            <div id="areaEficacia" style="display: none; padding: 20px; background: white; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 20px;">
+            <h2 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px;" onclick="toggleSection('contentEficacia', this)">
+                <span>Cálculo de Eficacia e Incertidumbre</span><span style="font-size: 0.8em;">▼</span>
+            </h2>
+            <div id="contentEficacia" style="display: block; padding: 15px 0;">
+                <button id="btnAgregarEficacia" class="btn-primary" style="margin-bottom: 20px; cursor: pointer;">+ Agregar Nuevo Ensayo de Eficacia</button>
+                
+                <div id="incertidumbreEnsayoTray" style="margin-bottom: 20px;">
+                    <p style="color: #666; margin-bottom: 10px;">Seleccione el ensayo para cargar su matriz de eficacia:</p>
+                    <div id="incertidumbreEnsayoList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+                </div>
+    
+                <!-- NUEVA ÁREA: REGISTRO DE EFICACIA -->
+                <div id="areaEficacia" style="display: none; padding: 20px; background: white; border-radius: 5px; border: 1px solid #ccc; margin-bottom: 20px;">
                 <div class="header-eficacia" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #004a8f; padding-bottom: 10px; margin-bottom: 20px;">
                     <h2 style="color: #004a8f; margin: 0; font-size: 1.4em;">REGISTRO DE EFICACIA</h2>
                     <div style="display: flex; gap: 10px;">
@@ -254,6 +261,7 @@
                 <label style="font-weight: bold; color: #004a8f;">Equipos del Ensayo:</label>
                 <select id="certificadosSelector" style="padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 14px; flex-grow: 1; max-width: 300px;">
                     <option value="BALANZA_SACABOCADO">BALANZA Y SACABOCADO</option>
+                    <option value="CINTA_METRICA">CINTA METRICA</option>
                     <!-- Se pueden añadir más equipos aquí en el futuro -->
                 </select>
             </div>
@@ -297,6 +305,26 @@
                                 <td style="padding: 8px; font-weight: bold;">(m²)</td>
                                 <td style="padding: 8px;"><input type="number" step="any" id="certSacaNominal" value="0.01" style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
                                 <td style="padding: 8px;"></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="certificadosCintaMetrica" style="overflow-x: auto; margin-bottom: 20px; display: none;">
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.95em;" border="1">
+                        <tbody>
+                            <tr style="background: #eef;">
+                                <td colspan="2" style="padding: 8px; font-weight: bold;">DATOS DE CERTIFICADO DE CINTA MÉTRICA</td>
+                                <td colspan="2" style="padding: 8px;"><input type="text" id="certCintaCodigo" placeholder="Ingrese código de certificado..." style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px;"></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px; width: 40%;">Incertidumbre Expandida de Medición:</td>
+                                <td style="padding: 8px; font-weight: bold; width: 20%;">U exp (m)</td>
+                                <td style="padding: 8px; width: 40%;" colspan="2"><input type="number" step="any" id="certCintaUexp" placeholder="Ingrese incertidumbre..." style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
+                            </tr>
+                            <tr>
+                                <td style="padding: 8px;">Valor Promedio Encontrado:</td>
+                                <td style="padding: 8px; font-weight: bold;">(m)</td>
+                                <td style="padding: 8px;" colspan="2"><input type="number" step="any" id="certCintaProm" placeholder="Ingrese valor promedio..." style="width: 100%; border: 1px solid #ccc; padding: 4px; border-radius: 3px; text-align: center;"></td>
                             </tr>
                         </tbody>
                     </table>
@@ -1007,7 +1035,7 @@
                     <div id="seccionCalculoFactores" style="margin-top: 40px; border-top: 2px solid #004a8f; padding-top: 20px;">
                         <h2 style="color: #004a8f; margin-bottom: 20px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 10px; background: #f9f9f9; border-radius: 5px; border: 1px solid #ddd;" onclick="toggleSection('contentFactores', this)">
                             <span style="font-size: 0.8em; color: transparent;">▶</span>
-                            <span style="text-align: center;">V. CALCULO DE INCERTIDUMBRE DE FACTORES EN EL ENSAYO</span>
+                            <span id="tituloSeccionV" style="text-align: center;">V. CALCULO DE INCERTIDUMBRE DE FACTORES EN EL ENSAYO</span>
                             <span style="font-size: 0.8em; color: #555;">▶</span>
                         </h2>
                         
@@ -1362,12 +1390,20 @@
                         </div>
                     </div>
                 </div>
-            </div>
+            </div> <!-- Cierre de areaEficacia -->
+            </div> <!-- Cierre de contentEficacia -->
 
-            <h2 style="color: #333; margin-bottom: 10px; border-top: 1px solid #ccc; padding-top: 20px;">Máquinas y equipos</h2>
-            <button id="btnAgregarEquipo" class="btn-primary" style="margin-bottom: 20px; cursor: pointer;">+ Agregar Nuevo Equipo</button>
-            
-            <div id="equiposList" style="margin-bottom: 20px;">
+            <h2 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px;" onclick="toggleSection('contentEquipos', this)">
+                <span>Máquinas y equipos</span><span style="font-size: 0.8em;">▼</span>
+            </h2>
+            <div id="contentEquipos" style="display: block; padding: 15px 0;">
+                <button id="btnAgregarEquipo" class="btn-primary" style="margin-bottom: 20px; cursor: pointer;">+ Agregar Nuevo Equipo</button>
+                
+                <div style="margin-bottom: 20px;">
+                    <input type="text" id="buscadorEquipos" placeholder="🔎 Buscar equipo por nombre o código..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 1em;">
+                </div>
+                
+                <div id="equiposList" style="margin-bottom: 20px;">
                 <!-- Balanza OHAUS -->
                 <div id="equipo-container-ohaus_labt_157_23">
                     <div style="display: flex; align-items: center; gap: 10px; border: 1px solid #ccc; padding: 0; border-radius: 5px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05); font-weight: bold; color: #333;">
@@ -1666,52 +1702,57 @@
                     </div>
                 </div>
                 </div>
-            </div>
+            </div> <!-- Cierre de equiposList -->
+            </div> <!-- Cierre de contentEquipos -->
 
             <!-- NUEVA SECCION: CALENDARIO -->
-            <h2 style="color: #333; margin-bottom: 10px; border-top: 1px solid #ccc; padding-top: 20px;">Calendario de mantenimiento y calibración</h2>
-            <div id="calendarioFiltros" style="display: flex; gap: 15px; margin-bottom: 15px; align-items: center; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; flex-wrap: wrap;">
-                <div>
-                    <label style="font-weight: bold; color: #555;">Desde:</label>
-                    <input type="text" id="calDesde" placeholder="dd/mm/aaaa" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+            <h2 style="color: #004a8f; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 8px; background: #eef; border-radius: 4px;" onclick="toggleSection('contentCalendario', this)">
+                <span>Calendario de mantenimiento y calibración</span><span style="font-size: 0.8em;">▼</span>
+            </h2>
+            <div id="contentCalendario" style="display: block; padding: 15px 0;">
+                <div id="calendarioFiltros" style="display: flex; gap: 15px; margin-bottom: 15px; align-items: center; background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; flex-wrap: wrap;">
+                    <div>
+                        <label style="font-weight: bold; color: #555;">Desde:</label>
+                        <input type="text" id="calDesde" placeholder="dd/mm/aaaa" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                    <div>
+                        <label style="font-weight: bold; color: #555;">Hasta:</label>
+                        <input type="text" id="calHasta" placeholder="dd/mm/aaaa" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                    </div>
+                    <div style="flex-grow: 1; display: flex; gap: 10px;">
+                        <button id="btnFiltrarCalendario" class="btn-primary" style="padding: 8px 15px; cursor: pointer;">Filtrar Rango</button>
+                    </div>
+                    <div>
+                        <button id="btnExportarCalendario" class="btn-exportar">📊 Exportar Excel</button>
+                    </div>
                 </div>
-                <div>
-                    <label style="font-weight: bold; color: #555;">Hasta:</label>
-                    <input type="text" id="calHasta" placeholder="dd/mm/aaaa" style="padding: 8px; border: 1px solid #ccc; border-radius: 4px;">
+                
+                <div id="calendarioListaContainer" style="background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; overflow-x: auto;">
+                    <table id="tablaCalendarioEventos" style="width: 100%; border-collapse: collapse; font-size: 0.9em; text-align: left;" border="1">
+                        <thead style="background: #f3f3f3;">
+                            <tr><th style="padding: 8px;">Fecha</th><th style="padding: 8px;">Equipo</th><th style="padding: 8px;">Tipo de Evento</th><th style="padding: 8px;">Estado</th><th style="padding: 8px;" class="no-export">Acciones</th></tr>
+                            <tr class="filtros-tabla">
+                                <th style="padding: 4px;"><input type="text" id="filtroCalFecha" placeholder="Buscar fecha..." style="width: 100%; box-sizing: border-box; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-weight: normal;"></th>
+                                <th style="padding: 4px;"><input type="text" id="filtroCalEquipo" placeholder="Buscar equipo..." style="width: 100%; box-sizing: border-box; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-weight: normal;"></th>
+                                <th style="padding: 4px;">
+                                    <div style="display: flex; gap: 10px; font-weight: normal; flex-wrap: wrap; font-size: 0.9em; padding: 4px;">
+                                        <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalTipo" value="Mantenimiento" checked> Mantenimiento</label>
+                                        <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalTipo" value="Calibración" checked> Calibración</label>
+                                    </div>
+                                </th>
+                                <th style="padding: 4px;">
+                                    <div style="display: flex; gap: 10px; font-weight: normal; flex-wrap: wrap; font-size: 0.9em; padding: 4px;">
+                                        <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalEstado" value="Programado" checked> Programado</label>
+                                        <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalEstado" value="Vencido" checked> Vencido</label>
+                                        <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalEstado" value="Ejecutado" checked> Ejecutado</label>
+                                    </div>
+                                </th>
+                                <th style="padding: 4px;" class="no-export"><button id="btnLimpiarFiltrosCal" class="btn-secondary" style="width: 100%; padding: 4px; font-size: 0.9em; cursor: pointer; border-radius: 3px;">Limpiar Filtros</button></th>
+                            </tr>
+                        </thead>
+                        <tbody id="bodyCalendarioEventos"></tbody>
+                    </table>
                 </div>
-                <div style="flex-grow: 1; display: flex; gap: 10px;">
-                    <button id="btnFiltrarCalendario" class="btn-primary" style="padding: 8px 15px; cursor: pointer;">Filtrar Rango</button>
-                </div>
-                <div>
-                    <button id="btnExportarCalendario" class="btn-exportar">📊 Exportar Excel</button>
-                </div>
-            </div>
-            
-            <div id="calendarioListaContainer" style="background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; overflow-x: auto;">
-                <table id="tablaCalendarioEventos" style="width: 100%; border-collapse: collapse; font-size: 0.9em; text-align: left;" border="1">
-                    <thead style="background: #f3f3f3;">
-                        <tr><th style="padding: 8px;">Fecha</th><th style="padding: 8px;">Equipo</th><th style="padding: 8px;">Tipo de Evento</th><th style="padding: 8px;">Estado</th><th style="padding: 8px;" class="no-export">Acciones</th></tr>
-                        <tr class="filtros-tabla">
-                            <th style="padding: 4px;"><input type="text" id="filtroCalFecha" placeholder="Buscar fecha..." style="width: 100%; box-sizing: border-box; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-weight: normal;"></th>
-                            <th style="padding: 4px;"><input type="text" id="filtroCalEquipo" placeholder="Buscar equipo..." style="width: 100%; box-sizing: border-box; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-weight: normal;"></th>
-                            <th style="padding: 4px;">
-                                <div style="display: flex; gap: 10px; font-weight: normal; flex-wrap: wrap; font-size: 0.9em; padding: 4px;">
-                                    <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalTipo" value="Mantenimiento" checked> Mantenimiento</label>
-                                    <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalTipo" value="Calibración" checked> Calibración</label>
-                                </div>
-                            </th>
-                            <th style="padding: 4px;">
-                                <div style="display: flex; gap: 10px; font-weight: normal; flex-wrap: wrap; font-size: 0.9em; padding: 4px;">
-                                    <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalEstado" value="Programado" checked> Programado</label>
-                                    <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalEstado" value="Vencido" checked> Vencido</label>
-                                    <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalEstado" value="Ejecutado" checked> Ejecutado</label>
-                                </div>
-                            </th>
-                            <th style="padding: 4px;" class="no-export"><button id="btnLimpiarFiltrosCal" class="btn-secondary" style="width: 100%; padding: 4px; font-size: 0.9em; cursor: pointer; border-radius: 3px;">Limpiar Filtros</button></th>
-                        </tr>
-                    </thead>
-                    <tbody id="bodyCalendarioEventos"></tbody>
-                </table>
             </div>
         </div>
 

@@ -913,8 +913,8 @@ document.getElementById('btnAgregarLabExt')?.addEventListener('click', () => {
     const vals = Array.from(document.querySelectorAll('.lab-ext-input')).map(i => i.value);
     window.numDatosLabExt++;
     window.generarTablaLabExt();
-    vals.forEach((v, idx) => { if (document.getElementById(`labExt${idx+1}`)) document.getElementById(`labExt${idx+1}`).value = v; });
-    if (typeof window.calcularVeracidad === 'function') window.calcularVeracidad();
+    vals.forEach((v, idx) => { if (document.getElementById(`labExt${idx + 1}`)) document.getElementById(`labExt${idx + 1}`).value = v; });
+    window.calcularVeracidad();
 });
 
 document.getElementById('btnEliminarLabExt')?.addEventListener('click', () => {
@@ -923,8 +923,8 @@ document.getElementById('btnEliminarLabExt')?.addEventListener('click', () => {
     const vals = Array.from(document.querySelectorAll('.lab-ext-input')).map(i => i.value);
     window.numDatosLabExt--;
     window.generarTablaLabExt();
-    for (let idx = 0; idx < window.numDatosLabExt; idx++) { if (document.getElementById(`labExt${idx+1}`)) document.getElementById(`labExt${idx+1}`).value = vals[idx]; }
-    if (typeof window.calcularVeracidad === 'function') window.calcularVeracidad();
+    for (let idx = 0; idx < window.numDatosLabExt; idx++) { if (document.getElementById(`labExt${idx + 1}`)) document.getElementById(`labExt${idx + 1}`).value = vals[idx]; }
+    window.calcularVeracidad();
 });
 
 // --- Lógica de Carga de Datos de Incertidumbre ---
@@ -1510,16 +1510,30 @@ window.sincronizarVistaCertificados();
 
 window.actualizarVistaCertificados = function() {
     const selector = document.getElementById('certificadosSelector')?.value;
+    const selectorElement = document.getElementById('certificadosSelector');
     const divCert = document.getElementById('certificadosBalanzaSaca');
+    const divCertCinta = document.getElementById('certificadosCintaMetrica');
     const divCalc = document.getElementById('calcFactoresBalanzaSaca');
+    const tituloSeccionV = document.getElementById('tituloSeccionV');
+    const divCalcCinta = document.getElementById('calcFactoresCintaMetrica');
+
+    // Actualizar el título de la Sección V
+    if (tituloSeccionV && selectorElement) {
+        const selectedOptionText = selectorElement.options[selectorElement.selectedIndex].text;
+        tituloSeccionV.innerHTML = `V. CALCULO DE INCERTIDUMBRE DE FACTORES EN EL ENSAYO - <span style="color: #217346; font-weight: normal;">Version ${selectedOptionText}</span>`;
+    }
+
+    // Lógica para mostrar/ocultar las secciones correspondientes
     if (selector === 'BALANZA_SACABOCADO') {
         if (divCert) divCert.style.display = 'block';
         if (divCalc) divCalc.style.display = 'block';
     } else {
+        // Aquí se podría añadir lógica para otros tipos de equipos en el futuro
         if (divCert) divCert.style.display = 'none';
         if (divCalc) divCalc.style.display = 'none';
     }
 };
+
 document.getElementById('certificadosSelector')?.addEventListener('change', window.actualizarVistaCertificados);
 window.actualizarVistaCertificados();
 
@@ -3875,6 +3889,26 @@ document.getElementById('btnEliminarSeleccionados')?.addEventListener('click', a
         calcularDiferenciaCritica();
         calcularOpcionC();
     }
+});
+
+// --- Lógica de Búsqueda de Equipos ---
+document.getElementById('buscadorEquipos')?.addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    const equipos = document.querySelectorAll('#equiposList > div[id^="equipo-container-"]');
+
+    equipos.forEach(equipoContainer => {
+        const equipoId = equipoContainer.id.replace('equipo-container-', '');
+        const nombreSpan = document.getElementById(`nombre-equipo-${equipoId}`);
+        let textoVisible = '';
+
+        if (nombreSpan) {
+            textoVisible = nombreSpan.innerText.toLowerCase();
+        }
+
+        // Buscar tanto en el texto visible como en el ID del equipo (que puede contener el código)
+        const coincide = textoVisible.includes(searchTerm) || equipoId.toLowerCase().includes(searchTerm);
+        equipoContainer.style.display = coincide ? '' : 'none';
+    });
 });
 
 // --- Lógica de Calendario de Mantenimiento y Calibración ---
