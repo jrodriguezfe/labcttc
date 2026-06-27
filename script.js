@@ -1026,6 +1026,26 @@ async function cargarDatosIncertidumbre(eficaciaId) {
             if (data.certSacaProm2 !== undefined) document.getElementById('certSacaProm2').value = data.certSacaProm2;
             if (data.certSacaNominal !== undefined) document.getElementById('certSacaNominal').value = data.certSacaNominal;
 
+            // Cargar datos de Cinta Métrica si existen (formato de objeto)
+            if (data.certCintaCodigo !== undefined) document.getElementById('certCintaCodigo').value = data.certCintaCodigo;
+            if (data.certCintaUExp !== undefined) document.getElementById('certCintaUExp').value = data.certCintaUExp;
+            if (data.certCintaUOrig !== undefined) document.getElementById('certCintaUOrig').value = data.certCintaUOrig;
+            if (data.cintaMetricaTabla && typeof data.cintaMetricaTabla === 'object') {
+                const rows = document.querySelectorAll('#tablaCintaMetrica tbody tr');
+                rows.forEach((row, rowIndex) => {
+                    const rowData = data.cintaMetricaTabla[`row_${rowIndex}`];
+                    if (rowData) {
+                        const inputs = row.querySelectorAll('input.cinta-input');
+                        inputs.forEach((input, colIndex) => {
+                            if (rowData[`col_${colIndex}`] !== undefined) {
+                                input.value = rowData[`col_${colIndex}`];
+                            }
+                        });
+                    }
+                });
+            }
+
+
             if (typeof window.sincronizarVistaCertificados === 'function') window.sincronizarVistaCertificados();
             if (typeof window.actualizarFormulasBalanza === 'function') window.actualizarFormulasBalanza();
             if (typeof window.actualizarFormulasSacabocado === 'function') window.actualizarFormulasSacabocado();
@@ -1523,17 +1543,92 @@ window.actualizarVistaCertificados = function() {
         tituloSeccionV.innerHTML = `V. CALCULO DE INCERTIDUMBRE DE FACTORES EN EL ENSAYO - <span style="color: #217346; font-weight: normal;">Version ${selectedOptionText}</span>`;
     }
 
+    // Ocultar todo primero para simplificar la lógica
+    if (divCert) divCert.style.display = 'none';
+    if (divCalc) divCalc.style.display = 'none';
+    if (divCertCinta) divCertCinta.style.display = 'none';
+    if (divCalcCinta) divCalcCinta.style.display = 'none';
+
     // Lógica para mostrar/ocultar las secciones correspondientes
     if (selector === 'BALANZA_SACABOCADO') {
         if (divCert) divCert.style.display = 'block';
         if (divCalc) divCalc.style.display = 'block';
+    } else if (selector === 'CINTA_METRICA') {
+        if (divCertCinta) divCertCinta.style.display = 'block';
+        if (divCalcCinta) divCalcCinta.style.display = 'block';
     } else {
         // Aquí se podría añadir lógica para otros tipos de equipos en el futuro
-        if (divCert) divCert.style.display = 'none';
-        if (divCalc) divCalc.style.display = 'none';
+        // Por defecto, no se muestra nada si no hay una opción reconocida
     }
 };
 
+function inicializarCargadorCintaMetrica() {
+    const uploadInput = document.getElementById('uploadCintaMetrica');
+    const digitalizarBtn = document.getElementById('btnDigitalizarCinta');
+    const previewContainer = document.getElementById('cintaMetricaPreviewContainer');
+    const imgPreview = document.getElementById('imgPreviewCintaMetrica');
+    const statusText = document.getElementById('cintaMetricaStatus');
+
+    if (!uploadInput || !digitalizarBtn || !previewContainer || !imgPreview || !statusText) return;
+
+    uploadInput.addEventListener('change', (event) => {
+        const file = event.target.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imgPreview.src = e.target.result;
+                previewContainer.style.display = 'block';
+                statusText.innerText = `Imagen "${file.name}" cargada. Lista para digitalizar.`;
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    digitalizarBtn.addEventListener('click', () => {
+        if (!uploadInput.files[0]) {
+            alert("Por favor, seleccione una imagen primero.");
+            return;
+        }
+
+        statusText.innerText = "Procesando imagen... (Simulación de OCR)";
+        statusText.style.fontWeight = 'bold';
+        statusText.style.color = '#004a8f';
+
+        // Simulación de un proceso de OCR que tarda 1.5 segundos
+        setTimeout(() => {
+            // Estos son los datos que proporcionaste anteriormente.
+            // En una implementación real, una API de OCR devolvería estos valores.
+            const datosOCR = [
+                [0.0, 0.0, 0, 0.0, 0.0, 0.6, 0.3],
+                [500.4, 500.3, 500, -0.4, -0.3, 1.0, 0.3],
+                [1000.3, 1000.2, 1000, -0.3, -0.2, 1.0, 0.3],
+                [1500.5, 1500.4, 1500, -0.5, -0.4, 1.4, 0.3],
+                [2000.5, 2000.4, 2000, -0.5, -0.4, 1.4, 0.3],
+                [2500.6, 2500.5, 2500, -0.6, -0.5, 1.8, 0.3],
+                [3000.8, 3000.7, 3000, -0.8, -0.7, 1.8, 0.3],
+                [3500.7, 3500.6, 3500, -0.7, -0.6, 2.2, 0.3],
+                [4000.9, 4000.8, 4000, -0.9, -0.8, 2.2, 0.3],
+                [4500.7, 4500.6, 4500, -0.7, -0.6, 2.6, 0.3],
+                [5000.9, 5000.8, 5000, -0.9, -0.8, 2.6, 0.3]
+            ];
+
+            const rows = document.querySelectorAll('#tablaCintaMetrica tbody tr');
+            rows.forEach((row, rowIndex) => {
+                if (datosOCR[rowIndex]) {
+                    const inputs = row.querySelectorAll('input.cinta-input');
+                    inputs.forEach((input, colIndex) => {
+                        input.value = datosOCR[rowIndex][colIndex];
+                    });
+                }
+            });
+
+            statusText.innerText = "¡Digitalización completada!";
+            statusText.style.fontWeight = 'bold';
+            statusText.style.color = '#217346';
+        }, 1500);
+    });
+};
+inicializarCargadorCintaMetrica();
 document.getElementById('certificadosSelector')?.addEventListener('change', window.actualizarVistaCertificados);
 window.actualizarVistaCertificados();
 
@@ -2522,6 +2617,21 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
         const certSacaProm2 = parseFloat(document.getElementById('certSacaProm2')?.value) || 0;
         const certSacaNominal = parseFloat(document.getElementById('certSacaNominal')?.value) || 0;
         
+        // Extraer datos de Cinta Métrica
+        const certCintaCodigo = document.getElementById('certCintaCodigo')?.value || '';
+        const certCintaUExp = parseFloat(document.getElementById('certCintaUExp')?.value) || 0;
+        const certCintaUOrig = parseFloat(document.getElementById('certCintaUOrig')?.value) || 0;
+        const cintaMetricaTabla = {}; // Usar un objeto (mapa) en lugar de un array de arrays
+        const cintaRows = document.querySelectorAll('#tablaCintaMetrica tbody tr');
+        cintaRows.forEach((row, rowIndex) => {
+            const rowData = {};
+            const inputs = row.querySelectorAll('input.cinta-input');
+            inputs.forEach((input, colIndex) => {
+                rowData[`col_${colIndex}`] = input.value;
+            });
+            cintaMetricaTabla[`row_${rowIndex}`] = rowData;
+        });
+
         const labExt = Array.from(document.querySelectorAll('.lab-ext-input')).map(inp => inp.value);
 
         const analistasData = {};
@@ -2564,6 +2674,8 @@ document.querySelectorAll('.btnGuardarEficacia').forEach(btn => {
             precRefText1, precRefVar, precRefText2, precRefStd,
             certBalanzaCodigo, certBalanzaUR1, certBalanzaUR2, certBalanzaR,
             certSacabocadoCodigo, certSacaUexp, certSacaProm1, certSacaProm2, certSacaNominal,
+            certCintaCodigo, certCintaUExp, certCintaUOrig,
+            cintaMetricaTabla,
             labExt: labExt,
             fechaRegistro: new Date().toISOString()
         };
