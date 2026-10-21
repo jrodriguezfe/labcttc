@@ -1100,6 +1100,12 @@ window.inicializarEficacia = async function() {
     const snapshot = await getDocs(eficaciaRef);
     const list = document.getElementById('incertidumbreEnsayoList');
     if (!list) return;
+    const areaEficacia = document.getElementById('areaEficacia');
+    if (areaEficacia && areaEficacia.parentElement === list) {
+        list.parentElement.after(areaEficacia);
+        areaEficacia.style.display = 'none';
+        currentEficaciaId = null;
+    }
     list.innerHTML = ''; // Clear list
 
     if (snapshot.empty) {
@@ -1202,7 +1208,9 @@ async function eliminarEnsayoEficacia(eficaciaId, eficaciaNombre) {
             }
 
             if (currentEficaciaId === eficaciaId) {
-                document.getElementById('areaEficacia').style.display = 'none';
+                const areaEficacia = document.getElementById('areaEficacia');
+                areaEficacia.style.display = 'none';
+                document.getElementById('incertidumbreEnsayoList').parentElement.after(areaEficacia);
                 currentEficaciaId = null;
             }
 
@@ -1223,6 +1231,7 @@ function seleccionarEnsayoEficacia(eficaciaId) {
 
     if (areaEficacia.style.display === 'block' && currentEficaciaId === eficaciaId) {
         areaEficacia.style.display = 'none';
+        list.parentElement.after(areaEficacia);
         currentEficaciaId = null;
         const currentDiv = document.getElementById(`eficacia-container-${eficaciaId}`);
         if (currentDiv) currentDiv.style.borderLeft = "1px solid #ccc";
@@ -1233,7 +1242,10 @@ function seleccionarEnsayoEficacia(eficaciaId) {
             }
         });
         const newDiv = document.getElementById(`eficacia-container-${eficaciaId}`);
-        if (newDiv) newDiv.style.borderLeft = "4px solid #004a8f";
+        if (newDiv) {
+            newDiv.style.borderLeft = "4px solid #004a8f";
+            newDiv.after(areaEficacia);
+        }
 
         areaEficacia.style.display = 'block';
         currentEficaciaId = eficaciaId;
