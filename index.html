@@ -1792,7 +1792,7 @@
                 <div id="calendarioListaContainer" style="background: #fff; padding: 15px; border: 1px solid #ddd; border-radius: 5px; overflow-x: auto;">
                     <table id="tablaCalendarioEventos" style="width: 100%; border-collapse: collapse; font-size: 0.9em; text-align: left;" border="1">
                         <thead style="background: #f3f3f3;">
-                            <tr><th style="padding: 8px;">Fecha</th><th style="padding: 8px;">Equipo</th><th style="padding: 8px;">Tipo de Evento</th><th style="padding: 8px;">Estado</th><th style="padding: 8px;" class="no-export">Acciones</th></tr>
+                            <tr><th style="padding: 8px;">Fecha</th><th style="padding: 8px;">Equipo</th><th style="padding: 8px;">Tipo de Evento</th><th style="padding: 8px;">Estado</th><th style="padding: 8px;">Fecha programada</th><th style="padding: 8px;">Aviso 90 días antes</th><th style="padding: 8px;">Aviso 30 días antes</th><th style="padding: 8px;">Aviso 15 días antes</th><th style="padding: 8px;">Días vencido</th><th style="padding: 8px;">Observación</th><th style="padding: 8px;" class="no-export">Acciones</th></tr>
                             <tr class="filtros-tabla">
                                 <th style="padding: 4px;"><input type="text" id="filtroCalFecha" placeholder="Buscar fecha..." style="width: 100%; box-sizing: border-box; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-weight: normal;"></th>
                                 <th style="padding: 4px;"><input type="text" id="filtroCalEquipo" placeholder="Buscar equipo..." style="width: 100%; box-sizing: border-box; padding: 4px; border: 1px solid #ccc; border-radius: 3px; font-weight: normal;"></th>
@@ -1809,6 +1809,12 @@
                                         <label style="cursor: pointer; white-space: nowrap;"><input type="checkbox" class="filtroCalEstado" value="Ejecutado" checked> Ejecutado</label>
                                     </div>
                                 </th>
+                                <th style="padding: 4px;"></th>
+                                <th style="padding: 4px;"></th>
+                                <th style="padding: 4px;"></th>
+                                <th style="padding: 4px;"></th>
+                                <th style="padding: 4px;"></th>
+                                <th style="padding: 4px;"></th>
                                 <th style="padding: 4px;" class="no-export"><button id="btnLimpiarFiltrosCal" class="btn-secondary" style="width: 100%; padding: 4px; font-size: 0.9em; cursor: pointer; border-radius: 3px;">Limpiar Filtros</button></th>
                             </tr>
                         </thead>

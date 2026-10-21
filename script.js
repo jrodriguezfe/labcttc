@@ -4038,6 +4038,39 @@ document.getElementById('buscadorEquipos')?.addEventListener('input', (e) => {
 // --- Lógica de Calendario de Mantenimiento y Calibración ---
 let todosLosEventosCalendario = [];
 
+function fechaCalendarioVencida(fecha, hoy = new Date()) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha || '');
+    if (!match) return false;
+    const fechaProgramada = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+    const fechaActual = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
+    return fechaProgramada < fechaActual;
+}
+
+function calcularFechaAvisoCalendario(fechaProgramada, diasAntes) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaProgramada || '');
+    if (!match) return '';
+    const fechaAviso = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));
+    fechaAviso.setUTCDate(fechaAviso.getUTCDate() - diasAntes);
+    return fechaAviso.toISOString().slice(0, 10);
+}
+
+function fechaLocalCalendario(fecha = new Date()) {
+    const año = fecha.getFullYear();
+    const mes = String(fecha.getMonth() + 1).padStart(2, '0');
+    const dia = String(fecha.getDate()).padStart(2, '0');
+    return `${año}-${mes}-${dia}`;
+}
+
+function calcularDiasVencidoCalendario(fechaProgramada, fechaFin) {
+    const inicio = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaProgramada || '');
+    const fin = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fechaFin || '');
+    if (!inicio || !fin) return null;
+
+    const inicioUtc = Date.UTC(Number(inicio[1]), Number(inicio[2]) - 1, Number(inicio[3]));
+    const finUtc = Date.UTC(Number(fin[1]), Number(fin[2]) - 1, Number(fin[3]));
+    return Math.max(0, Math.floor((finUtc - inicioUtc) / 86400000));
+}
+
 window.aplicarFiltrosTablaCalendario = function() {
     const desde = document.getElementById('calDesde')?.value;
     const hasta = document.getElementById('calHasta')?.value;
@@ -4070,22 +4103,34 @@ window.cargarDatosCalendario = async function() {
             const equipoNombre = data.nombre || equipoId;
             
             if (data.calibProxima) {
-                const isOverdue = new Date(data.calibProxima) < new Date();
+                const isOverdue = fechaCalendarioVencida(data.calibProxima);
                 todosLosEventosCalendario.push({
                     title: `Calibración: ${equipoNombre}`,
                     start: data.calibProxima,
                     color: isOverdue ? '#c0392b' : '#004a8f', // Rojo si venció, azul en caso contrario
-                    extendedProps: { equipoId: equipoId, equipoNombre: equipoNombre, tipo: 'Calibración', estado: isOverdue ? 'Vencido' : 'Programado' }
+                    extendedProps: {
+                        equipoId: equipoId,
+                        equipoNombre: equipoNombre,
+                        tipo: 'Calibración',
+                        estado: isOverdue ? 'Vencido' : 'Programado',
+                        fechaProgramada: data.calibProxima
+                    }
                 });
             }
             
             if (data.mantProximo) {
-                const isOverdue = new Date(data.mantProximo) < new Date();
+                const isOverdue = fechaCalendarioVencida(data.mantProximo);
                 todosLosEventosCalendario.push({
                     title: `Mantenimiento: ${equipoNombre}`,
                     start: data.mantProximo,
                     color: isOverdue ? '#d97706' : '#217346', // Naranja si venció, verde en caso contrario
-                    extendedProps: { equipoId: equipoId, equipoNombre: equipoNombre, tipo: 'Mantenimiento', estado: isOverdue ? 'Vencido' : 'Programado' }
+                    extendedProps: {
+                        equipoId: equipoId,
+                        equipoNombre: equipoNombre,
+                        tipo: 'Mantenimiento',
+                        estado: isOverdue ? 'Vencido' : 'Programado',
+                        fechaProgramada: data.mantProximo
+                    }
                 });
             }
             
@@ -4095,7 +4140,16 @@ window.cargarDatosCalendario = async function() {
                         title: `${hist.tipo} (Ejecutado): ${equipoNombre}`,
                         start: hist.fechaProgramada || hist.fechaEjecucion,
                         color: '#6c757d', // Gris para eventos ya ejecutados
-                    extendedProps: { equipoId: equipoId, equipoNombre: equipoNombre, tipo: hist.tipo, estado: 'Ejecutado', fechaEjecucion: hist.fechaEjecucion, timestamp: hist.timestamp }
+                        extendedProps: {
+                            equipoId: equipoId,
+                            equipoNombre: equipoNombre,
+                            tipo: hist.tipo,
+                            estado: 'Ejecutado',
+                            fechaEjecucion: hist.fechaEjecucion,
+                            fechaProgramada: hist.fechaProgramada || '',
+                            observacionRetraso: hist.observacionRetraso || '',
+                            timestamp: hist.timestamp
+                        }
                     });
                 });
             }
@@ -4113,7 +4167,7 @@ function renderListaCalendario(eventos) {
     tbody.innerHTML = '';
     const sorted = [...eventos].sort((a, b) => new Date(a.start) - new Date(b.start));
     if (sorted.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 10px;">No hay eventos para el rango seleccionado.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align: center; padding: 10px;">No hay eventos para el rango seleccionado.</td></tr>';
         return;
     }
     sorted.forEach(e => {
@@ -4130,8 +4184,34 @@ function renderListaCalendario(eventos) {
                 btnAccion = `<button type="button" class="btn-primary" style="padding: 4px 8px; font-size: 0.85em; cursor: pointer; border-radius: 4px; background-color: #28a745; border: none; color: white;" onclick="window.marcarEventoEjecutado('${e.extendedProps.equipoId}', '${e.extendedProps.tipo}')">✔ Marcar Ejecutado</button>` + btnEliminar;
             }
         }
-        tbody.innerHTML += `<tr><td style="padding: 8px;">${e.start}</td><td style="padding: 8px;">${e.extendedProps.equipoNombre}</td><td style="padding: 8px;">${e.extendedProps.tipo}</td><td style="padding: 8px; ${colorEstado}">${e.extendedProps.estado}</td><td style="padding: 8px; text-align: center; white-space: nowrap;" class="no-export">${btnAccion}</td></tr>`;
+        const fechaProgramada = e.extendedProps.fechaProgramada || e.start;
+        const fechaProgramadaTexto = fechaProgramada ? formatearFechaCalendario(fechaProgramada) : '-';
+        const fechaAviso90 = formatearFechaCalendario(calcularFechaAvisoCalendario(fechaProgramada, 90)) || '-';
+        const fechaAviso30 = formatearFechaCalendario(calcularFechaAvisoCalendario(fechaProgramada, 30)) || '-';
+        const fechaAviso15 = formatearFechaCalendario(calcularFechaAvisoCalendario(fechaProgramada, 15)) || '-';
+        const fechaFinVencimiento = e.extendedProps.estado === 'Ejecutado'
+            ? e.extendedProps.fechaEjecucion
+            : fechaLocalCalendario();
+        const diasVencido = calcularDiasVencidoCalendario(fechaProgramada, fechaFinVencimiento);
+        const diasVencidoTexto = diasVencido === null ? '-' : `${diasVencido} día${diasVencido === 1 ? '' : 's'}`;
+        const observacionRetraso = escaparHtmlCalendario(e.extendedProps.observacionRetraso || '-');
+        tbody.innerHTML += `<tr><td style="padding: 8px;">${formatearFechaCalendario(e.start)}</td><td style="padding: 8px;">${e.extendedProps.equipoNombre}</td><td style="padding: 8px;">${e.extendedProps.tipo}</td><td style="padding: 8px; ${colorEstado}">${e.extendedProps.estado}</td><td style="padding: 8px;">${fechaProgramadaTexto}</td><td style="padding: 8px;">${fechaAviso90}</td><td style="padding: 8px;">${fechaAviso30}</td><td style="padding: 8px;">${fechaAviso15}</td><td style="padding: 8px;">${diasVencidoTexto}</td><td style="padding: 8px;">${observacionRetraso}</td><td style="padding: 8px; text-align: center; white-space: nowrap;" class="no-export">${btnAccion}</td></tr>`;
     });
+}
+
+function formatearFechaCalendario(fecha) {
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha);
+    return match ? `${match[3]}/${match[2]}/${match[1]}` : fecha;
+}
+
+function escaparHtmlCalendario(valor) {
+    return String(valor).replace(/[&<>"']/g, caracter => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    })[caracter]);
 }
 
 window.marcarEventoEjecutado = async function(equipoId, tipo) {
@@ -4146,7 +4226,7 @@ window.marcarEventoEjecutado = async function(equipoId, tipo) {
 
         const data = docSnap.data();
         const hoy = new Date();
-        const hoyStr = hoy.toISOString().split('T')[0];
+        const hoyStr = fechaLocalCalendario(hoy);
         const updates = {};
         
         let prefix = equipoId;
@@ -4155,10 +4235,23 @@ window.marcarEventoEjecutado = async function(equipoId, tipo) {
         
         const usuarioActual = auth.currentUser ? auth.currentUser.email : 'Sistema';
         const historial = data.historialEventos || [];
+        const fechaProgramada = tipo === 'Calibración' ? (data.calibProxima || '') : (data.mantProximo || '');
+        const eventoVencido = fechaCalendarioVencida(fechaProgramada, hoy);
+        let observacionRetraso = '';
+        if (eventoVencido) {
+            const respuesta = prompt(`El evento estaba programado para ${formatearFechaCalendario(fechaProgramada)} y se encuentra vencido. Indique el motivo del retraso:`);
+            if (respuesta === null) return;
+            observacionRetraso = respuesta.trim();
+            if (!observacionRetraso) {
+                alert("Debe indicar el motivo del retraso para registrar la ejecución del evento vencido.");
+                return;
+            }
+        }
         historial.push({
             tipo: tipo,
             fechaEjecucion: hoyStr,
-            fechaProgramada: tipo === 'Calibración' ? (data.calibProxima || '') : (data.mantProximo || ''),
+            fechaProgramada: fechaProgramada,
+            ...(observacionRetraso ? { observacionRetraso } : {}),
             usuario: usuarioActual,
             timestamp: hoy.toISOString()
         });
