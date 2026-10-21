@@ -4037,6 +4037,7 @@ document.getElementById('buscadorEquipos')?.addEventListener('input', (e) => {
 
 // --- Lógica de Calendario de Mantenimiento y Calibración ---
 let todosLosEventosCalendario = [];
+let diasAvisoFiltradoCalendario = null;
 
 function fechaCalendarioVencida(fecha, hoy = new Date()) {
     const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha || '');
@@ -4080,14 +4081,17 @@ window.aplicarFiltrosTablaCalendario = function() {
     const fEstados = Array.from(document.querySelectorAll('.filtroCalEstado:checked')).map(cb => cb.value);
 
     let eventosFiltrados = todosLosEventosCalendario;
-    if (desde) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) >= new Date(desde));
-    if (hasta) eventosFiltrados = eventosFiltrados.filter(e => new Date(e.start) <= new Date(hasta));
     eventosFiltrados = eventosFiltrados.filter(e => {
+        const fechaParaRango = diasAvisoFiltradoCalendario === null
+            ? e.start
+            : calcularFechaAvisoCalendario(e.extendedProps.fechaProgramada || e.start, diasAvisoFiltradoCalendario);
+        const matchDesde = !desde || (fechaParaRango && fechaParaRango >= desde);
+        const matchHasta = !hasta || (fechaParaRango && fechaParaRango <= hasta);
         const matchFecha = e.start.toLowerCase().includes(fFecha);
         const matchEquipo = e.extendedProps.equipoNombre.toLowerCase().includes(fEquipo);
         const matchTipo = fTipos.includes(e.extendedProps.tipo);
         const matchEstado = fEstados.includes(e.extendedProps.estado);
-        return matchFecha && matchEquipo && matchTipo && matchEstado;
+        return matchDesde && matchHasta && matchFecha && matchEquipo && matchTipo && matchEstado;
     });
     renderListaCalendario(eventosFiltrados);
 };
@@ -4354,6 +4358,20 @@ document.getElementById('btnFiltrarCalendario')?.addEventListener('click', () =>
     window.aplicarFiltrosTablaCalendario();
 });
 
+document.querySelectorAll('.btn-filtro-aviso-cal').forEach(button => {
+    button.addEventListener('click', () => {
+        const desactivarFiltro = diasAvisoFiltradoCalendario === Number(button.dataset.diasAviso);
+        diasAvisoFiltradoCalendario = desactivarFiltro ? null : Number(button.dataset.diasAviso);
+        document.querySelectorAll('.btn-filtro-aviso-cal').forEach(filtro => {
+            const seleccionado = !desactivarFiltro && filtro === button;
+            filtro.setAttribute('aria-pressed', String(seleccionado));
+            filtro.style.backgroundColor = seleccionado ? '#004a8f' : '';
+            filtro.style.color = seleccionado ? '#fff' : '';
+        });
+        window.aplicarFiltrosTablaCalendario();
+    });
+});
+
 ['filtroCalFecha', 'filtroCalEquipo'].forEach(id => {
     document.getElementById(id)?.addEventListener('input', window.aplicarFiltrosTablaCalendario);
 });
@@ -4364,6 +4382,12 @@ document.querySelectorAll('.filtroCalTipo, .filtroCalEstado').forEach(cb => {
 document.getElementById('btnLimpiarFiltrosCal')?.addEventListener('click', () => {
     if(document.getElementById('filtroCalFecha')) document.getElementById('filtroCalFecha').value = '';
     if(document.getElementById('filtroCalEquipo')) document.getElementById('filtroCalEquipo').value = '';
+    diasAvisoFiltradoCalendario = null;
+    document.querySelectorAll('.btn-filtro-aviso-cal').forEach(filtro => {
+        filtro.setAttribute('aria-pressed', 'false');
+        filtro.style.backgroundColor = '';
+        filtro.style.color = '';
+    });
     document.querySelectorAll('.filtroCalTipo, .filtroCalEstado').forEach(cb => cb.checked = true);
     window.aplicarFiltrosTablaCalendario();
 });
