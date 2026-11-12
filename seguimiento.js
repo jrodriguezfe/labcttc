@@ -380,8 +380,15 @@ function obtenerUltimaEntrega(muestra) {
     }, null);
 }
 
+// Apuntar siempre a la URL de producción en GitHub Pages para que el QR sea universal
+const GITHUB_PAGES_SEGUIMIENTO_URL = 'https://jrodriguezfe.github.io/labcttc/seguimiento.html';
+
+function generarUrlQr(docId) {
+    return `${GITHUB_PAGES_SEGUIMIENTO_URL}?id=${encodeURIComponent(docId)}`;
+}
+
 function generarQrImgHtml(docId) {
-    const url = `${window.location.origin}${window.location.pathname}?id=${docId}`;
+    const url = generarUrlQr(docId);
     const qr  = window.qrcode(0, 'M');
     qr.addData(url);
     qr.make();
@@ -618,9 +625,15 @@ async function registrarMuestra() {
         const docRef = await addDoc(collection(db, 'seguimiento_muestras'), docData);
 
         lastCreatedId = docRef.id;
+        const qrUrl = generarUrlQr(docRef.id);
         document.getElementById('qrResultado').style.display = 'block';
         document.getElementById('qrImagen').innerHTML        = generarQrImgHtml(docRef.id);
         document.getElementById('qrIdTexto').textContent     = docRef.id;
+        const qrUrlEl = document.getElementById('qrUrlTexto');
+        if (qrUrlEl) {
+            qrUrlEl.href = qrUrl;
+            qrUrlEl.textContent = qrUrl;
+        }
 
         mostrarAlerta('alertReg', '✅ Muestra registrada correctamente. Escanee el QR para continuar.', 'success');
 
@@ -1153,8 +1166,14 @@ async function abrirModalDetalle(id) {
     document.getElementById('modalTitulo').textContent =
         `Flujograma y QR — ${muestra.razonSocial || 'Muestra'} (${muestra.ruc || ''})`;
     renderFlujograma('modalFlujograma', muestra, '', true);
+    const qrUrl = generarUrlQr(id);
     document.getElementById('modalQrImagen').innerHTML  = generarQrImgHtml(id);
     document.getElementById('modalQrIdTexto').textContent = id;
+    const modalQrUrlEl = document.getElementById('modalQrUrlTexto');
+    if (modalQrUrlEl) {
+        modalQrUrlEl.href = qrUrl;
+        modalQrUrlEl.textContent = qrUrl;
+    }
     document.getElementById('modalDetalle').style.display = 'flex';
 }
 
