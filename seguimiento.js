@@ -5,7 +5,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import {
     getFirestore, collection, addDoc, getDocs, getDoc, updateDoc,
-    doc, query, orderBy, arrayUnion, Timestamp
+    doc, query, orderBy, arrayUnion, Timestamp, where, limit
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 import {
     getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
@@ -26,13 +26,15 @@ const db   = getFirestore(app);
 const auth = getAuth(app);
 
 // ── Estado global ───────────────────────────────────────────────
-let currentUser      = null;
-let initialized      = false;
-let activeScanner    = null; // { instance, wrapperId }
-let lastCreatedId    = null;
-let modalMuestraId   = null;
-let muestraActiva    = null; // { id, ...data } para el flujograma interactivo
-let _todasMuestras   = [];
+let currentUser           = null;
+let currentUserRole       = 'analista'; // 'analista' (solo etapas 1 a 5) o 'admin' (visión total)
+let initialized           = false;
+let activeScanner         = null; // { instance, wrapperId }
+let lastCreatedId         = null;
+let modalMuestraId        = null;
+let muestraActiva         = null; // { id, ...data } para el flujograma interactivo
+let _todasMuestras        = [];
+const _cacheClientesPorRuc = new Map();
 
 const stageSampleIds = {
     acond:   null,
@@ -98,14 +100,121 @@ const STAGE_CONFIG = {
 };
 
 // ════════════════════════════════════════════════════════════════
-//  AUTH
+//  RESOLUCIÓN DE ROL DESDE COLECCIÓN 'ANALISTAS'
 // ════════════════════════════════════════════════════════════════
-onAuthStateChanged(auth, user => {
+function clasificarRol(texto) {
+    if (!texto) return null;
+    const t = String(texto).toLowerCase().trim();
+    if (t === 'admin' || t === 'administrador' || t.startsWith('admin') || t.includes('administrador')) {
+        return 'admin';
+    }
+    if (t === 'visor' || t.includes('visor')) {
+        return 'visor';
+    }
+    if (t === 'analista' || t === 'analistas' || t.includes('analista')) {
+        return 'analista';
+    }
+    return null;
+}
+
+function obtenerRolDesdeDoc(data) {
+    if (!data) return 'analista';
+
+    // 1. Prioridad: campo 'descripcion' (especificado en Firestore)
+    const rolDesc = clasificarRol(data.descripcion);
+    if (rolDesc) return rolDesc;
+
+    // 2. Campo 'rol'
+    const rolRol = clasificarRol(data.rol);
+    if (rolRol) return rolRol;
+
+    // 3. Campo 'cargo'
+    const rolCargo = clasificarRol(data.cargo);
+    if (rolCargo) return rolCargo;
+
+    // 4. Campo 'role' o 'tipo'
+    const rolRole = clasificarRol(data.role || data.tipo);
+    if (rolRole) return rolRole;
+
+    return 'analista';
+}
+
+async function resolverUsuarioAnalista(user) {
+    if (!user) return { rol: 'analista', nombre: 'Analista' };
+
+    const emailUser = (user.email || '').toLowerCase().trim();
+    const uidUser   = (user.uid || '').trim();
+
+    let docData = null;
+
+    try {
+        // A. Buscar primero por ID de documento = user.uid
+        if (uidUser) {
+            const snapUid = await getDoc(doc(db, 'analistas', uidUser));
+            if (snapUid.exists()) {
+                docData = snapUid.data();
+            }
+        }
+
+        // B. Si no coincidió por ID directo, revisar colección 'analistas' para buscar por uid, email o id
+        if (!docData) {
+            const snapAll = await getDocs(collection(db, 'analistas'));
+            snapAll.forEach(d => {
+                if (docData) return;
+                const dData = d.data();
+                const dEmail = (dData.email || dData.correo || '').toLowerCase().trim();
+                const dUid   = (dData.uid || '').trim();
+                const dId    = d.id.toLowerCase().trim();
+
+                if (d.id === uidUser || dUid === uidUser) {
+                    docData = dData;
+                } else if (emailUser && (dEmail === emailUser || dId === emailUser)) {
+                    docData = dData;
+                }
+            });
+        }
+    } catch (err) {
+        console.warn('Error resolviendo usuario en colección analistas:', err);
+    }
+
+    if (!docData) {
+        return {
+            rol: 'analista',
+            nombre: user.displayName || user.email || 'Analista'
+        };
+    }
+
+    const rol = obtenerRolDesdeDoc(docData);
+    const nombre = (docData.nombre || docData.displayName || user.displayName || user.email || 'Analista').trim();
+
+    return { rol, nombre, data: docData };
+}
+
+// ════════════════════════════════════════════════════════════════
+//  AUTH & PERMISOS POR ROL
+// ════════════════════════════════════════════════════════════════
+onAuthStateChanged(auth, async user => {
     if (user) {
         currentUser = user;
         document.getElementById('auth-check').style.display = 'none';
         document.getElementById('appShell').style.display   = 'flex';
-        document.getElementById('userDisplay').textContent  = user.email;
+
+        // Determinar rol exacto desde la colección 'analistas' (evaluando descripcion, rol, cargo)
+        const infoAnalista = await resolverUsuarioAnalista(user);
+        currentUserRole    = infoAnalista.rol;
+
+        document.getElementById('userDisplay').textContent = infoAnalista.nombre;
+        const badgeEl = document.getElementById('roleBadgeContainer');
+        if (badgeEl) {
+            const badgeColor = (currentUserRole === 'admin') ? '#d35400' : '#27ae60';
+            badgeEl.innerHTML = `<span style="font-size:0.75rem; background:${badgeColor}; color:#fff; padding:2px 8px; border-radius:10px; font-weight:600; margin-left:4px;">${currentUserRole.toUpperCase()}</span>`;
+        }
+
+        // Aplicar permisos estrictos:
+        // - Admin: visión total permanente (todas las etapas + listado + dashboard)
+        // - Analista: solo ve las etapas del proceso (1, 2, 3, 4, 5)
+        aplicarPermisosPorRol(currentUserRole);
+
         if (!initialized) {
             initialized = true;
             init();
@@ -115,16 +224,50 @@ onAuthStateChanged(auth, user => {
         const urlTab = params.get('tab');
         if (urlId) {
             cargarMuestraEnEtapa(urlId, 'acond');
-        } else if (urlTab === 'dashboard') {
+        } else if (urlTab === 'dashboard' && currentUserRole === 'admin') {
             activarTab('tab-dashboard');
         }
     } else {
         currentUser = null;
+        currentUserRole = 'analista';
         detenerScannerActivo();
+        aplicarPermisosPorRol('analista');
         document.getElementById('auth-check').style.display = 'block';
         document.getElementById('appShell').style.display   = 'none';
     }
 });
+
+function aplicarPermisosPorRol(rol) {
+    const esAdmin = (rol === 'admin');
+
+    if (esAdmin) {
+        document.body.classList.remove('rol-analista');
+        document.body.classList.add('rol-admin');
+        document.querySelectorAll('.tab-admin-only').forEach(btn => {
+            btn.removeAttribute('hidden');
+            btn.style.setProperty('display', 'inline-block', 'important');
+        });
+        document.querySelectorAll('.pane-admin-only').forEach(pane => {
+            pane.removeAttribute('hidden');
+        });
+    } else {
+        document.body.classList.remove('rol-admin');
+        document.body.classList.add('rol-analista');
+        document.querySelectorAll('.tab-admin-only').forEach(btn => {
+            btn.setAttribute('hidden', 'true');
+            btn.style.setProperty('display', 'none', 'important');
+        });
+        document.querySelectorAll('.pane-admin-only').forEach(pane => {
+            pane.setAttribute('hidden', 'true');
+            pane.style.setProperty('display', 'none', 'important');
+        });
+        // Si el usuario analista estaba en listado o dashboard, redirigir a Etapa 1
+        const tabActual = getActiveTabId();
+        if (tabActual === 'tab-listado' || tabActual === 'tab-dashboard') {
+            activarTab('tab-registro');
+        }
+    }
+}
 
 document.getElementById('loginForm').addEventListener('submit', async e => {
     e.preventDefault();
@@ -164,6 +307,11 @@ function getActiveTabId() {
 }
 
 function activarTab(tabId, skipAutoLoad = false) {
+    // Los analistas solo tienen acceso a las etapas 1 a 5
+    if (currentUserRole !== 'admin' && (tabId === 'tab-listado' || tabId === 'tab-dashboard')) {
+        tabId = 'tab-registro';
+    }
+
     detenerScannerActivo();
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
@@ -580,7 +728,128 @@ function estadoLabel(e) {
 // ════════════════════════════════════════════════════════════════
 //  TAB 1 — REGISTRO / CREACIÓN DE CLIENTE
 // ════════════════════════════════════════════════════════════════
+async function buscarClientePorRuc(rucLimpio, rucRaw = '') {
+    if (!rucLimpio || rucLimpio.length !== 11) return null;
+
+    // 1. Memoria rápida local
+    if (_cacheClientesPorRuc.has(rucLimpio)) {
+        return _cacheClientesPorRuc.get(rucLimpio);
+    }
+
+    // 2. Si las muestras ya se cargaron en memoria
+    if (Array.isArray(_todasMuestras) && _todasMuestras.length > 0) {
+        const found = _todasMuestras.find(m => (m.ruc || '').replace(/\D/g, '') === rucLimpio && m.razonSocial);
+        if (found && found.razonSocial) {
+            _cacheClientesPorRuc.set(rucLimpio, found.razonSocial);
+            return found.razonSocial;
+        }
+    }
+
+    // 3. Consulta en Firestore
+    try {
+        const q1 = query(
+            collection(db, 'seguimiento_muestras'),
+            where('ruc', '==', rucLimpio),
+            limit(1)
+        );
+        const snap1 = await getDocs(q1);
+        if (!snap1.empty) {
+            const razon = snap1.docs[0].data()?.razonSocial || null;
+            if (razon) {
+                _cacheClientesPorRuc.set(rucLimpio, razon);
+                return razon;
+            }
+        }
+
+        if (rucRaw && rucRaw.trim() !== rucLimpio) {
+            const q2 = query(
+                collection(db, 'seguimiento_muestras'),
+                where('ruc', '==', rucRaw.trim()),
+                limit(1)
+            );
+            const snap2 = await getDocs(q2);
+            if (!snap2.empty) {
+                const razon = snap2.docs[0].data()?.razonSocial || null;
+                if (razon) {
+                    _cacheClientesPorRuc.set(rucLimpio, razon);
+                    return razon;
+                }
+            }
+        }
+    } catch (err) {
+        console.warn('Error al consultar RUC en Firestore:', err);
+    }
+
+    return null;
+}
+
 function iniciarTab1() {
+    const rucInput   = document.getElementById('ruc');
+    const razonInput = document.getElementById('razonSocial');
+    const rucAyuda   = document.getElementById('rucAyuda');
+
+    let debounceTimer = null;
+    let ultimoRucConsultado = '';
+
+    async function autocompletarSiExiste(forzar = false) {
+        if (!rucInput || !razonInput) return;
+        const raw    = rucInput.value.trim();
+        const limpio = raw.replace(/\D/g, '');
+
+        if (limpio.length !== 11) {
+            if (rucAyuda) {
+                rucAyuda.style.display = 'none';
+                rucAyuda.textContent = '';
+            }
+            return;
+        }
+
+        if (!forzar && limpio === ultimoRucConsultado) return;
+        ultimoRucConsultado = limpio;
+
+        if (rucAyuda) {
+            rucAyuda.style.display = 'block';
+            rucAyuda.style.color = '#555';
+            rucAyuda.textContent = '🔍 Verificando RUC en registros previos...';
+        }
+
+        const razonEncontrada = await buscarClientePorRuc(limpio, raw);
+        if (razonEncontrada) {
+            razonInput.value = razonEncontrada;
+            razonInput.style.transition = 'background-color 0.4s ease';
+            razonInput.style.backgroundColor = '#e8f5e9';
+            setTimeout(() => { razonInput.style.backgroundColor = ''; }, 1200);
+
+            if (rucAyuda) {
+                rucAyuda.style.display = 'block';
+                rucAyuda.style.color = '#217346';
+                rucAyuda.textContent = `✓ Cliente recurrente: Razón Social autocompletada.`;
+            }
+        } else {
+            if (rucAyuda) {
+                rucAyuda.style.display = 'block';
+                rucAyuda.style.color = '#004a8f';
+                rucAyuda.textContent = 'ℹ️ RUC nuevo: complete la Razón Social a continuación.';
+            }
+        }
+    }
+
+    rucInput?.addEventListener('input', () => {
+        clearTimeout(debounceTimer);
+        const limpio = rucInput.value.replace(/\D/g, '');
+        if (limpio.length === 11) {
+            debounceTimer = setTimeout(() => autocompletarSiExiste(), 200);
+        } else {
+            ultimoRucConsultado = '';
+            if (rucAyuda) rucAyuda.style.display = 'none';
+        }
+    });
+
+    rucInput?.addEventListener('blur', () => {
+        clearTimeout(debounceTimer);
+        autocompletarSiExiste(true);
+    });
+
     document.getElementById('btnRegistrar').addEventListener('click', registrarMuestra);
     document.getElementById('btnDescQR').addEventListener('click', () => {
         descargarQrDesdeContenedor('#qrImagen', lastCreatedId);
@@ -591,12 +860,12 @@ function iniciarTab1() {
 }
 
 async function registrarMuestra() {
-    const razonSocial = document.getElementById('razonSocial').value.trim();
     const ruc         = document.getElementById('ruc').value.trim();
+    const razonSocial = document.getElementById('razonSocial').value.trim();
     const desc        = document.getElementById('descMuestra').value.trim();
 
-    if (!razonSocial || !ruc) {
-        mostrarAlerta('alertReg', '⚠️ Complete Razón Social y RUC antes de continuar.', 'danger');
+    if (!ruc || !razonSocial) {
+        mostrarAlerta('alertReg', '⚠️ Ingrese RUC y Razón Social antes de continuar.', 'danger');
         return;
     }
     if (!/^\d{11}$/.test(ruc.replace(/\D/g, ''))) {
@@ -624,6 +893,13 @@ async function registrarMuestra() {
         };
         const docRef = await addDoc(collection(db, 'seguimiento_muestras'), docData);
 
+        _cacheClientesPorRuc.set(ruc.replace(/\D/g, ''), razonSocial);
+        const rucAyuda = document.getElementById('rucAyuda');
+        if (rucAyuda) {
+            rucAyuda.style.display = 'none';
+            rucAyuda.textContent = '';
+        }
+
         lastCreatedId = docRef.id;
         const qrUrl = generarUrlQr(docRef.id);
         document.getElementById('qrResultado').style.display = 'block';
@@ -637,8 +913,8 @@ async function registrarMuestra() {
 
         mostrarAlerta('alertReg', '✅ Muestra registrada correctamente. Escanee el QR para continuar.', 'success');
 
-        document.getElementById('razonSocial').value = '';
         document.getElementById('ruc').value         = '';
+        document.getElementById('razonSocial').value = '';
         document.getElementById('descMuestra').value = '';
 
         actualizarFlujogramaActivo({ id: docRef.id, ...docData });
